@@ -43,6 +43,15 @@ class LamaRiderService(val project: Project) {
         rd?.setDebugTransformedCode?.fire(enable)
     }
 
+    /** Rider set up for aspect tests (null: not known yet) and an explanation; see [refreshTestSettingsStatus]. */
+    @Volatile
+    var testSettingsStatus: Pair<Boolean?, String>? = null
+        private set
+
+    fun refreshTestSettingsStatus() {
+        rd?.refreshTestSettingsStatus?.fire(Unit)
+    }
+
     fun addLamaDebugConfiguration() {
         rd?.addLamaDebugConfiguration?.fire(Unit)
     }
@@ -55,6 +64,10 @@ class LamaRiderService(val project: Project) {
         rd = rdModel
         rdModel.autoBuild.set(AutoBuildAction.isEnabled())
         rdModel.status.advise(lifetime) { status = it ?: ""; fire() }
+        rdModel.testSettingsStatus.advise(lifetime) { text ->
+            testSettingsStatus = text?.let { rdModel.testSettingsConfigured.value to it }
+            fire()
+        }
         rdModel.modelPath.advise(lifetime) { path ->
             if (path == null) return@advise
             ApplicationManager.getApplication().executeOnPooledThread {

@@ -19,14 +19,13 @@ import javax.swing.JComponent
 class MetalamaErrorBanner : EditorNotificationProvider {
     override fun collectNotificationData(project: Project, file: VirtualFile): Function<in FileEditor, out JComponent?>? {
         if (!file.name.endsWith(".cs", ignoreCase = true)) return null
-        val errors = project.service<LamaRiderService>().model?.errors().orEmpty()
+        val model = project.service<LamaRiderService>().model ?: return null
+        val errors = model.errors()
         if (errors.isEmpty()) return null
         val first = errors.first()
         return Function { editor ->
             EditorNotificationPanel(editor, EditorNotificationPanel.Status.Error).apply {
-                // Full list in the tooltip; the first error leads since the bar truncates.
-                text = "Metalama: ${first.id} ${first.message.lineSequence().first()}" +
-                    (if (errors.size > 1) " (+${errors.size - 1} more)" else "") + ". Aspects are not applied."
+                text = model.errorBannerText().orEmpty()
                 first.file?.let { path ->
                     createActionLabel("Go to error") { Navigation.openLine(project, path, (first.line ?: 1) - 1) }
                 }

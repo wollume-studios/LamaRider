@@ -1,4 +1,6 @@
 using System;
+using System.Linq;
+using LamaRider.Model;
 using System.Collections.Immutable;
 using JetBrains.Application.Settings.Implementation;
 using JetBrains.Application.Parts;
@@ -32,6 +34,15 @@ public sealed class MetalamaTestSettings(ISolution solution, ISettingsStore sett
     public bool IsConfigured() =>
         settingsStore.BindToContextTransient(SolutionContext).GetValue((XunitProviderSettings s) => s.TestDiscoveryFromArtifactsMethod)
         == DiscoveryMethod.TestRunner;
+
+    /// <summary>Effective values (all layers) for the solution.</summary>
+    public (bool Configured, string Text) Status(bool? usesAspectTests)
+    {
+        var store = settingsStore.BindToContextTransient(SolutionContext);
+        var ignored = DiffToolProcesses.Count(p =>
+            store.GetIndexedValue((UnitTestRunnerSettings s) => s.SpawnedProcessesKnownList, p) == SpawnedProcessesResponse.DoNothing);
+        return TestSettingsStatus.Describe(IsConfigured(), ignored, DiffToolProcesses.Length, usesAspectTests);
+    }
 
     /// <returns>Human-readable description of where the settings went.</returns>
     public string Apply(string scope)

@@ -19,7 +19,7 @@ import java.io.File
 object MetalamaDiff {
     fun open(project: Project, file: String, offset: Int = 0) {
         val source = LocalFileSystem.getInstance().findFileByPath(file) ?: return
-        val transformedPath = project.service<LamaRiderService>().transformedPathFor(file) ?: findObjFallback(file)
+        val transformedPath = project.service<LamaRiderService>().transformedPathFor(file) ?: ObjTransformedFiles.find(file)
         if (transformedPath == null) {
             NotificationGroupManager.getInstance().getNotificationGroup("LamaRider").createNotification(
                 "No Metalama transformations in ${source.name}",
@@ -44,17 +44,5 @@ object MetalamaDiff {
         } } ?: 0
         request.putUserData(DiffUserDataKeys.SCROLL_TO_LINE, Pair.create(Side.LEFT, line))
         DiffManager.getInstance().showDiff(project, request)
-    }
-
-    /** obj/<Configuration>/<tfm>/metalama/... is written when MetalamaEmitCompilerTransformedFiles=true. */
-    fun findObjFallback(file: String): String? {
-        val source = File(file)
-        var dir = source.parentFile
-        while (dir != null && dir.listFiles { f -> f.extension == "csproj" }.isNullOrEmpty()) dir = dir.parentFile
-        val obj = File(dir ?: return null, "obj").takeIf { it.isDirectory } ?: return null
-        val metalamaSegment = "${File.separator}metalama${File.separator}"
-        return obj.walkTopDown()
-            .filter { it.isFile && it.name.equals(source.name, ignoreCase = true) && it.path.contains(metalamaSegment, ignoreCase = true) }
-            .maxByOrNull { it.lastModified() }?.path
     }
 }

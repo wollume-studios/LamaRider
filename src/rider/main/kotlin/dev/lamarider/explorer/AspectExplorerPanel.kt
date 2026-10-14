@@ -268,8 +268,7 @@ class AspectExplorerPanel(private val project: Project, parent: Disposable) : Si
     private class Container(val name: String, val icon: Icon)
 
     private class TargetNode(val instance: AspectInstanceInfo) {
-        /** "Add(int, int)" rather than "Calculator.Add(int, int)": the type is the parent node. */
-        val name: String get() = instance.targetName.removePrefix(instance.targetType.substringAfterLast('.') + ".").replace("/", " › ")
+        val name: String get() = instance.memberName
     }
 
     private class TransformationNode(val transformation: TransformationInfo)

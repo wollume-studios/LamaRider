@@ -23,7 +23,10 @@ data class AspectGroup(val name: String, val isProject: Boolean, val classes: Li
 data class AspectInstanceInfo(
     val aspectClass: String, val target: String, val targetName: String, val targetType: String,
     val targetKind: String, val project: String, val appliedVia: String, val location: SourceLocation?,
-)
+) {
+    /** "Add(int, int)" rather than "Calculator.Add(int, int)" (the type is shown above it); parameters as "Open(string) › address". */
+    val memberName: String get() = targetName.removePrefix(targetType.substringAfterLast('.') + ".").replace("/", " › ")
+}
 
 data class TransformationInfo(val aspectClass: String, val target: String, val kind: String, val description: String, val location: SourceLocation?)
 
@@ -67,6 +70,14 @@ data class ModelData(
             .sortedWith(compareBy<AspectGroup> { !it.isProject }.thenBy { it.name.lowercase() })
 
     fun errors() = diagnostics.filter { it.severity == "Error" }
+
+    /** Editor info bar text; null without errors. The first error leads since the bar truncates. */
+    fun errorBannerText(): String? {
+        val errors = errors()
+        val first = errors.firstOrNull() ?: return null
+        return "Metalama: ${first.id} ${first.message.lineSequence().first()}" +
+            (if (errors.size > 1) " (+${errors.size - 1} more)" else "") + ". Aspects are not applied."
+    }
 
     /** Changes only when the set of Metalama errors changes: used to notify once per new error state. */
     fun errorSignature(): String = errors().joinToString(";") { "${it.id}|${it.message}|${it.file}|${it.line}" }

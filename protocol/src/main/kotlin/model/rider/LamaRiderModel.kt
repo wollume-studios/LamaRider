@@ -33,5 +33,10 @@ object LamaRiderModel : Ext(SolutionModel.Solution) {
         property("autoBuild", false)
         // frontend -> backend: add Metalama's LamaDebug configuration to the solution file (copied from Debug)
         signal("addLamaDebugConfiguration", void)
+        // backend -> frontend: Rider set up for aspect tests? (settings page); text explains the state
+        property("testSettingsConfigured", bool.nullable)
+        property("testSettingsStatus", string.nullable)
+        // frontend -> backend: recompute the two above (settings page opened)
+        signal("refreshTestSettingsStatus", void)
     }
 }

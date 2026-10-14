@@ -39,6 +39,7 @@ public sealed class AspectModelHost
     readonly WorkerRunner _runner;
     readonly object _gate = new();
     bool _running, _pending, _testSettingsChecked;
+    volatile string? _usesAspectTesting; // "true"/"false" once the solution's packages were read
     FileSystemWatcher? _watcher;
     Timer? _debounce;
     volatile bool _autoBuild;
@@ -63,6 +64,7 @@ public sealed class AspectModelHost
             RdModel.DebugTransformedCode.Value = DebugTransformedCodeProps.IsEnabled(ReadProps());
             RdModel.SetDebugTransformedCode.Advise(lifetime, SetDebugTransformedCode);
             RdModel.ApplyTestSettings.Advise(lifetime, ApplyTestSettings);
+            RdModel.RefreshTestSettingsStatus.Advise(lifetime, _ => UpdateTestSettingsStatus());
             RdModel.NavigateToClass.Advise(lifetime, NavigateToClass);
             RdModel.AutoBuild.Advise(lifetime, enabled => _autoBuild = enabled);
             RdModel.AddLamaDebugConfiguration.Advise(lifetime, _ => AddLamaDebugConfiguration());
@@ -109,6 +111,7 @@ public sealed class AspectModelHost
         try
         {
             var where = _solution.GetComponent<MetalamaTestSettings>().Apply(scope);
+            UpdateTestSettingsStatus();
             RdModel.Info.Fire($"Rider is configured for Metalama aspect tests in {where}: xUnit discovery by Test Runner, diff tools ignored as orphaned processes. Rebuild the test project.");
         }
         catch (Exception e)
@@ -117,6 +120,14 @@ public sealed class AspectModelHost
             RdModel.Failed.Fire("Cannot apply Metalama test settings: " + e.Message);
         }
     }
+
+    void UpdateTestSettingsStatus() =>
+        _solution.Locks.ExecuteOrQueueReadLockEx(_lifetime, "LamaRider.TestSettingsStatus", () =>
+        {
+            var (configured, text) = _solution.GetComponent<MetalamaTestSettings>().Status(_usesAspectTesting == null ? null : _usesAspectTesting == "true");
+            RdModel.TestSettingsConfigured.Value = configured;
+            RdModel.TestSettingsStatus.Value = text;
+        });
 
     public void NotifyCodeVisionClicked(string docId) =>
         _solution.Locks.ExecuteOrQueueEx(_lifetime, "LamaRider.Click", () => RdModel.CodeVisionClicked.Fire(docId));
@@ -290,6 +301,7 @@ public sealed class AspectModelHost
     void RunOnce(string reason, List<string> assetsFiles, string solutionPath, IReadOnlyList<string> inputs)
     {
         var assets = assetsFiles.Where(File.Exists).Select(File.ReadAllText).ToList();
+        _usesAspectTesting = MetalamaVersionDetector.UsesAspectTesting(assets) ? "true" : "false";
         if (!_testSettingsChecked && MetalamaVersionDetector.UsesAspectTesting(assets))
         {
             _testSettingsChecked = true; // ask once per session

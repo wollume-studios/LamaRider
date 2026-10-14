@@ -96,4 +96,23 @@ class ModelDataGroupingTest {
         val end = text.indexOf("    }") + 5
         assertEquals("void M()\n{\n    x();\n}", ModelData.snippet(text, start, end))
     }
+
+    @Test
+    fun `member name drops the type and shows parameters after the method`() {
+        fun named(name: String) = AspectInstanceInfo("T:A", "x", name, "NS.Links", "Method", "P", "Attribute", null)
+        assertEquals("Open(string)", named("Links.Open(string)").memberName)
+        assertEquals("Open(string) › address", named("Links.Open(string)/address").memberName)
+        assertEquals("Links", named("Links").memberName)
+    }
+
+    @Test
+    fun `error banner shows the first error and how many more`() {
+        fun error(id: String, message: String) = DiagnosticInfo(id, "Error", message, null, null, null)
+        assertNull(ModelData().errorBannerText())
+        assertEquals("Metalama: LAMA0042 ordering. Aspects are not applied.", ModelData(diagnostics = listOf(error("LAMA0042", "ordering\ndetails"))).errorBannerText())
+        assertEquals(
+            "Metalama: CS1061 nope (+1 more). Aspects are not applied.",
+            ModelData(diagnostics = listOf(error("CS1061", "nope"), DiagnosticInfo("W", "Warning", "w", null, null, null), error("LAMA0001", "x"))).errorBannerText(),
+        )
+    }
 }

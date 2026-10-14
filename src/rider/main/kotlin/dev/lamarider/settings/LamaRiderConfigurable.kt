@@ -1,6 +1,9 @@
 package dev.lamarider.settings
 
+import com.intellij.icons.AllIcons
 import com.intellij.openapi.components.service
+import com.intellij.openapi.util.Disposer
+import com.intellij.ui.components.JBLabel
 import com.intellij.openapi.options.BoundConfigurable
 import com.intellij.openapi.project.Project
 import com.intellij.ui.dsl.builder.bindSelected
@@ -11,6 +14,23 @@ import dev.lamarider.actions.ConfigureTestsAction
 
 /** Settings › Tools › LamaRider. */
 class LamaRiderConfigurable(private val project: Project) : BoundConfigurable("LamaRider") {
+    private val testStatus = JBLabel()
+    private val listening = Disposer.newDisposable()
+
+    private fun showTestStatus(status: Pair<Boolean?, String>?) {
+        testStatus.text = status?.second ?: "Checking…"
+        testStatus.icon = when (status?.first) {
+            true -> AllIcons.General.InspectionsOK
+            false -> AllIcons.General.Warning
+            null -> null
+        }
+    }
+
+    override fun disposeUIResources() {
+        super.disposeUIResources()
+        Disposer.dispose(listening)
+    }
+
     override fun createPanel() = panel {
         val service = project.service<LamaRiderService>()
         group("Metalama Analysis") {
@@ -31,10 +51,15 @@ class LamaRiderConfigurable(private val project: Project) : BoundConfigurable("L
             }
         }
         group("Aspect Tests") {
+            row { cell(testStatus) }
             row {
                 button("Configure Rider for Metalama Tests…") { ConfigureTestsAction.choose(project) }
                     .comment("xUnit discovery by Test Runner and no orphaned-process prompt for diff tools.")
             }
         }
+        // Live: the backend answers the refresh, and again after Configure… applied the settings.
+        service.addListener(listening) { showTestStatus(service.testSettingsStatus) }
+        showTestStatus(service.testSettingsStatus)
+        service.refreshTestSettingsStatus()
     }
 }
