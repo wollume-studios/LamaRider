@@ -3,3 +3,5 @@
 
 # Preserve line endings in gradle scripts
 gradlew* -text diff
+
+samples/MetalamaSample/MetalamaSample/Calculator.cs -text
