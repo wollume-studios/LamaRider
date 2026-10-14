@@ -43,7 +43,7 @@ public sealed class AspectModelHost
         // <plugin>/dotnet/LamaRider.dll -> <plugin>/worker
         var pluginDir = Path.GetDirectoryName(Path.GetDirectoryName(typeof(AspectModelHost).Assembly.Location))!;
         var cache = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "LamaRider");
-        _runner = new WorkerRunner(Path.Combine(pluginDir, "worker"), cache, typeof(AspectModelHost).Assembly.GetName().Version.ToString());
+        _runner = new WorkerRunner(Path.Combine(pluginDir, "worker"), cache);
 
         // Project model queries are not allowed while the solution loads.
         loadTasks.EnqueueTask(new SolutionLoadTask(typeof(AspectModelHost), "LamaRider.Init", SolutionLoadTaskKinds.AfterDone, () =>
@@ -133,9 +133,11 @@ public sealed class AspectModelHost
                 () => _solution.GetComponent<IDaemon>().Invalidate("LamaRider model refreshed"));
         }
         catch (OperationCanceledException) { }
-        catch (Exception e) when (e is WorkerException or InvalidDataException or IOException)
+        catch (Exception e) when (e is not OperationCanceledException)
         {
-            Publish((_model == null ? "" : "Stale · ") + e.Message + " — log: " + _runner.LogPath, null);
+            var message = e.Message + " — log: " + _runner.LogPath;
+            Publish((_model == null ? "" : "Stale · ") + message, null);
+            _solution.Locks.ExecuteOrQueueEx(_lifetime, "LamaRider.Failed", () => RdModel.Failed.Fire(message));
         }
     }
 

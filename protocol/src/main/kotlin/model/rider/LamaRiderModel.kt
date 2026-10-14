@@ -13,6 +13,8 @@ object LamaRiderModel : Ext(SolutionModel.Solution) {
         property("modelPath", string.nullable)
         // frontend -> backend: re-run the worker
         signal("refresh", void)
+        // backend -> frontend: a refresh failed (message incl. log path), shown as a balloon
+        signal("failed", string)
         // backend -> frontend: Code Vision entry clicked, payload is the declaration's doc id
         signal("codeVisionClicked", string)
     }

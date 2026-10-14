@@ -26,7 +26,8 @@ public sealed record DiagnosticInfo(string Id, string Severity, string Message, 
 
 public sealed record ClassifiedSpan(int Start, int End, string Kind);
 
-public sealed record FileClassification(string File, List<ClassifiedSpan> Spans);
+/// <summary>Length is the LF-normalized length of the file the spans refer to (stale-model guard).</summary>
+public sealed record FileClassification(string File, int Length, List<ClassifiedSpan> Spans);
 
 public sealed record TransformedFileInfo(string File, string TransformedPath);
 

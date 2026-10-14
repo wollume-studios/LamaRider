@@ -67,6 +67,7 @@ public sealed class ClassifiedSpan
 public sealed class FileClassification
 {
     public string File = "";
+    public int Length; // LF-normalized length of the file when classified
     public List<ClassifiedSpan> Spans = new();
 }
 
@@ -97,7 +98,10 @@ public sealed class AspectModel
     // Newtonsoft matches the camelCase JSON to these fields case-insensitively.
     public static AspectModel Parse(string json)
     {
-        var model = JsonConvert.DeserializeObject<AspectModel>(json) ?? throw new InvalidDataException("Empty worker output");
+        AspectModel? model;
+        try { model = JsonConvert.DeserializeObject<AspectModel>(json); }
+        catch (JsonException e) { throw new InvalidDataException("Malformed worker output: " + e.Message, e); }
+        if (model == null) throw new InvalidDataException("Empty worker output");
         if (model.Schema != SupportedSchema) throw new InvalidDataException($"Unsupported worker schema {model.Schema}");
         model.Instances = model.Instances.GroupBy(i => i.Key).Select(g => g.First()).ToList();
         model._byTarget = model.Instances.GroupBy(i => i.Target).ToDictionary(g => g.Key, g => g.ToList());
@@ -125,8 +129,13 @@ public sealed class AspectModel
 
     public bool IsAspectClass(string docId) => _aspectClassIds.Contains(docId);
 
-    public FileClassification? ClassificationFor(string file) =>
-        _classifications.TryGetValue(Normalize(file), out var c) ? c : null;
+    /// <summary>Null when the document no longer has the length it had at classification time: spans would land on the wrong text.</summary>
+    public FileClassification? ClassificationFor(string file, int documentLength) =>
+        _classifications.TryGetValue(Normalize(file), out var c) && c.Length == documentLength ? c : null;
+
+    /// <summary>Id the frontend can resolve: the worker's target when instances matched (also via span fallback), else the doc id.</summary>
+    public static string ClickTarget(string docId, IReadOnlyList<AspectInstanceInfo> instances) =>
+        instances.Count > 0 ? instances[0].Target : docId;
 
     // ponytail: case-insensitive paths everywhere; per-OS comparison if Linux users hit collisions.
     static string Normalize(string path) => Path.GetFullPath(path).ToUpperInvariant();

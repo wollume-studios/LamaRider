@@ -85,11 +85,15 @@ public static class Extractor
     /// C# XML documentation ID (what ReSharper's XMLDocUtil produces). Metalama's serializable id appends
     /// "~ReturnType" to every method; XML doc IDs only do that for conversion operators.
     /// </summary>
-    public static string DocId(IDeclaration declaration)
+    public static string DocId(IDeclaration declaration) => NormalizeId(declaration.ToSerializableId().Id);
+
+    /// <summary>Drops "~ReturnType" but keeps a parameter/return suffix such as ";Parameter=0".</summary>
+    public static string NormalizeId(string id)
     {
-        var id = declaration.ToSerializableId().Id;
         var tilde = id.IndexOf('~');
-        return tilde < 0 || id.Contains(".op_Implicit(") || id.Contains(".op_Explicit(") ? id : id.Substring(0, tilde);
+        if (tilde < 0 || id.Contains(".op_Implicit(") || id.Contains(".op_Explicit(")) return id;
+        var suffix = id.IndexOf(';', tilde);
+        return suffix < 0 ? id.Substring(0, tilde) : id.Substring(0, tilde) + id.Substring(suffix);
     }
 
     static List<TransformedFileInfo> WriteTransformedFiles(Workspace workspace, string outDir)

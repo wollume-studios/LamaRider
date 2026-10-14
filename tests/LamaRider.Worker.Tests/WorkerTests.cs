@@ -82,4 +82,20 @@ public sealed class WorkerTests : IAsyncLifetime
         Assert.Equal(0, code);
         Assert.Contains("\"schema\":1", File.ReadAllText(Path.Combine(dir, "model.json")));
     }
+
+    [Theory]
+    [InlineData("M:A.B(System.Int32)~System.Int32", "M:A.B(System.Int32)")]
+    [InlineData("M:A.B(System.Int32)~System.Int32;Parameter=0", "M:A.B(System.Int32);Parameter=0")]
+    [InlineData("M:A.B(System.Int32)~System.Int32;Return", "M:A.B(System.Int32);Return")]
+    [InlineData("M:A.op_Implicit(A)~System.Int32", "M:A.op_Implicit(A)~System.Int32")]
+    [InlineData("T:A", "T:A")]
+    public void Doc_ids_drop_return_type_but_keep_parameter_suffix(string metalamaId, string expected) =>
+        Assert.Equal(expected, Extractor.NormalizeId(metalamaId));
+
+    [Fact]
+    public void Classification_records_lf_length_of_the_file()
+    {
+        var file = _output.TemplateClassifications.Single(f => f.File.EndsWith("LogAttribute.cs"));
+        Assert.Equal(File.ReadAllText(file.File).Replace("\r\n", "\n").Length, file.Length);
+    }
 }

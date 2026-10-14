@@ -54,7 +54,7 @@ public sealed class AspectCodeVisionStage(AspectModelHost host, AspectCodeInsigh
                     : "Metalama aspect class";
 
                 var highlighting = new CodeInsightsHighlighting(nameRange, text, tooltip, text, provider, element, null);
-                provider.Remember(highlighting, docId ?? instances[0].Target);
+                provider.Remember(highlighting, AspectModel.ClickTarget(docId ?? "", instances));
                 result.Add(new HighlightingInfo(nameRange, highlighting));
             }
             committer(new DaemonStageResult(result));

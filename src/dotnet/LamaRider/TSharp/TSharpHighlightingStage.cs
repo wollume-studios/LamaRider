@@ -16,7 +16,7 @@ public sealed class TSharpHighlightingStage(AspectModelHost host) : IDaemonStage
     public IEnumerable<IDaemonStageProcess> CreateProcess(IDaemonProcess process, IContextBoundSettingsStore settings, DaemonProcessKind processKind)
     {
         if (processKind != DaemonProcessKind.VISIBLE_DOCUMENT) return Array.Empty<IDaemonStageProcess>();
-        var classification = host.Model?.ClassificationFor(process.SourceFile.GetLocation().FullPath);
+        var classification = host.Model?.ClassificationFor(process.SourceFile.GetLocation().FullPath, process.Document.GetTextLength());
         return classification == null ? Array.Empty<IDaemonStageProcess>() : new[] { new Process(process, classification) };
     }
 
@@ -31,7 +31,6 @@ public sealed class TSharpHighlightingStage(AspectModelHost host) : IDaemonStage
             var result = new List<HighlightingInfo>();
             foreach (var span in classification.Spans)
             {
-                // span.End > length: model older than an edit that shortened the file; next refresh fixes it
                 if (TSharpHighlighterIds.ForKind(span.Kind) is not { } id || span.End > length) continue;
                 var range = new DocumentRange(document, new TextRange(span.Start, span.End));
                 result.Add(new HighlightingInfo(range, new TSharpHighlighting(id, range)));

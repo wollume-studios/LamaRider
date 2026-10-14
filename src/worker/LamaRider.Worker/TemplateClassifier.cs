@@ -31,7 +31,7 @@ public static class TemplateClassifier
                     .Where(s => s.Start != null && s.End != null && s.End > s.Start)
                     .Select(s => new ClassifiedSpan(s.Start!.Value, s.End!.Value, s.Kind))
                     .ToList();
-                if (spans.Count > 0) result.Add(new FileClassification(tree.FilePath, spans));
+                if (spans.Count > 0) result.Add(new FileClassification(tree.FilePath, offsets.LfLength(tree.FilePath)!.Value, spans));
             }
         }
         return result;

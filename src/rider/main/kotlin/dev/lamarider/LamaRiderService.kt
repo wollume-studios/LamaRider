@@ -1,5 +1,7 @@
 package dev.lamarider
 
+import com.intellij.notification.NotificationGroupManager
+import com.intellij.notification.NotificationType
 import com.intellij.openapi.Disposable
 import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.components.Service
@@ -44,6 +46,11 @@ class LamaRiderService(val project: Project) {
             }
         }
         rdModel.codeVisionClicked.advise(lifetime) { id -> onCodeVisionClicked?.invoke(id) }
+        rdModel.failed.advise(lifetime) { message ->
+            NotificationGroupManager.getInstance().getNotificationGroup("LamaRider")
+                .createNotification("Metalama aspects could not be refreshed", message, NotificationType.WARNING)
+                .notify(project)
+        }
     }
 
     fun refresh() {

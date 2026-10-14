@@ -12,7 +12,7 @@ public class AspectModelTests
          "aspectClasses":[{"id":"T:Log","name":"LogAttribute","project":"P","isLibrary":false,"location":null}],
          "instances":[{{{instances}}}],
          "transformations":[],"diagnostics":[],
-         "templateClassifications":[{"file":"C:\\src\\Log.cs","spans":[{"start":1,"end":5,"kind":"TemplateKeyword"}]}],
+         "templateClassifications":[{"file":"C:\\src\\Log.cs","length":10,"spans":[{"start":1,"end":5,"kind":"TemplateKeyword"}]}],
          "transformedFiles":[]}
         """;
 
@@ -62,5 +62,22 @@ public class AspectModelTests
 
     [Fact]
     public void Finds_classification_by_path_case_insensitively() =>
-        Assert.NotNull(AspectModel.Parse(Json("")).ClassificationFor(@"c:\src\LOG.cs"));
+        Assert.NotNull(AspectModel.Parse(Json("")).ClassificationFor(@"c:\src\LOG.cs", 10));
+
+    [Fact]
+    public void Ignores_classification_when_document_length_changed() =>
+        Assert.Null(AspectModel.Parse(Json("")).ClassificationFor(@"C:\src\Log.cs", 11));
+
+    [Fact]
+    public void Malformed_json_is_reported_as_invalid_data() =>
+        Assert.Throws<InvalidDataException>(() => AspectModel.Parse("{ not json"));
+
+    [Fact]
+    public void Click_target_prefers_the_worker_target_over_resharper_doc_id()
+    {
+        var model = AspectModel.Parse(Json(Instance("M:Weird", 10, 50)));
+        var instances = model.InstancesFor("M:Calc.Add(int)", File1, 20, 50);
+        Assert.Equal("M:Weird", AspectModel.ClickTarget("M:Calc.Add(int)", instances));
+        Assert.Equal("T:Log", AspectModel.ClickTarget("T:Log", Array.Empty<AspectInstanceInfo>()));
+    }
 }
