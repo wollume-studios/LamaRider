@@ -47,8 +47,16 @@ tasks.test {
 
 // publishLocal stamps a build number so Rider sees every local build as an update.
 val isLocalPublish = gradle.startParameter.taskNames.any { it.substringAfterLast(':') == "publishLocal" }
-version = (extra["PluginVersion"] as String) +
-    if (isLocalPublish) "." + LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyMMddHHmm")) else ""
+// The ReSharper backend parses the version as System.Version: at most 4 parts, each <= Int32.MaxValue.
+version = (extra["PluginVersion"] as String).let { base ->
+    if (!isLocalPublish) base
+    else base.split('.').take(2).joinToString(".") + "." + LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyMMdd.HHmm"))
+}.also { v ->
+    val parts = v.split('.')
+    require(parts.size <= 4 && parts.all { it.toLongOrNull()?.let { n -> n in 0..Int.MAX_VALUE } == true }) {
+        "Plugin version '$v' is not a valid System.Version (max 4 numeric parts, each <= ${Int.MAX_VALUE})"
+    }
+}
 
 tasks.processResources {
     from("dependencies.json") { into("META-INF") }
