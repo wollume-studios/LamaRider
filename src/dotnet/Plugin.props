@@ -1,0 +1,14 @@
+<Project>
+
+  <PropertyGroup>
+    <!-- See https://www.nuget.org/packages/JetBrains.Rider.SDK -->
+    <!-- Keep in sync with ProductVersion in gradle.properties -->
+    <SdkVersion>2026.3.0-eap06</SdkVersion>
+
+    <Title>LamaRider</Title>
+    <Description>Metalama tooling for Rider</Description>
+    <Authors>LamaRider</Authors>
+    <Copyright>Copyright $([System.DateTime]::Now.Year) LamaRider</Copyright>
+  </PropertyGroup>
+
+</Project>
