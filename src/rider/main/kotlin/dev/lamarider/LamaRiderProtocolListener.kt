@@ -10,6 +10,6 @@ class LamaRiderProtocolListener : SolutionExtListener<LamaRiderModel> {
     override fun extensionCreated(lifetime: Lifetime, session: ClientProjectSession, model: LamaRiderModel) {
         val service = session.project.service<LamaRiderService>()
         service.attach(lifetime, model)
-        service.onCodeVisionClicked = { id -> AspectPopup.show(session.project, id) }
+        service.onCodeVisionClicked = { id -> AspectPopup.show(session.project, id, atMouse = true) }
     }
 }

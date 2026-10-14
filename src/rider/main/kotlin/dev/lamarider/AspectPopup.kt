@@ -6,6 +6,8 @@ import com.intellij.openapi.fileEditor.FileEditorManager
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.ui.popup.JBPopupFactory
 import com.intellij.openapi.wm.ToolWindowManager
+import com.intellij.ui.awt.RelativePoint
+import java.awt.MouseInfo
 import dev.lamarider.diff.MetalamaDiff
 import dev.lamarider.explorer.AspectExplorerPanel
 import dev.lamarider.explorer.AspectExplorerToolWindowFactory
@@ -13,7 +15,8 @@ import dev.lamarider.explorer.Navigation
 
 /** What a Code Vision click on a declaration (identified by doc id) offers. */
 object AspectPopup {
-    fun show(project: Project, docId: String) = ApplicationManager.getApplication().invokeLater {
+    /** [atMouse]: opened from a Code Vision click (pointer is on the hint); otherwise anchored at the caret. */
+    fun show(project: Project, docId: String, atMouse: Boolean = false) = ApplicationManager.getApplication().invokeLater {
         val model = project.service<LamaRiderService>().model ?: return@invokeLater
         val instances = model.instancesOn(docId)
         if (model.aspectClass(docId) != null && instances.isEmpty()) {
@@ -33,12 +36,13 @@ object AspectPopup {
         if (choices.isEmpty()) return@invokeLater
         val editor = FileEditorManager.getInstance(project).selectedTextEditor ?: return@invokeLater
 
-        JBPopupFactory.getInstance()
+        val popup = JBPopupFactory.getInstance()
             .createPopupChooserBuilder(choices.map { it.first })
             .setTitle("Metalama Aspects")
             .setItemChosenCallback { label -> choices.first { it.first == label }.second() }
             .createPopup()
-            .showInBestPositionFor(editor)
+        val pointer = if (atMouse) MouseInfo.getPointerInfo()?.location else null
+        if (pointer != null) popup.show(RelativePoint.fromScreen(pointer)) else popup.showInBestPositionFor(editor)
     }
 
     private fun showInExplorer(project: Project, aspectClassId: String) {
