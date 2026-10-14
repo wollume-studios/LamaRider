@@ -110,4 +110,28 @@ public sealed class WorkerTests : IAsyncLifetime
         Assert.Equal(0, code);
         Assert.True(File.Exists(Path.Combine(dir, "model.json")));
     }
+
+    [Fact]
+    public async Task Compile_errors_do_not_fail_the_refresh()
+    {
+        // Copy of the sample with a broken file, as when the user is in the middle of an edit.
+        var copy = Path.Combine(_outDir, "broken-sample");
+        foreach (var file in Directory.GetFiles(SampleDir, "*", SearchOption.AllDirectories))
+        {
+            var relative = Path.GetRelativePath(SampleDir, file);
+            if (relative.Split(Path.DirectorySeparatorChar).Any(p => p is "bin" or "obj" or ".idea")) continue;
+            var target = Path.Combine(copy, relative);
+            Directory.CreateDirectory(Path.GetDirectoryName(target)!);
+            File.Copy(file, target);
+        }
+        // Error in compile-time (template) code: Metalama cannot run the aspects of this project.
+        var log = Path.Combine(copy, "MetalamaSample", "LogAttribute.cs");
+        File.WriteAllText(log, File.ReadAllText(log).Replace("meta.Target.Method.Name", "meta.Target.Method.Nme"));
+
+        var dir = Path.Combine(_outDir, "cli-broken");
+        var code = await Program.Run([dir, Path.Combine(copy, "MetalamaSample.sln")]);
+
+        Assert.Equal(0, code);
+        Assert.Contains("\"schema\":1", File.ReadAllText(Path.Combine(dir, "model.json")));
+    }
 }

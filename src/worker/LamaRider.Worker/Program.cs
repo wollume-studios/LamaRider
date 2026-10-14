@@ -20,7 +20,9 @@ public static partial class Program
             Directory.CreateDirectory(outDir);
             var inputs = args[1..];
             if (inputs.Length > 1) inputs = [SolutionFile.Write(outDir, inputs)];
-            using var workspace = await WorkspaceCollection.Default.LoadAsync(inputs);
+            using var loaded = await WorkspaceCollection.Default.LoadAsync(inputs);
+            // Code being edited often doesn't compile; report what Metalama can still analyze (errors land in Diagnostics).
+            var workspace = loaded.WithIgnoreErrors();
             var output = Extractor.Extract(workspace, outDir);
             await File.WriteAllTextAsync(Path.Combine(outDir, "model.json"), JsonSerializer.Serialize(output, WorkerJson.Options));
             return 0;

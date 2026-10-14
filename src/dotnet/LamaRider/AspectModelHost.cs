@@ -180,7 +180,7 @@ public sealed class AspectModelHost
             var model = _runner.Run(version, solutionPath, inputs, ct);
             _model = model;
             Publish(
-                $"Refreshed {DateTime.Now:HH:mm} · {model.AspectClasses.Count} aspects / {model.Instances.Count} instances",
+                $"Refreshed {DateTime.Now:HH:mm} · {model.AspectClasses.Count} aspects / {model.Instances.Count} instances{model.ErrorSummary}",
                 Path.Combine(_runner.LastOutputDir, "model.json"));
             _solution.Locks.ExecuteOrQueueEx(_lifetime, "LamaRider.Invalidate",
                 () => _solution.GetComponent<IDaemon>().Invalidate("LamaRider model refreshed"));

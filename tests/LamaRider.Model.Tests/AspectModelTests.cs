@@ -80,4 +80,16 @@ public class AspectModelTests
         Assert.Equal("M:Weird", AspectModel.ClickTarget("M:Calc.Add(int)", instances));
         Assert.Equal("T:Log", AspectModel.ClickTarget("T:Log", Array.Empty<AspectInstanceInfo>()));
     }
+
+    [Fact]
+    public void Error_summary_names_count_and_first_error()
+    {
+        var json = Json("").Replace("\"diagnostics\":[]",
+            "\"diagnostics\":[{\"id\":\"CS1061\",\"severity\":\"Error\",\"message\":\"'IMethod' does not contain 'Nme'\"},{\"id\":\"LAMA0001\",\"severity\":\"Error\",\"message\":\"x\"},{\"id\":\"W1\",\"severity\":\"Warning\",\"message\":\"w\"}]");
+        Assert.Equal(" · 2 Metalama errors, first: CS1061 'IMethod' does not contain 'Nme'", AspectModel.Parse(json).ErrorSummary);
+    }
+
+    [Fact]
+    public void Error_summary_is_empty_without_errors() =>
+        Assert.Equal("", AspectModel.Parse(Json("")).ErrorSummary);
 }
