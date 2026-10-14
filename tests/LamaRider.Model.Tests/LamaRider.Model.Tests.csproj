@@ -18,6 +18,7 @@
   <!-- Backend sources with no JetBrains dependencies, compiled here so they can be tested without the Rider SDK -->
   <ItemGroup>
     <Compile Include="..\..\src\dotnet\LamaRider\Model\*.cs" Link="Model\%(Filename).cs" />
+    <Compile Include="..\..\src\dotnet\LamaRider\Worker\*.cs" Link="Worker\%(Filename).cs" />
   </ItemGroup>
 
 </Project>
