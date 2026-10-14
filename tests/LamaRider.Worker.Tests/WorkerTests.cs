@@ -141,7 +141,11 @@ public sealed class WorkerTests : IAsyncLifetime
         var code = await Program.Run([dir, Path.Combine(copy, "MetalamaSample.sln")]);
 
         Assert.Equal(0, code);
-        Assert.Contains("\"schema\":1", File.ReadAllText(Path.Combine(dir, "model.json")));
+        var json = File.ReadAllText(Path.Combine(dir, "model.json"));
+        Assert.Contains("\"schema\":1", json);
+        // Errors name their project, so the IDE can show project-wide ones on that project's aspect classes.
+        var diagnostics = System.Text.Json.JsonDocument.Parse(json).RootElement.GetProperty("diagnostics").EnumerateArray().ToList();
+        Assert.Contains(diagnostics, d => d.GetProperty("severity").GetString() == "Error" && d.GetProperty("project").GetString() == "MetalamaSample");
     }
 
     [Fact]

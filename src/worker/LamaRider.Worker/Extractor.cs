@@ -82,7 +82,8 @@ public static class Extractor
 
         var diagnostics = workspace.Diagnostics
             .Where(d => d.Source != IntrospectionDiagnosticSource.CSharp)
-            .Select(d => new DiagnosticInfo(d.Id, d.Severity.ToString(), d.Message, d.Declaration == null ? null : DocId(d.Declaration), d.FilePath, d.Line))
+            .Select(d => new DiagnosticInfo(d.Id, d.Severity.ToString(), d.Message, d.Declaration == null ? null : DocId(d.Declaration), d.FilePath, d.Line,
+                d.Compilation?.Project.Name))
             .Distinct()
             .ToList();
 

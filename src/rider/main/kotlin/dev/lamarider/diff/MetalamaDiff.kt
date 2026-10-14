@@ -8,6 +8,7 @@ import com.intellij.diff.util.Side
 import com.intellij.notification.NotificationGroupManager
 import com.intellij.notification.NotificationType
 import com.intellij.openapi.components.service
+import com.intellij.openapi.application.runReadAction
 import com.intellij.openapi.fileEditor.FileDocumentManager
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.Pair
@@ -38,9 +39,9 @@ object MetalamaDiff {
             "Source",
             "Transformed (read-only)",
         )
-        val line = FileDocumentManager.getInstance().getDocument(source)?.let { doc ->
+        val line = runReadAction { FileDocumentManager.getInstance().getDocument(source)?.let { doc ->
             doc.getLineNumber(offset.coerceIn(0, doc.textLength))
-        } ?: 0
+        } } ?: 0
         request.putUserData(DiffUserDataKeys.SCROLL_TO_LINE, Pair.create(Side.LEFT, line))
         DiffManager.getInstance().showDiff(project, request)
     }

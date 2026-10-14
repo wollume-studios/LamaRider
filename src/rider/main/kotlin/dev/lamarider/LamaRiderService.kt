@@ -11,6 +11,8 @@ import com.intellij.openapi.diagnostic.logger
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.Disposer
 import com.intellij.openapi.util.text.StringUtil
+import com.intellij.ui.EditorNotifications
+import dev.lamarider.actions.AutoBuildAction
 import dev.lamarider.explorer.Navigation
 import com.jetbrains.rd.util.lifetime.Lifetime
 import com.jetbrains.rd.ide.model.LamaRiderModel
@@ -41,8 +43,13 @@ class LamaRiderService(val project: Project) {
         rd?.setDebugTransformedCode?.fire(enable)
     }
 
+    fun setAutoBuild(enable: Boolean) {
+        rd?.autoBuild?.set(enable)
+    }
+
     fun attach(lifetime: Lifetime, rdModel: LamaRiderModel) {
         rd = rdModel
+        rdModel.autoBuild.set(AutoBuildAction.isEnabled())
         rdModel.status.advise(lifetime) { status = it ?: ""; fire() }
         rdModel.modelPath.advise(lifetime) { path ->
             if (path == null) return@advise
@@ -64,6 +71,11 @@ class LamaRiderService(val project: Project) {
                 .createNotification("Metalama aspects could not be refreshed", message, NotificationType.WARNING)
                 .notify(project)
         }
+    }
+
+    /** Opens an aspect class without source in the solution through ReSharper (SourceLink sources or decompiled). */
+    fun navigateToClass(docId: String) {
+        rd?.navigateToClass?.fire(docId)
     }
 
     fun applyTestSettings(scope: String) {
@@ -96,6 +108,7 @@ class LamaRiderService(val project: Project) {
         val signature = model.errorSignature()
         if (signature == lastErrorSignature) return
         lastErrorSignature = signature
+        EditorNotifications.getInstance(project).updateAllNotifications()
         val errors = model.errors()
         if (errors.isEmpty()) return
         val list = errors.take(3).joinToString("<br>") { e ->

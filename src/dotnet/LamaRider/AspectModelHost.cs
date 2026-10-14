@@ -6,11 +6,16 @@ using System.Threading;
 using System.Threading.Tasks;
 using JetBrains.Application.Parts;
 using JetBrains.Application.Threading;
+using JetBrains.Application.UI.PopupLayout;
 using JetBrains.Lifetimes;
 using JetBrains.ProjectModel;
 using JetBrains.ProjectModel.Features.SolutionBuilders;
 using JetBrains.ProjectModel.Tasks;
 using JetBrains.ReSharper.Feature.Services.Daemon;
+using JetBrains.ReSharper.Feature.Services.Navigation;
+using JetBrains.ReSharper.Psi;
+using JetBrains.ReSharper.Psi.Caches;
+using JetBrains.ReSharper.Psi.Modules;
 using JetBrains.ReSharper.Feature.Services.Protocol;
 using JetBrains.Rider.Model;
 using JetBrains.Util;
@@ -36,6 +41,8 @@ public sealed class AspectModelHost
     bool _running, _pending, _testSettingsChecked;
     FileSystemWatcher? _watcher;
     Timer? _debounce;
+    volatile bool _autoBuild;
+    readonly HashSet<string> _changedCompileTimeFiles = new(StringComparer.OrdinalIgnoreCase);
     static readonly TimeSpan Debounce = TimeSpan.FromSeconds(3);
     volatile AspectModel? _model;
 
@@ -56,6 +63,8 @@ public sealed class AspectModelHost
             RdModel.DebugTransformedCode.Value = DebugTransformedCodeProps.IsEnabled(ReadProps());
             RdModel.SetDebugTransformedCode.Advise(lifetime, SetDebugTransformedCode);
             RdModel.ApplyTestSettings.Advise(lifetime, ApplyTestSettings);
+            RdModel.NavigateToClass.Advise(lifetime, NavigateToClass);
+            RdModel.AutoBuild.Advise(lifetime, enabled => _autoBuild = enabled);
             solutionBuilder.RunningRequest.Change.Advise(lifetime, args =>
             {
                 if (args.HasOld && args.Old != null && args.New == null) RequestRefresh("build finished");
@@ -125,6 +134,19 @@ public sealed class AspectModelHost
         StartRun(reason);
     }
 
+    // Library aspects have no source in the solution: ReSharper opens SourceLink/symbol sources or decompiles.
+    void NavigateToClass(string docId) =>
+        _solution.Locks.ExecuteOrQueueReadLockEx(_lifetime, "LamaRider.NavigateToClass", () =>
+        {
+            var name = docId.StartsWith("T:", StringComparison.Ordinal) ? docId.Substring(2) : docId;
+            using var _ = CompilationContextCookie.GetExplicitUniversalContextIfNotSet();
+            var type = _solution.GetPsiServices().Symbols.GetSymbolScope(LibrarySymbolScope.FULL, caseSensitive: true)
+                .GetElementsByQualifiedName(name).OfType<ITypeElement>().FirstOrDefault();
+            if (type == null) RdModel.Info.Fire($"{name} was not found in the solution's references.");
+            else _solution.GetComponent<DeclaredElementNavigationService>()
+                .Navigate(type, _solution.GetComponent<IMainWindowPopupWindowContext>().Source, true);
+        });
+
     // Project paths need the read lock; the worker run must not hold it.
     void StartRun(string reason) =>
         _solution.Locks.ExecuteOrQueueReadLockEx(_lifetime, "LamaRider.CollectProjects", () =>
@@ -159,7 +181,7 @@ public sealed class AspectModelHost
     // Refresh on its own: saved code/project files and restores (package changes), debounced.
     void StartWatching(string solutionDirectory)
     {
-        _debounce = new Timer(_ => RequestRefresh("files changed"));
+        _debounce = new Timer(_ => OnFilesSettled());
         _watcher = new FileSystemWatcher(solutionDirectory)
         {
             IncludeSubdirectories = true,
@@ -191,7 +213,36 @@ public sealed class AspectModelHost
         if (kind == RefreshTrigger.Kind.Restore)
             lock (_gate)
                 if (_running) return;
+        if (kind == RefreshTrigger.Kind.Source && _autoBuild && _model?.IsCompileTimeFile(path) == true)
+            lock (_gate) _changedCompileTimeFiles.Add(path);
         _debounce?.Change(Debounce, Timeout.InfiniteTimeSpan);
+    }
+
+    // Auto-build (opt-in): saved aspect/template code is built, so Metalama resumes; the build's end refreshes the model.
+    void OnFilesSettled()
+    {
+        string[] changed;
+        lock (_gate)
+        {
+            changed = _changedCompileTimeFiles.ToArray();
+            _changedCompileTimeFiles.Clear();
+        }
+        if (changed.Length == 0)
+        {
+            RequestRefresh("files changed");
+            return;
+        }
+        _solution.Locks.ExecuteOrQueueReadLockEx(_lifetime, "LamaRider.AutoBuild", () =>
+        {
+            var projects = changed
+                .SelectMany(f => _solution.FindProjectItemsByLocation(VirtualFileSystemPath.Parse(f, InteractionContext.SolutionContext)))
+                .Select(i => i.GetProject())
+                .Where(p => p != null)
+                .Distinct()
+                .ToList();
+            if (projects.Count == 0) RequestRefresh("files changed");
+            else Errors.MetalamaBuild.Run(_solution, projects!);
+        });
     }
 
     void RunOnce(string reason, List<string> assetsFiles, string solutionPath, IReadOnlyList<string> inputs)

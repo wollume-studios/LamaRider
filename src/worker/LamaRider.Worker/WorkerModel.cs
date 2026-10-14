@@ -26,7 +26,7 @@ public sealed record AspectInstanceInfo(
 
 public sealed record TransformationInfo(string AspectClass, string Target, string Kind, string Description, SourceLocation? Location);
 
-public sealed record DiagnosticInfo(string Id, string Severity, string Message, string? Target, string? File, int? Line);
+public sealed record DiagnosticInfo(string Id, string Severity, string Message, string? Target, string? File, int? Line, string? Project = null);
 
 public sealed record ClassifiedSpan(int Start, int End, string Kind);
 

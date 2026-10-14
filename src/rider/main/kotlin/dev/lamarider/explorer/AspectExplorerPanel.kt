@@ -1,5 +1,6 @@
 package dev.lamarider.explorer
 
+import com.intellij.icons.AllIcons
 import com.intellij.ide.BrowserUtil
 import com.intellij.ide.DefaultTreeExpander
 import com.intellij.ide.actions.CollapseAllAction
@@ -37,6 +38,7 @@ import dev.lamarider.diff.MetalamaDiff
 import java.awt.BorderLayout
 import java.awt.event.MouseAdapter
 import java.awt.event.MouseEvent
+import javax.swing.Icon
 import javax.swing.JEditorPane
 import javax.swing.JPanel
 import javax.swing.JTree
@@ -77,6 +79,7 @@ class AspectExplorerPanel(private val project: Project, parent: Disposable) : Si
         })
 
         targetTree.isRootVisible = false
+        targetTree.cellRenderer = TargetRenderer()
         targetTree.addMouseListener(object : MouseAdapter() {
             override fun mouseClicked(e: MouseEvent) {
                 if (e.clickCount == 2) activate((targetTree.lastSelectedPathComponent as? DefaultMutableTreeNode)?.userObject)
@@ -86,7 +89,7 @@ class AspectExplorerPanel(private val project: Project, parent: Disposable) : Si
         details.addHyperlinkListener { e ->
             if (e.eventType != HyperlinkEvent.EventType.ACTIVATED) return@addHyperlinkListener
             val target = e.description ?: return@addHyperlinkListener
-            if (target.startsWith("source:")) selectedClass()?.location?.let { Navigation.open(project, it) }
+            if (target.startsWith("source:")) selectedClass()?.let(::goToSource)
             else BrowserUtil.browse(target)
         }
 
@@ -171,15 +174,19 @@ class AspectExplorerPanel(private val project: Project, parent: Disposable) : Si
         rebuildTargets(aspect)
     }
 
+    private fun goToSource(aspect: AspectClassInfo) {
+        if (aspect.location != null) Navigation.open(project, aspect.location) else service.navigateToClass(aspect.id)
+    }
+
     private fun detailsHtml(aspect: AspectClassInfo): String {
         val links = buildList {
-            if (aspect.location != null) add("<a href=\"source:\">Go to source</a>")
+            if (aspect.location != null || aspect.isLibrary) add("<a href=\"source:\">Go to source</a>")
             aspect.docUrl?.let { add("<a href=\"$it\">Online documentation</a>") }
         }
         val summary = aspect.summary?.let { StringUtil.escapeXmlEntities(it) } ?: "<i>No documentation.</i>"
         return "<html><body><b>${StringUtil.escapeXmlEntities(aspect.name)}</b> &nbsp;<span style=\"color:gray\">" +
-            "${StringUtil.escapeXmlEntities(aspect.group)}</span><br>$summary" +
-            (if (links.isEmpty()) "" else "<br>" + links.joinToString(" &nbsp; ")) + "</body></html>"
+            "${StringUtil.escapeXmlEntities(aspect.group)}</span>" +
+            (if (links.isEmpty()) "" else "<br>" + links.joinToString(" &nbsp; ")) + "<br>$summary</body></html>"
     }
 
     // Project › Namespace › Type › Member, children: transformations + diagnostics
@@ -188,11 +195,11 @@ class AspectExplorerPanel(private val project: Project, parent: Disposable) : Si
         val model = service.model
         if (model != null && aspect != null) {
             for ((projectName, inProject) in model.instancesOf(aspect.id).groupBy { it.project }.toSortedMap()) {
-                val projectNode = DefaultMutableTreeNode(projectName).also(targetRoot::add)
+                val projectNode = DefaultMutableTreeNode(Container(projectName, AllIcons.Nodes.Module)).also(targetRoot::add)
                 for ((ns, inNs) in inProject.groupBy { it.targetType.substringBeforeLast('.', "<global>") }.toSortedMap()) {
-                    val nsNode = DefaultMutableTreeNode(ns).also(projectNode::add)
+                    val nsNode = DefaultMutableTreeNode(Container(ns, AllIcons.Nodes.Package)).also(projectNode::add)
                     for ((type, inType) in inNs.groupBy { it.targetType.substringAfterLast('.') }.toSortedMap()) {
-                        val typeNode = DefaultMutableTreeNode(type).also(nsNode::add)
+                        val typeNode = DefaultMutableTreeNode(Container(type, AllIcons.Nodes.Class)).also(nsNode::add)
                         for (instance in inType.sortedBy { it.targetName }) {
                             val node = DefaultMutableTreeNode(TargetNode(instance)).also(typeNode::add)
                             model.transformationsOf(instance).forEach { node.add(DefaultMutableTreeNode(TransformationNode(it))) }
@@ -230,19 +237,54 @@ class AspectExplorerPanel(private val project: Project, parent: Disposable) : Si
         }
     }
 
+    private class TargetRenderer : ColoredTreeCellRenderer() {
+        override fun customizeCellRenderer(tree: JTree, value: Any?, selected: Boolean, expanded: Boolean, leaf: Boolean, row: Int, hasFocus: Boolean) {
+            when (val item = (value as? DefaultMutableTreeNode)?.userObject) {
+                is Container -> { icon = item.icon; append(item.name) }
+                is TargetNode -> {
+                    icon = kindIcon(item.instance.targetKind)
+                    append(item.name)
+                    append("  ${kindLabel(item.instance.targetKind)} · ${item.instance.appliedVia}", SimpleTextAttributes.GRAYED_ATTRIBUTES)
+                }
+                is TransformationNode -> { icon = AllIcons.Actions.Diff; append(item.transformation.description) }
+                is DiagnosticNode -> {
+                    icon = if (item.diagnostic.severity == "Error") AllIcons.General.Error else AllIcons.General.Warning
+                    append("${item.diagnostic.id}: ${item.diagnostic.message}")
+                }
+            }
+        }
+    }
+
+    private class Container(val name: String, val icon: Icon)
+
     private class TargetNode(val instance: AspectInstanceInfo) {
-        override fun toString() = "${instance.targetName}  [${instance.appliedVia}]"
+        /** "Add(int, int)" rather than "Calculator.Add(int, int)": the type is the parent node. */
+        val name: String get() = instance.targetName.removePrefix(instance.targetType.substringAfterLast('.') + ".").replace("/", " › ")
     }
 
-    private class TransformationNode(val transformation: TransformationInfo) {
-        override fun toString() = transformation.description
-    }
+    private class TransformationNode(val transformation: TransformationInfo)
 
-    private class DiagnosticNode(val diagnostic: DiagnosticInfo) {
-        override fun toString() = "${diagnostic.severity} ${diagnostic.id}: ${diagnostic.message}"
-    }
+    private class DiagnosticNode(val diagnostic: DiagnosticInfo)
 
     companion object {
+        // Metalama DeclarationKind names.
+        fun kindIcon(kind: String): Icon = when (kind) {
+            "NamedType" -> AllIcons.Nodes.Class
+            "Method", "Constructor", "Finalizer", "Operator" -> AllIcons.Nodes.Method
+            "Property", "Indexer", "Event" -> AllIcons.Nodes.Property
+            "Field" -> AllIcons.Nodes.Field
+            "Parameter" -> AllIcons.Nodes.Parameter
+            "Namespace" -> AllIcons.Nodes.Package
+            "Compilation" -> AllIcons.Nodes.Module
+            else -> AllIcons.Nodes.Unknown
+        }
+
+        fun kindLabel(kind: String) = when (kind) {
+            "NamedType" -> "type"
+            "Compilation" -> "project"
+            else -> kind.lowercase()
+        }
+
         var current: AspectExplorerPanel? = null
             private set
     }

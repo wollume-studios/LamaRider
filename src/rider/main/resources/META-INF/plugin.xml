@@ -16,6 +16,7 @@
     <toolWindow id="Aspect Explorer" anchor="right" icon="/icons/aspectExplorer.svg"
                 factoryClass="dev.lamarider.explorer.AspectExplorerToolWindowFactory"/>
     <notificationGroup id="LamaRider" displayType="BALLOON"/>
+    <editorNotificationProvider implementation="dev.lamarider.errors.MetalamaErrorBanner"/>
   </extensions>
 
   <actions>
@@ -40,6 +41,10 @@
     </action>
     <action id="LamaRider.ConfigureTests" class="dev.lamarider.actions.ConfigureTestsAction" text="Configure Rider for Metalama Tests"
             description="xUnit discovery by Test Runner and no orphaned-process prompt for diff tools (Metalama aspect tests)">
+      <add-to-group group-id="ToolsMenu" anchor="last"/>
+    </action>
+    <action id="LamaRider.AutoBuild" class="dev.lamarider.actions.AutoBuildAction" text="Metalama: Build After Aspect Changes"
+            description="Builds the project after aspect or template code is saved, so Metalama's design-time analysis resumes (LAMA0118)">
       <add-to-group group-id="ToolsMenu" anchor="last"/>
     </action>
   </actions>

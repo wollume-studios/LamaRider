@@ -27,5 +27,9 @@ object LamaRiderModel : Ext(SolutionModel.Solution) {
         signal("info", string)
         // backend -> frontend: Code Vision entry clicked, payload is the declaration's doc id
         signal("codeVisionClicked", string)
+        // frontend -> backend: open a (library) aspect class via ReSharper navigation (sources or decompiler); payload is "T:Full.Name"
+        signal("navigateToClass", string)
+        // frontend -> backend: build a project after its aspect/template code is saved (opt-in, off by default)
+        property("autoBuild", false)
     }
 }

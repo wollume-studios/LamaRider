@@ -92,4 +92,34 @@ public class AspectModelTests
     [Fact]
     public void Error_summary_is_empty_without_errors() =>
         Assert.Equal("", AspectModel.Parse(Json("")).ErrorSummary);
+
+    [Fact]
+    public void Project_wide_errors_apply_to_own_aspect_classes_of_that_project()
+    {
+        const string json = """
+            {"schema":1,"aspectClasses":[
+               {"id":"T:EFA.Class1","name":"Class1","project":"EFA","isLibrary":false,"package":"EFA"},
+               {"id":"T:Other.Aspect","name":"Aspect","project":"Other","isLibrary":false,"package":"Other"},
+               {"id":"T:Lib.Url","name":"Url","project":"","isLibrary":true,"package":"Lib"}],
+             "instances":[],"transformations":[],"templateClassifications":[],"transformedFiles":[],
+             "diagnostics":[
+               {"id":"LAMA0042","severity":"Error","message":"ordering","project":"EFA"},
+               {"id":"CS0103","severity":"Error","message":"located","project":"EFA","file":"C:/x.cs","line":3},
+               {"id":"LAMA0999","severity":"Warning","message":"w","project":"EFA"}]}
+            """;
+        var model = AspectModel.Parse(json);
+        Assert.Equal(["LAMA0042"], model.ProjectErrorsFor("T:EFA.Class1").Select(d => d.Id));
+        Assert.Empty(model.ProjectErrorsFor("T:Other.Aspect"));
+        Assert.Empty(model.ProjectErrorsFor("T:Lib.Url"));
+        Assert.Empty(model.ProjectErrorsFor("T:Unknown"));
+    }
+
+    [Fact]
+    public void Compile_time_files_are_aspect_class_and_template_files()
+    {
+        var model = AspectModel.Parse(Json("").Replace("\"location\":null", "\"location\":{\"file\":\"C:/src/Aspects/Log.cs\",\"start\":0,\"end\":5}"));
+        Assert.True(model.IsCompileTimeFile(@"c:\src\aspects\LOG.cs")); // aspect class
+        Assert.True(model.IsCompileTimeFile(@"C:\src\Log.cs"));         // T# template
+        Assert.False(model.IsCompileTimeFile(File1));
+    }
 }

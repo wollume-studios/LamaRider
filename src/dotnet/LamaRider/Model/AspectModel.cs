@@ -58,6 +58,7 @@ public sealed class DiagnosticInfo
     public string? Target;
     public string? File;
     public int? Line;
+    public string? Project;
 }
 
 public sealed class ClassifiedSpan
@@ -142,6 +143,25 @@ public sealed class AspectModel
     public int TargetCountOf(string aspectClassId) => Instances.Count(i => i.AspectClass == aspectClassId);
 
     public bool IsAspectClass(string docId) => _aspectClassIds.Contains(docId);
+
+    /// <summary>Files with compile-time code (aspect classes, templates): editing them pauses Metalama until a build.</summary>
+    public bool IsCompileTimeFile(string path)
+    {
+        var normalized = Normalize(path);
+        return AspectClasses.Any(c => c.Location != null && Normalize(c.Location.File) == normalized)
+            || TemplateClassifications.Any(c => Normalize(c.File) == normalized);
+    }
+
+    /// <summary>
+    /// Errors without a location (e.g. LAMA0042 aspect ordering) in the project of one of the user's own aspect classes:
+    /// shown on the class name, since there is no better place in the editor.
+    /// </summary>
+    public IEnumerable<DiagnosticInfo> ProjectErrorsFor(string aspectClassId)
+    {
+        var aspect = AspectClasses.FirstOrDefault(c => c.Id == aspectClassId);
+        if (aspect == null || aspect.IsLibrary) return [];
+        return Diagnostics.Where(d => d.Severity == "Error" && d.File == null && d.Project == aspect.Project);
+    }
 
     /// <summary>Null when the document no longer has the length it had at classification time: spans would land on the wrong text.</summary>
     public FileClassification? ClassificationFor(string file, int documentLength) =>
