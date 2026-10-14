@@ -59,6 +59,15 @@ public sealed class WorkerTests : IAsyncLifetime
     }
 
     [Fact]
+    public void Transformed_code_is_formatted_like_metalama_output()
+    {
+        var links = _output.TransformedFiles.Single(f => f.File.EndsWith("Links.cs"));
+        var transformed = File.ReadAllText(links.TransformedPath);
+        Assert.DoesNotContain("global::", transformed);
+        Assert.DoesNotContain(") {", transformed);
+    }
+
+    [Fact]
     public void Lists_transformations_for_targets()
     {
         Assert.Contains(_output.Transformations, t => t.Target == Add);
@@ -119,7 +128,7 @@ public sealed class WorkerTests : IAsyncLifetime
         foreach (var file in Directory.GetFiles(SampleDir, "*", SearchOption.AllDirectories))
         {
             var relative = Path.GetRelativePath(SampleDir, file);
-            if (relative.Split(Path.DirectorySeparatorChar).Any(p => p is "bin" or "obj" or ".idea")) continue;
+            if (relative.Split(Path.DirectorySeparatorChar).Any(p => p is "bin" or "obj" or ".idea" || p.StartsWith("_ReSharper"))) continue;
             var target = Path.Combine(copy, relative);
             Directory.CreateDirectory(Path.GetDirectoryName(target)!);
             File.Copy(file, target);

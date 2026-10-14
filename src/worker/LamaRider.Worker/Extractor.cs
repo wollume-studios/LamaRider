@@ -1,4 +1,5 @@
 using Metalama.Framework.Code;
+using Metalama.Framework.Engine.Formatting;
 using Metalama.Framework.Engine.CodeModel;
 using Metalama.Framework.Introspection;
 using Metalama.Framework.Workspaces;
@@ -113,15 +114,32 @@ public static class Extractor
         var dir = Path.Combine(outDir, "transformed");
         Directory.CreateDirectory(dir);
         foreach (var compilation in workspace.TransformedCode.Compilations.OfType<CompilationModel>())
-        foreach (var tree in compilation.RoslynCompilation.SyntaxTrees)
         {
-            if (!File.Exists(tree.FilePath) || !seen.Add(tree.FilePath)) continue;
-            var text = tree.GetText().ToString();
-            if (text == File.ReadAllText(tree.FilePath)) continue; // untouched by aspects
-            var target = Path.Combine(dir, $"{result.Count}_{Path.GetFileName(tree.FilePath)}");
-            File.WriteAllText(target, text);
-            result.Add(new TransformedFileInfo(tree.FilePath, target));
+            var formatted = Format(compilation.RoslynCompilation);
+            foreach (var tree in formatted.SyntaxTrees)
+            {
+                if (!File.Exists(tree.FilePath) || !seen.Add(tree.FilePath)) continue;
+                var text = tree.GetText().ToString();
+                if (text == File.ReadAllText(tree.FilePath)) continue; // untouched by aspects
+                var target = Path.Combine(dir, $"{result.Count}_{Path.GetFileName(tree.FilePath)}");
+                File.WriteAllText(target, text);
+                result.Add(new TransformedFileInfo(tree.FilePath, target));
+            }
         }
         return result;
+    }
+
+    /// <summary>Metalama's own output formatter (what MetalamaFormatOutput uses): simplified names, line breaks.</summary>
+    static Microsoft.CodeAnalysis.Compilation Format(Microsoft.CodeAnalysis.Compilation compilation)
+    {
+        try
+        {
+            return new CodeFormatter().FormatAllAsync(compilation, CancellationToken.None).GetAwaiter().GetResult();
+        }
+        catch (Exception e)
+        {
+            Console.Error.WriteLine($"Formatting of transformed code skipped: {e.Message}");
+            return compilation;
+        }
     }
 }

@@ -65,4 +65,12 @@ class ModelDataGroupingTest {
         assertEquals("LAMA0042|ordering|null|null", model.errorSignature())
         assertEquals("", ModelData().errorSignature())
     }
+
+    @Test
+    fun `contract on a parameter shows the transformation of its method`() {
+        val url = AspectInstanceInfo("T:Url", "M:Links.Open(System.String);Parameter=0", "Links.Open(string)/address", "Links", "Parameter", "P", "Attribute", null)
+        val change = TransformationInfo("T:Url", "M:Links.Open(System.String)", "InsertStatement", "Add contract", null)
+        val other = TransformationInfo("T:Log", "M:Links.Open(System.String)", "OverrideMember", "Log", null)
+        assertEquals(listOf(change), ModelData(instances = listOf(url), transformations = listOf(change, other)).transformationsOf(url))
+    }
 }

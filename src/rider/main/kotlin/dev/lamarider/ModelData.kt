@@ -40,8 +40,11 @@ data class ModelData(
 ) {
     fun instancesOf(aspectClassId: String) = instances.filter { it.aspectClass == aspectClassId }.distinctBy { it.target }
     fun instancesOn(target: String) = instances.filter { it.target == target }
+    /** A contract on a parameter (";Parameter=0" / ";ReturnParameter") transforms its method. */
     fun transformationsOf(instance: AspectInstanceInfo) =
-        transformations.filter { it.target == instance.target && it.aspectClass == instance.aspectClass }
+        transformations.filter {
+            it.aspectClass == instance.aspectClass && (it.target == instance.target || it.target == instance.target.substringBefore(';'))
+        }
     fun diagnosticsOn(target: String) = diagnostics.filter { it.target == target }
     fun aspectClass(id: String) = aspectClasses.firstOrNull { it.id == id }
 
