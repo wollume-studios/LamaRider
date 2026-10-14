@@ -26,5 +26,17 @@
       <add-to-group group-id="SolutionExplorerPopupMenu" anchor="last"/>
       <keyboard-shortcut keymap="Visual Studio" first-keystroke="control K" second-keystroke="0"/>
     </action>
+    <action id="LamaRider.ShowAspects" class="dev.lamarider.actions.ShowAspectsAction" text="Show Metalama Aspects"
+            description="Aspects applied to the declaration at the caret">
+      <add-to-group group-id="EditorPopupMenu" anchor="last"/>
+    </action>
+    <action id="LamaRider.OpenTransformedFile" class="dev.lamarider.actions.OpenTransformedFileAction" text="Open Transformed File"
+            description="Open the Metalama-transformed file from obj/ (set breakpoints there while debugging transformed code)">
+      <add-to-group group-id="EditorPopupMenu" anchor="last"/>
+    </action>
+    <action id="LamaRider.DebugTransformedCode" class="dev.lamarider.actions.DebugTransformedCodeAction" text="Debug Transformed Code"
+            description="Set MetalamaDebugTransformedCode in the solution's Directory.Build.props">
+      <add-to-group group-id="ToolsMenu" anchor="last"/>
+    </action>
   </actions>
 </idea-plugin>

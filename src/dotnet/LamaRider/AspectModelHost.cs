@@ -49,6 +49,8 @@ public sealed class AspectModelHost
         loadTasks.EnqueueTask(new SolutionLoadTask(typeof(AspectModelHost), "LamaRider.Init", SolutionLoadTaskKinds.AfterDone, () =>
         {
             RdModel.Refresh.Advise(lifetime, _ => RequestRefresh("manual"));
+            RdModel.DebugTransformedCode.Value = DebugTransformedCodeProps.IsEnabled(ReadProps());
+            RdModel.SetDebugTransformedCode.Advise(lifetime, SetDebugTransformedCode);
             solutionBuilder.RunningRequest.Change.Advise(lifetime, args =>
             {
                 if (args.HasOld && args.Old != null && args.New == null) RequestRefresh("build finished");
@@ -60,6 +62,31 @@ public sealed class AspectModelHost
     public AspectModel? Model => _model;
 
     LamaRiderModel RdModel => _solution.GetProtocolSolution().GetLamaRiderModel();
+
+    string PropsPath => Path.Combine(_solution.SolutionDirectory.FullPath, DebugTransformedCodeProps.FileName);
+
+    string? ReadProps() => File.Exists(PropsPath) ? File.ReadAllText(PropsPath) : null;
+
+    // ponytail: solution-level Directory.Build.props only; a project-level one stops MSBuild's upward search.
+    void SetDebugTransformedCode(bool enable)
+    {
+        try
+        {
+            var current = ReadProps();
+            var updated = enable ? DebugTransformedCodeProps.Enable(current) : current == null ? null : DebugTransformedCodeProps.Disable(current);
+            if (updated == null)
+            {
+                if (File.Exists(PropsPath)) File.Delete(PropsPath);
+            }
+            else if (updated != current) File.WriteAllText(PropsPath, updated);
+            RdModel.DebugTransformedCode.Value = enable;
+        }
+        catch (Exception e) when (e is IOException or UnauthorizedAccessException or InvalidDataException)
+        {
+            RdModel.DebugTransformedCode.Value = DebugTransformedCodeProps.IsEnabled(ReadProps());
+            RdModel.Failed.Fire($"Cannot update {PropsPath}: {e.Message}");
+        }
+    }
 
     public void NotifyCodeVisionClicked(string docId) =>
         _solution.Locks.ExecuteOrQueueEx(_lifetime, "LamaRider.Click", () => RdModel.CodeVisionClicked.Fire(docId));

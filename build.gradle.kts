@@ -26,6 +26,22 @@ repositories {
     }
 }
 
+// Unit tests run without the IntelliJ Platform on the classpath (its bundled JUnit clashes and nothing here needs it).
+val unitTestRuntime: Configuration by configurations.creating
+
+val unitTest by tasks.registering(Test::class) {
+    description = "Frontend unit tests (no IDE)"
+    group = "verification"
+    useJUnitPlatform()
+    testClassesDirs = sourceSets.test.get().output.classesDirs
+    classpath = sourceSets.test.get().output + sourceSets.main.get().output + unitTestRuntime
+}
+
+tasks.test {
+    enabled = false // the IntelliJ test harness is not needed; see unitTest
+    dependsOn(unitTest)
+}
+
 version = extra["PluginVersion"] as String
 
 tasks.processResources {
@@ -37,6 +53,9 @@ sourceSets {
         java.srcDir("src/rider/main/java")
         kotlin.srcDir("src/rider/main/kotlin")
         resources.srcDir("src/rider/main/resources")
+    }
+    test {
+        kotlin.srcDir("src/rider/test/kotlin")
     }
 }
 
@@ -81,6 +100,12 @@ dependencies {
         }
         jetbrainsRuntime()
     }
+    // Plain unit tests for frontend logic that needs no IDE
+    testImplementation(libs.kotlinStdLib)
+    testImplementation("org.junit.jupiter:junit-jupiter:5.13.4")
+    unitTestRuntime(libs.kotlinStdLib)
+    unitTestRuntime("org.junit.jupiter:junit-jupiter:5.13.4")
+    unitTestRuntime("org.junit.platform:junit-platform-launcher:1.13.4")
 }
 
 tasks.runIde {

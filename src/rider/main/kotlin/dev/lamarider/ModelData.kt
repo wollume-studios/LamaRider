@@ -34,7 +34,21 @@ data class ModelData(
     fun diagnosticsOn(target: String) = diagnostics.filter { it.target == target }
     fun aspectClass(id: String) = aspectClasses.firstOrNull { it.id == id }
 
+    /** Target id under the caret: the narrowest aspect target or aspect class whose span contains [offset]. */
+    fun targetAt(file: String, offset: Int): String? {
+        val path = normalize(file)
+        val spans = instances.mapNotNull { i -> i.location?.let { it to i.target } } +
+            aspectClasses.mapNotNull { c -> c.location?.let { it to c.id } }
+        return spans
+            .filter { (loc, _) -> normalize(loc.file) == path && offset >= loc.start && offset < loc.end }
+            .minByOrNull { (loc, _) -> loc.end - loc.start }
+            ?.second
+    }
+
     companion object {
+        // ponytail: case-insensitive, same as the backend
+        private fun normalize(path: String) = path.replace('\\', '/').lowercase()
+
         fun load(path: String): ModelData = File(path).reader().use { Gson().fromJson(it, ModelData::class.java) }
     }
 }

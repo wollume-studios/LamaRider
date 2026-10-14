@@ -15,6 +15,10 @@ object LamaRiderModel : Ext(SolutionModel.Solution) {
         signal("refresh", void)
         // backend -> frontend: a refresh failed (message incl. log path), shown as a balloon
         signal("failed", string)
+        // backend -> frontend: MetalamaDebugTransformedCode is set in the solution's Directory.Build.props
+        property("debugTransformedCode", false)
+        // frontend -> backend: add/remove that setting
+        signal("setDebugTransformedCode", bool)
         // backend -> frontend: Code Vision entry clicked, payload is the declaration's doc id
         signal("codeVisionClicked", string)
     }

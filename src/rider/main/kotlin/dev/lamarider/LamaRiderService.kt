@@ -30,6 +30,13 @@ class LamaRiderService(val project: Project) {
 
     var onCodeVisionClicked: ((String) -> Unit)? = null
 
+    val debugTransformedCode: Boolean
+        get() = rd?.debugTransformedCode?.value ?: false
+
+    fun setDebugTransformedCode(enable: Boolean) {
+        rd?.setDebugTransformedCode?.fire(enable)
+    }
+
     fun attach(lifetime: Lifetime, rdModel: LamaRiderModel) {
         rd = rdModel
         rdModel.status.advise(lifetime) { status = it ?: ""; fire() }
@@ -69,4 +76,7 @@ class LamaRiderService(val project: Project) {
     }
 
     private fun fire() = listeners.forEach { it() }
+
+    fun notify(title: String, content: String, type: NotificationType = NotificationType.INFORMATION) =
+        NotificationGroupManager.getInstance().getNotificationGroup("LamaRider").createNotification(title, content, type).notify(project)
 }
