@@ -72,7 +72,7 @@ public sealed class AspectModelHost
             }
             _running = true;
         }
-        Task.Run(() => RefreshLoop(reason));
+        _ = Task.Run(() => RefreshLoop(reason)); // RefreshLoop logs its own failures
     }
 
     void RefreshLoop(string reason)
