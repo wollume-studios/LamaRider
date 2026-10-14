@@ -27,6 +27,7 @@ public sealed class WorkerRunner(string workerSourceDir, string cacheRoot, strin
 
     public AspectModel Run(string metalamaVersion, string solutionPath, CancellationToken ct)
     {
+        if (!MetalamaVersionDetector.IsSafe(metalamaVersion)) throw new WorkerException($"Refusing unexpected Metalama version '{metalamaVersion}'");
         Directory.CreateDirectory(Path.GetDirectoryName(LogPath)!);
         File.WriteAllText(LogPath, $"LamaRider worker run {DateTime.Now:O}{Environment.NewLine}");
 

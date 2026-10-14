@@ -27,4 +27,13 @@ public class WorkerRunnerTests
         Assert.Equal(2, model.TargetCountOf("T:MetalamaSample.LogAttribute"));
         Assert.True(File.Exists(Path.Combine(runner.LastOutputDir, "model.json")));
     }
+
+    [Fact]
+    public void Rejects_unsafe_metalama_version()
+    {
+        var cache = NewCache();
+        var runner = new WorkerRunner(WorkerSrc, cache, "test");
+        Assert.Throws<WorkerException>(() => runner.Run("../../evil", Path.Combine(cache, "x.sln"), CancellationToken.None));
+        Assert.False(Directory.Exists(Path.Combine(cache, "worker-src")));
+    }
 }

@@ -17,4 +17,9 @@ public class MetalamaVersionDetectorTests
     [Fact]
     public void Version_detection_keeps_prerelease_suffix() =>
         Assert.Equal("2026.2.1-preview", MetalamaVersionDetector.FromAssetsFiles(["""{"libraries":{"Metalama.Framework/2026.2.1-preview":{}}}"""]));
+
+    [Fact]
+    public void Version_detection_ignores_versions_that_could_inject_arguments_or_paths() =>
+        Assert.Equal("2026.1.9", MetalamaVersionDetector.FromAssetsFiles([
+            """{"libraries":{"Metalama.Framework/2026.1.9":{},"Metalama.Framework/9999.0.0 -p:Evil=1":{},"Metalama.Framework/9999.0.0/../../x":{}}}"""]));
 }
