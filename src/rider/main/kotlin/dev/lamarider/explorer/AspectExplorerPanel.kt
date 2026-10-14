@@ -166,7 +166,7 @@ class AspectExplorerPanel(private val project: Project, parent: Disposable) : Si
 
     private fun showSelection() {
         val aspect = selectedClass()
-        details.text = aspect?.let(::detailsHtml) ?: ""
+        details.text = aspect?.let(::detailsHtml) ?: "<html><body><span style=\"color:gray\">Select an aspect to see its documentation and targets.</span></body></html>"
         details.caretPosition = 0
         rebuildTargets(aspect)
     }
