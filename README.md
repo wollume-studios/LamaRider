@@ -12,6 +12,14 @@ Metalama tooling for JetBrains Rider — the Rider counterpart of the Visual Stu
 
 PostSharp classic (MSIL) projects are not supported.
 
+| Code Vision | T# highlighting |
+|---|---|
+| ![Code Vision](docs/screenshots/code-vision.png) | ![T# highlighting](docs/screenshots/tsharp-highlighting.png) |
+
+| Aspect Explorer | Metalama Diff |
+|---|---|
+| ![Aspect Explorer](docs/screenshots/aspect-explorer.png) | ![Metalama Diff](docs/screenshots/metalama-diff.png) |
+
 ## Requirements
 
 - Rider 2026.3 (build 263+, EAP6 or later).

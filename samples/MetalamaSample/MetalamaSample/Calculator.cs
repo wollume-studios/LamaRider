@@ -1,7 +1,7 @@
 namespace MetalamaSample;
 
 [Id]
-public class Calculator
+public partial class Calculator
 {
     [Log]
     public int Add(int a, int b) => a + b;
