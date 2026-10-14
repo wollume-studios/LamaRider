@@ -9,6 +9,8 @@ Metalama tooling for JetBrains Rider — the Rider counterpart of the Visual Stu
 | **Code Vision** | `N aspects` above every declaration an aspect touches (attribute, fabric, inheritance, child aspect); `applied to N targets` above aspect classes. Click for *Preview Transformed Code*, *Show in Aspect Explorer*, *Go to aspect*. |
 | **T# highlighting** | Compile-time code in templates is tinted, `meta.*` and compile-time variables stand out. Colors: *Settings › Editor › Color Scheme › Metalama T#*. |
 | **Metalama Diff** | Right-click a `.cs` file (editor or Solution Explorer) › *Metalama Diff*: source vs transformed code. `Ctrl+K, 0` in the Visual Studio keymap. |
+| **Show Metalama Aspects** | Editor context menu / Find Action: the Code Vision popup for the declaration at the caret (keyboard access). |
+| **Debug transformed code** | *Tools › Debug Transformed Code* sets `MetalamaDebugTransformedCode` in the solution's `Directory.Build.props`; rebuild, then *Open Transformed File* (editor context menu) and set breakpoints in the transformed code. Toggle off to remove the setting again. |
 
 PostSharp classic (MSIL) projects are not supported.
 
@@ -20,11 +22,16 @@ PostSharp classic (MSIL) projects are not supported.
 |---|---|
 | ![Aspect Explorer](docs/screenshots/aspect-explorer.png) | ![Metalama Diff](docs/screenshots/metalama-diff.png) |
 
+| Show Metalama Aspects | Debugging transformed code |
+|---|---|
+| ![Show Metalama Aspects](docs/screenshots/show-aspects-popup.png) | ![Debugging transformed code](docs/screenshots/debug-transformed-code.png) |
+
 ## Requirements
 
 - Rider 2026.3 (build 263+, EAP6 or later).
 - .NET SDK on `PATH` (8.0 or newer).
 - Solutions referencing `Metalama.Framework` 2026.x, restored at least once (`obj/project.assets.json` must exist).
+- No Metalama license needed: everything runs on the open-source Metalama framework.
 
 ## How it works
 
@@ -54,6 +61,10 @@ Try it in a sandboxed Rider with the bundled sample:
 
 ```bash
 dotnet test LamaRider.sln
+```
+
+```bash
+./gradlew unitTest
 ```
 
 ## Layout
