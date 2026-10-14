@@ -10,14 +10,15 @@ Metalama tooling for JetBrains Rider — the Rider counterpart of the Visual Stu
 
 | Feature | What you get |
 |---|---|
-| **Aspect Explorer** | Tool window (right): aspect classes in the solution; select one to see its targets as Project › Namespace › Type › Member with their transformations and diagnostics. Double-click navigates; a transformation opens the diff. *Go to source* also works for library aspects (Rider opens sources or decompiles). Refreshes on its own when code, projects or packages change. |
-| **Code Vision** | `N aspects` above every declaration an aspect touches (attribute, fabric, inheritance, child aspect); `applied to N targets` above aspect classes. Click for *Preview Transformed Code*, *Show in Aspect Explorer*, *Go to aspect*. |
+| **LamaRider tool window** | Right side bar (llama icon): aspect classes grouped by project and package; select one to see its documentation and its targets as Project › Namespace › Type › Member with kind icons, transformations and diagnostics. Double-click a transformation for its transformed code. *Go to source* also works for library aspects (Rider opens sources or decompiles). Refreshes on its own when code, projects or packages change. Toolbar: *Debug with LamaDebug*, settings; gear menu: all LamaRider toggles. |
+| **Code Vision** | `N aspects` above every declaration an aspect touches (attribute, fabric, inheritance, child aspect; aspects on parameters count for their method); `applied to N targets` above aspect classes. Click for *Show Transformed Code* (popup), *Metalama Diff*, *Show in LamaRider*, *Go to aspect*. |
 | **T# highlighting** | Compile-time code in templates is tinted, `meta.*` and compile-time variables stand out. Colors: *Settings › Editor › Color Scheme › Metalama T#*. |
 | **Metalama Diff** | Right-click a `.cs` file (editor or Solution Explorer) › *Metalama Diff*: source vs transformed code. `Ctrl+K, 0` in the Visual Studio keymap. |
+| **Show Transformed Code** | Editor context menu / Find Action: the transformed code of the declaration at the caret in a popup, with the aspects that changed it. |
 | **Show Metalama Aspects** | Editor context menu / Find Action: the Code Vision popup for the declaration at the caret (keyboard access). |
-| **Rider setup for aspect tests** | When a solution references `Metalama.Testing.AspectTesting` and xUnit discovery is still *Metadata* (Metalama's docs: aspect tests need *Test Runner* discovery), a notification offers to fix it — team-shared (`.sln.DotSettings`), personal, or global. It also stops the orphaned-processes prompt for diff tools that failing aspect tests open. Also on demand: *Tools › Configure Rider for Metalama Tests*. Rider 2026.3 already defaults to Test Runner, so usually nothing is needed. |
-| **Metalama errors** | An info bar on C# editors when Metalama reports errors (go to error, LAMA documentation, build). Errors without a location, such as LAMA0042 aspect ordering, are underlined on your aspect classes. Alt+Enter in aspect/template code: *Build project to resume Metalama analysis* (LAMA0118); *Tools › Metalama: Build After Aspect Changes* builds on save (off by default). |
-| **Debug transformed code** | *Tools › Debug Transformed Code* sets `MetalamaDebugTransformedCode` in the solution's `Directory.Build.props`; rebuild, then *Open Transformed File* (editor context menu) and set breakpoints in the transformed code. Toggle off to remove the setting again. |
+| **Rider setup for aspect tests** | When a solution references `Metalama.Testing.AspectTesting` and xUnit discovery is still *Metadata* (Metalama's docs: aspect tests need *Test Runner* discovery), a notification offers to fix it — team-shared (`.sln.DotSettings`), personal, or global. It also stops the orphaned-processes prompt for diff tools that failing aspect tests open. Also on demand: *Settings › Tools › LamaRider*. Rider 2026.3 already defaults to Test Runner, so usually nothing is needed. |
+| **Metalama errors** | An info bar on C# editors when Metalama reports errors (go to error, LAMA documentation, build). Errors without a location, such as LAMA0042 aspect ordering, are underlined on your aspect classes. Alt+Enter in aspect/template code: *Build project to resume Metalama analysis* (LAMA0118); *Settings › Tools › LamaRider* can build on save (off by default). |
+| **Debug transformed code** | *Debug with LamaDebug* (LamaRider tool window): selects Metalama's `LamaDebug` configuration, adding it to the `.sln`/`.slnx` first if needed (copied from Debug; projects without Metalama stay Debug), and starts debugging. Step into aspect code or set breakpoints in *Open Transformed File* (`obj/LamaDebug/…/metalama`). Alternatively *Settings › Tools › LamaRider › Debug transformed code in every build configuration* (`Directory.Build.props`). |
 
 PostSharp classic (MSIL) projects are not supported.
 
@@ -51,7 +52,7 @@ The worker uses Metalama's `Metalama.Framework.Workspaces` introspection API and
 writes `model.json` plus the transformed files to `%LOCALAPPDATA%\LamaRider\out\`. It is built from source on first
 use against your Metalama version (cached in `%LOCALAPPDATA%\LamaRider\worker\`), so the first refresh takes a minute.
 
-Data refreshes on solution load, after every build, and via the Refresh button in the Aspect Explorer. Between
+Data refreshes on solution load, after every build, and via the Refresh button in the LamaRider tool window. Between
 refreshes, results reflect the last build. Worker output is logged to `%LOCALAPPDATA%\LamaRider\logs\last-run.log`.
 
 ## Build and install

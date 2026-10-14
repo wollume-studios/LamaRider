@@ -29,7 +29,16 @@ data class TransformationInfo(val aspectClass: String, val target: String, val k
 
 data class DiagnosticInfo(val id: String, val severity: String, val message: String, val target: String?, val file: String?, val line: Int?)
 
-data class TransformedFileInfo(val file: String, val transformedPath: String)
+/** A type or member in a transformed file: doc id and LF offsets in that file. */
+data class TransformedDeclaration(val target: String, val start: Int, val end: Int)
+
+// declarations: null in models written before the worker recorded them (Gson ignores Kotlin defaults).
+data class TransformedFileInfo(val file: String, val transformedPath: String, val declarations: List<TransformedDeclaration>? = null)
+
+object AspectModelIds {
+    /** The member a parameter target ("M:...;Parameter=0") belongs to; other ids unchanged. */
+    fun owner(target: String) = target.substringBefore(';')
+}
 
 data class ModelData(
     val aspectClasses: List<AspectClassInfo> = emptyList(),
@@ -39,7 +48,8 @@ data class ModelData(
     val transformedFiles: List<TransformedFileInfo> = emptyList(),
 ) {
     fun instancesOf(aspectClassId: String) = instances.filter { it.aspectClass == aspectClassId }.distinctBy { it.target }
-    fun instancesOn(target: String) = instances.filter { it.target == target }
+    /** Includes aspects on the parameters of [target] ("...;Parameter=0"), shown with their method. */
+    fun instancesOn(target: String) = instances.filter { it.target == target || it.target.substringBefore(';') == target }
     /** A contract on a parameter (";Parameter=0" / ";ReturnParameter") transforms its method. */
     fun transformationsOf(instance: AspectInstanceInfo) =
         transformations.filter {
@@ -72,7 +82,20 @@ data class ModelData(
             ?.second
     }
 
+    /** Transformed code of [target] (a type or member doc id) declared in source [file]. */
+    fun transformedDeclaration(file: String, target: String): Pair<TransformedFileInfo, TransformedDeclaration>? =
+        transformedFiles.filter { normalize(it.file) == normalize(file) }
+            .firstNotNullOfOrNull { f -> f.declarations?.firstOrNull { it.target == target }?.let { f to it } }
+
     companion object {
+        /** [text] from [start] to [end], re-indented: the first line's column becomes 0, nested lines keep their relative indent. */
+        fun snippet(text: String, start: Int, end: Int): String {
+            val lineStart = text.lastIndexOf('\n', start - 1) + 1
+            val lines = (" ".repeat(start - lineStart) + text.substring(start, end)).lines()
+            val indent = lines.filter { it.isNotBlank() }.minOfOrNull { line -> line.takeWhile { it == ' ' || it == '\t' }.length } ?: 0
+            return lines.joinToString("\n") { it.drop(indent).trimEnd() }.trim('\n')
+        }
+
         // ponytail: case-insensitive, same as the backend
         private fun normalize(path: String) = path.replace('\\', '/').lowercase()
 

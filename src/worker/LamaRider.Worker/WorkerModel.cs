@@ -33,7 +33,10 @@ public sealed record ClassifiedSpan(int Start, int End, string Kind);
 /// <summary>Length is the LF-normalized length of the file the spans refer to (stale-model guard).</summary>
 public sealed record FileClassification(string File, int Length, List<ClassifiedSpan> Spans);
 
-public sealed record TransformedFileInfo(string File, string TransformedPath);
+public sealed record TransformedFileInfo(string File, string TransformedPath, List<TransformedDeclaration> Declarations);
+
+/// <summary>A type or member in a transformed file: XML doc id and LF offsets.</summary>
+public sealed record TransformedDeclaration(string Target, int Start, int End);
 
 public static class WorkerJson
 {

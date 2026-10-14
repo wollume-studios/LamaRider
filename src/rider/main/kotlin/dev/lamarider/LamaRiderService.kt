@@ -43,6 +43,10 @@ class LamaRiderService(val project: Project) {
         rd?.setDebugTransformedCode?.fire(enable)
     }
 
+    fun addLamaDebugConfiguration() {
+        rd?.addLamaDebugConfiguration?.fire(Unit)
+    }
+
     fun setAutoBuild(enable: Boolean) {
         rd?.autoBuild?.set(enable)
     }

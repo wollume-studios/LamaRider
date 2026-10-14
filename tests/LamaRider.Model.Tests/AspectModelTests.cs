@@ -122,4 +122,20 @@ public class AspectModelTests
         Assert.True(model.IsCompileTimeFile(@"C:\src\Log.cs"));         // T# template
         Assert.False(model.IsCompileTimeFile(File1));
     }
+
+    [Fact]
+    public void Method_hint_counts_aspects_on_its_parameters()
+    {
+        const string method = "M:EFA.Test.MyMethod(System.String)";
+        var model = AspectModel.Parse(Json(Instance(method, 10, 50) + "," + Instance(method + ";Parameter=0", 30, 40, "T:Url")));
+        Assert.Equal(["T:Log", "T:Url"], model.InstancesFor(method, File1, 20, 50).Select(i => i.AspectClass).Order());
+    }
+
+    [Fact]
+    public void Parameter_aspects_alone_still_show_on_the_method()
+    {
+        const string method = "M:EFA.Test.MyMethod(System.String)";
+        var model = AspectModel.Parse(Json(Instance(method + ";Parameter=0", 30, 40, "T:Url")));
+        Assert.Equal(["T:Url"], model.InstancesFor(method, File1, 20, 50).Select(i => i.AspectClass));
+    }
 }

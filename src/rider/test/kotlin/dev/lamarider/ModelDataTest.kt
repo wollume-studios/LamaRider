@@ -73,4 +73,27 @@ class ModelDataGroupingTest {
         val other = TransformationInfo("T:Log", "M:Links.Open(System.String)", "OverrideMember", "Log", null)
         assertEquals(listOf(change), ModelData(instances = listOf(url), transformations = listOf(change, other)).transformationsOf(url))
     }
+
+    @Test
+    fun `aspects on a method include those on its parameters`() {
+        fun on(target: String, cls: String) = AspectInstanceInfo(cls, target, target, "Test", "Method", "P", "Attribute", null)
+        val model = ModelData(instances = listOf(on("M:T.M(System.String)", "T:Class1"), on("M:T.M(System.String);Parameter=0", "T:Url"), on("M:T.Other", "T:Log")))
+        assertEquals(listOf("T:Class1", "T:Url"), model.instancesOn("M:T.M(System.String)").map { it.aspectClass })
+    }
+
+    @Test
+    fun `transformed declaration is found by source file and target`() {
+        val decl = TransformedDeclaration("M:Calc.Add", 10, 20)
+        val model = ModelData(transformedFiles = listOf(TransformedFileInfo("C:\\src\\Calc.cs", "C:/out/0_Calc.cs", listOf(decl))))
+        assertEquals(decl, model.transformedDeclaration("c:/src/calc.cs", "M:Calc.Add")?.second)
+        assertNull(model.transformedDeclaration("c:/src/calc.cs", "M:Calc.Sub"))
+    }
+
+    @Test
+    fun `snippet keeps relative indentation and drops the common one`() {
+        val text = "class C\n{\n    void M()\n    {\n        x();\n    }\n}\n"
+        val start = text.indexOf("void")
+        val end = text.indexOf("    }") + 5
+        assertEquals("void M()\n{\n    x();\n}", ModelData.snippet(text, start, end))
+    }
 }

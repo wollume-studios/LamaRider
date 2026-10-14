@@ -36,7 +36,7 @@ public sealed class AspectCodeVisionStage(AspectModelHost host, AspectCodeInsigh
             foreach (var declaration in file.Descendants<IDeclaration>())
             {
                 if (daemonProcess.InterruptFlag) throw new OperationCanceledException();
-                if (declaration.DeclaredElement is not { } element) continue;
+                if (declaration is IParameterDeclaration || declaration.DeclaredElement is not { } element) continue; // parameters: on their method
                 var nameRange = declaration.GetNameDocumentRange();
                 if (!nameRange.IsValid()) continue;
 
@@ -50,7 +50,7 @@ public sealed class AspectCodeVisionStage(AspectModelHost host, AspectCodeInsigh
                 if (targets > 0) parts.Add(targets == 1 ? "applied to 1 target" : $"applied to {targets} targets");
                 var text = string.Join(" · ", parts);
                 var tooltip = instances.Count > 0
-                    ? string.Join("\n", instances.Select(i => $"{Short(i.AspectClass)} ({i.AppliedVia})"))
+                    ? string.Join(", ", instances.Select(i => $"{Short(i.AspectClass)} ({i.AppliedVia})"))
                     : "Metalama aspect class";
 
                 var highlighting = new CodeInsightsHighlighting(nameRange, text, tooltip, text, provider, element, null);

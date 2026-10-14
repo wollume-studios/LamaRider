@@ -31,5 +31,7 @@ object LamaRiderModel : Ext(SolutionModel.Solution) {
         signal("navigateToClass", string)
         // frontend -> backend: build a project after its aspect/template code is saved (opt-in, off by default)
         property("autoBuild", false)
+        // frontend -> backend: add Metalama's LamaDebug configuration to the solution file (copied from Debug)
+        signal("addLamaDebugConfiguration", void)
     }
 }

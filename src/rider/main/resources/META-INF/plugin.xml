@@ -13,9 +13,11 @@
 
   <extensions defaultExtensionNs="com.intellij">
     <rd.solutionExtListener endpoint="IDE Frontend" listener="dev.lamarider.LamaRiderProtocolListener"/>
-    <toolWindow id="Aspect Explorer" anchor="right" icon="/icons/aspectExplorer.svg"
+    <toolWindow id="LamaRider" anchor="right" icon="/icons/aspectExplorer.svg"
                 factoryClass="dev.lamarider.explorer.AspectExplorerToolWindowFactory"/>
     <notificationGroup id="LamaRider" displayType="BALLOON"/>
+    <projectConfigurable parentId="tools" id="dev.lamarider.settings" displayName="LamaRider"
+                         instance="dev.lamarider.settings.LamaRiderConfigurable"/>
     <editorNotificationProvider implementation="dev.lamarider.errors.MetalamaErrorBanner"/>
   </extensions>
 
@@ -31,21 +33,32 @@
             description="Aspects applied to the declaration at the caret">
       <add-to-group group-id="EditorPopupMenu" anchor="last"/>
     </action>
+    <action id="LamaRider.ShowTransformedCode" class="dev.lamarider.actions.ShowTransformedCodeAction" text="Show Transformed Code"
+            description="Transformed code of the declaration at the caret, in a popup">
+      <add-to-group group-id="EditorPopupMenu" anchor="last"/>
+    </action>
     <action id="LamaRider.OpenTransformedFile" class="dev.lamarider.actions.OpenTransformedFileAction" text="Open Transformed File"
             description="Open the Metalama-transformed file from obj/ (set breakpoints there while debugging transformed code)">
       <add-to-group group-id="EditorPopupMenu" anchor="last"/>
     </action>
     <action id="LamaRider.DebugTransformedCode" class="dev.lamarider.actions.DebugTransformedCodeAction" text="Debug Transformed Code"
             description="Set MetalamaDebugTransformedCode in the solution's Directory.Build.props">
-      <add-to-group group-id="ToolsMenu" anchor="last"/>
     </action>
     <action id="LamaRider.ConfigureTests" class="dev.lamarider.actions.ConfigureTestsAction" text="Configure Rider for Metalama Tests"
             description="xUnit discovery by Test Runner and no orphaned-process prompt for diff tools (Metalama aspect tests)">
-      <add-to-group group-id="ToolsMenu" anchor="last"/>
     </action>
     <action id="LamaRider.AutoBuild" class="dev.lamarider.actions.AutoBuildAction" text="Metalama: Build After Aspect Changes"
             description="Builds the project after aspect or template code is saved, so Metalama's design-time analysis resumes (LAMA0118)">
-      <add-to-group group-id="ToolsMenu" anchor="last"/>
     </action>
+    <action id="LamaRider.DebugLamaDebug" class="dev.lamarider.actions.DebugWithLamaDebugAction"/>
+    <action id="LamaRider.Settings" class="dev.lamarider.actions.OpenSettingsAction"/>
+    <group id="LamaRider.Gear" text="LamaRider">
+      <reference ref="LamaRider.DebugLamaDebug"/>
+      <reference ref="LamaRider.DebugTransformedCode"/>
+      <reference ref="LamaRider.AutoBuild"/>
+      <reference ref="LamaRider.ConfigureTests"/>
+      <separator/>
+      <reference ref="LamaRider.Settings"/>
+    </group>
   </actions>
 </idea-plugin>

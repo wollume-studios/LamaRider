@@ -8,6 +8,7 @@ import com.intellij.ide.actions.ExpandAllAction
 import com.intellij.openapi.Disposable
 import com.intellij.openapi.actionSystem.ActionManager
 import com.intellij.openapi.actionSystem.DefaultActionGroup
+import com.intellij.openapi.actionSystem.Separator
 import com.intellij.openapi.components.service
 import com.intellij.openapi.fileEditor.OpenFileDescriptor
 import com.intellij.openapi.project.Project
@@ -27,6 +28,8 @@ import com.intellij.util.ui.JBUI
 import com.intellij.util.ui.UIUtil
 import com.intellij.util.ui.tree.TreeUtil
 import dev.lamarider.AspectClassInfo
+import dev.lamarider.AspectModelIds
+import dev.lamarider.TransformedCodePopup
 import dev.lamarider.AspectGroup
 import dev.lamarider.AspectInstanceInfo
 import dev.lamarider.DiagnosticInfo
@@ -115,6 +118,9 @@ class AspectExplorerPanel(private val project: Project, parent: Disposable) : Si
             ActionManager.getInstance().getAction("LamaRider.Refresh"),
             ExpandAllAction { expander },
             CollapseAllAction { expander },
+            Separator.getInstance(),
+            ActionManager.getInstance().getAction("LamaRider.DebugLamaDebug"),
+            ActionManager.getInstance().getAction("LamaRider.Settings"),
         )
         toolbar = ActionManager.getInstance().createActionToolbar("AspectExplorer", actions, true)
             .apply { targetComponent = this@AspectExplorerPanel }.component
@@ -199,9 +205,11 @@ class AspectExplorerPanel(private val project: Project, parent: Disposable) : Si
                 for ((ns, inNs) in inProject.groupBy { it.targetType.substringBeforeLast('.', "<global>") }.toSortedMap()) {
                     val nsNode = DefaultMutableTreeNode(Container(ns, AllIcons.Nodes.Package)).also(projectNode::add)
                     for ((type, inType) in inNs.groupBy { it.targetType.substringAfterLast('.') }.toSortedMap()) {
-                        val typeNode = DefaultMutableTreeNode(Container(type, AllIcons.Nodes.Class)).also(nsNode::add)
-                        for (instance in inType.sortedBy { it.targetName }) {
-                            val node = DefaultMutableTreeNode(TargetNode(instance)).also(typeNode::add)
+                        // An aspect on the type itself is the type node, not a second "Test" below it.
+                        val onType = inType.firstOrNull { it.targetKind == "NamedType" }
+                        val typeNode = DefaultMutableTreeNode(onType?.let(::TargetNode) ?: Container(type, AllIcons.Nodes.Class)).also(nsNode::add)
+                        for (instance in listOfNotNull(onType) + inType.filter { it !== onType }.sortedBy { it.targetName }) {
+                            val node = if (instance === onType) typeNode else DefaultMutableTreeNode(TargetNode(instance)).also(typeNode::add)
                             model.transformationsOf(instance).forEach { node.add(DefaultMutableTreeNode(TransformationNode(it))) }
                             model.diagnosticsOn(instance.target).forEach { node.add(DefaultMutableTreeNode(DiagnosticNode(it))) }
                         }
@@ -216,7 +224,9 @@ class AspectExplorerPanel(private val project: Project, parent: Disposable) : Si
     private fun activate(node: Any?) {
         when (node) {
             is TargetNode -> Navigation.open(project, node.instance.location)
-            is TransformationNode -> node.transformation.location?.let { MetalamaDiff.open(project, it.file, it.start) }
+            is TransformationNode -> node.transformation.location?.let {
+                TransformedCodePopup.showOrDiff(project, it.file, AspectModelIds.owner(node.transformation.target), it.start)
+            }
             is DiagnosticNode -> node.diagnostic.file?.let { Navigation.openLine(project, it, (node.diagnostic.line ?: 1) - 1) }
         }
     }

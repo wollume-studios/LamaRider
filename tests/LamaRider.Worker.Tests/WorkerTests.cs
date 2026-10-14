@@ -59,6 +59,21 @@ public sealed class WorkerTests : IAsyncLifetime
     }
 
     [Fact]
+    public void Transformed_declarations_are_located_in_the_transformed_file()
+    {
+        var calc = _output.TransformedFiles.Single(f => f.File.EndsWith("Calculator.cs"));
+        // LF offsets, like everything else in the model.
+        var text = File.ReadAllText(calc.TransformedPath).Replace("\r\n", "\n");
+        string Of(string id) { var d = calc.Declarations.Single(x => x.Target == id); return text[d.Start..d.End]; }
+
+        var add = Of("M:MetalamaSample.Calculator.Add(System.Int32,System.Int32)");
+        Assert.StartsWith("public int Add(", add.TrimStart('[', 'L', 'o', 'g', ']', '\n', ' '));
+        Assert.Contains("Entering Add", add);
+        Assert.DoesNotContain("Multiply", add);
+        Assert.Contains("Guid Id", Of("T:MetalamaSample.Calculator"));
+    }
+
+    [Fact]
     public void Transformed_code_is_formatted_like_metalama_output()
     {
         var links = _output.TransformedFiles.Single(f => f.File.EndsWith("Links.cs"));

@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.4.0
+- Tool window renamed to LamaRider (new llama icon); its toolbar and gear menu replace the Tools menu entries; new *Settings › Tools › LamaRider* page.
+- *Debug with LamaDebug*: selects Metalama's LamaDebug configuration (adds it to the solution when missing) and starts debugging.
+- *Show Transformed Code*: transformed code of one declaration in a popup (Code Vision, editor context menu, LamaRider tool window).
+- Code Vision counts aspects on parameters for their method; an aspect on a type no longer shows the type twice in the targets tree.
+
 ## 0.3.0
 - Refreshes automatically when code, projects or packages change.
 - Metalama errors: info bar on C# editors (go to error, documentation, build); errors without a location (e.g. LAMA0042) underlined on your aspect classes, Alt+Enter opens the LAMA documentation.

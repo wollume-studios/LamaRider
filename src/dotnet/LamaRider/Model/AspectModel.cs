@@ -108,7 +108,8 @@ public sealed class AspectModel
         if (model == null) throw new InvalidDataException("Empty worker output");
         if (model.Schema != SupportedSchema) throw new InvalidDataException($"Unsupported worker schema {model.Schema}");
         model.Instances = model.Instances.GroupBy(i => i.Key).Select(g => g.First()).ToList();
-        model._byTarget = model.Instances.GroupBy(i => i.Target).ToDictionary(g => g.Key, g => g.ToList());
+        // Parameter targets ("M:...;Parameter=0") count for their method: Code Vision shows one hint per line.
+        model._byTarget = model.Instances.GroupBy(i => Owner(i.Target)).ToDictionary(g => g.Key, g => g.ToList());
         model._byFile = model.Instances.Where(i => i.Location != null)
             .GroupBy(i => Normalize(i.Location!.File)).ToDictionary(g => g.Key, g => g.ToList());
         model._classifications = model.TemplateClassifications
@@ -169,7 +170,14 @@ public sealed class AspectModel
 
     /// <summary>Id the frontend can resolve: the worker's target when instances matched (also via span fallback), else the doc id.</summary>
     public static string ClickTarget(string docId, IReadOnlyList<AspectInstanceInfo> instances) =>
-        instances.Count > 0 ? instances[0].Target : docId;
+        instances.Count > 0 ? Owner(instances[0].Target) : docId;
+
+    /// <summary>The member a parameter/return-value target belongs to; other targets unchanged.</summary>
+    public static string Owner(string target)
+    {
+        var separator = target.IndexOf(';');
+        return separator < 0 ? target : target.Substring(0, separator);
+    }
 
     // ponytail: case-insensitive paths everywhere; per-OS comparison if Linux users hit collisions.
     static string Normalize(string path) => Path.GetFullPath(path).ToUpperInvariant();

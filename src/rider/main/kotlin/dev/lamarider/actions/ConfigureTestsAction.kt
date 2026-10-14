@@ -4,11 +4,12 @@ import com.intellij.openapi.actionSystem.ActionUpdateThread
 import com.intellij.openapi.actionSystem.AnActionEvent
 import com.intellij.openapi.components.service
 import com.intellij.openapi.project.DumbAwareAction
+import com.intellij.openapi.project.Project
 import com.intellij.openapi.ui.popup.JBPopupFactory
 import dev.lamarider.LamaRiderService
 import dev.lamarider.TestSettingsScope
 
-/** Tools › Configure Rider for Metalama Tests: same settings as the notification, on demand. */
+/** Configure Rider for Metalama Tests (LamaRider gear menu, settings page): same settings as the notification, on demand. */
 class ConfigureTestsAction : DumbAwareAction() {
     override fun getActionUpdateThread() = ActionUpdateThread.BGT
 
@@ -17,8 +18,11 @@ class ConfigureTestsAction : DumbAwareAction() {
     }
 
     override fun actionPerformed(e: AnActionEvent) {
-        val project = e.project ?: return
-        JBPopupFactory.getInstance()
+        choose(e.project ?: return)
+    }
+
+    companion object {
+        fun choose(project: Project) = JBPopupFactory.getInstance()
             .createPopupChooserBuilder(TestSettingsScope.entries.toList())
             .setRenderer(com.intellij.ui.dsl.listCellRenderer.textListCellRenderer { it.label })
             .setTitle("Configure Rider for Metalama Tests")

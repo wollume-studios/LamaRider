@@ -3,6 +3,9 @@ using Metalama.Framework.Engine.Formatting;
 using Metalama.Framework.Engine.CodeModel;
 using Metalama.Framework.Introspection;
 using Metalama.Framework.Workspaces;
+using SyntaxTree = Microsoft.CodeAnalysis.SyntaxTree;
+using Microsoft.CodeAnalysis.CSharp;
+using Microsoft.CodeAnalysis.CSharp.Syntax;
 
 namespace LamaRider.Worker;
 
@@ -121,11 +124,38 @@ public static class Extractor
             {
                 if (!File.Exists(tree.FilePath) || !seen.Add(tree.FilePath)) continue;
                 var text = tree.GetText().ToString();
-                if (text == File.ReadAllText(tree.FilePath)) continue; // untouched by aspects
+                var original = ReadOrNull(tree.FilePath); // null: being rewritten (obj/ by a build)
+                if (original == null || text == original) continue; // untouched by aspects
                 var target = Path.Combine(dir, $"{result.Count}_{Path.GetFileName(tree.FilePath)}");
                 File.WriteAllText(target, text);
-                result.Add(new TransformedFileInfo(tree.FilePath, target));
+                result.Add(new TransformedFileInfo(tree.FilePath, target, Declarations(formatted, tree, text)));
             }
+        }
+        return result;
+    }
+
+    static string? ReadOrNull(string path)
+    {
+        try { return File.ReadAllText(path); }
+        catch (IOException) { return null; }
+    }
+
+    /// <summary>Types and members of a transformed file with their LF offsets: the IDE shows one declaration's transformed code.</summary>
+    static List<TransformedDeclaration> Declarations(Microsoft.CodeAnalysis.Compilation compilation, SyntaxTree tree, string text)
+    {
+        // CR count before each position: offsets are LF-normalized like the rest of the model.
+        var crBefore = new int[text.Length + 1];
+        for (var i = 0; i < text.Length; i++) crBefore[i + 1] = crBefore[i] + (text[i] == '\r' ? 1 : 0);
+
+        var model = compilation.GetSemanticModel(tree);
+        var seen = new HashSet<string>();
+        var result = new List<TransformedDeclaration>();
+        foreach (var node in tree.GetRoot().DescendantNodes().OfType<MemberDeclarationSyntax>())
+        {
+            if (node is not (BaseTypeDeclarationSyntax or BaseMethodDeclarationSyntax or BasePropertyDeclarationSyntax)) continue;
+            var id = model.GetDeclaredSymbol(node)?.GetDocumentationCommentId();
+            if (id == null || !seen.Add(id)) continue;
+            result.Add(new TransformedDeclaration(id, node.Span.Start - crBefore[node.Span.Start], node.Span.End - crBefore[node.Span.End]));
         }
         return result;
     }

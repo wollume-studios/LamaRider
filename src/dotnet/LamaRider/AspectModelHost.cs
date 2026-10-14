@@ -65,6 +65,7 @@ public sealed class AspectModelHost
             RdModel.ApplyTestSettings.Advise(lifetime, ApplyTestSettings);
             RdModel.NavigateToClass.Advise(lifetime, NavigateToClass);
             RdModel.AutoBuild.Advise(lifetime, enabled => _autoBuild = enabled);
+            RdModel.AddLamaDebugConfiguration.Advise(lifetime, _ => AddLamaDebugConfiguration());
             solutionBuilder.RunningRequest.Change.Advise(lifetime, args =>
             {
                 if (args.HasOld && args.Old != null && args.New == null) RequestRefresh("build finished");
@@ -145,6 +146,47 @@ public sealed class AspectModelHost
             if (type == null) RdModel.Info.Fire($"{name} was not found in the solution's references.");
             else _solution.GetComponent<DeclaredElementNavigationService>()
                 .Navigate(type, _solution.GetComponent<IMainWindowPopupWindowContext>().Source, true);
+        });
+
+    void AddLamaDebugConfiguration() =>
+        _solution.Locks.ExecuteOrQueueReadLockEx(_lifetime, "LamaRider.AddLamaDebug", () =>
+        {
+            var path = _solution.SolutionFilePath.FullPath;
+            var metalamaProjects = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            foreach (var location in _solution.GetAllProjects().Select(p => p.ProjectFileLocation).Where(p => !p.IsEmpty))
+            {
+                var assets = location.Directory.Combine("obj").Combine("project.assets.json").FullPath;
+                if (File.Exists(assets) && MetalamaVersionDetector.FromAssetsFiles([File.ReadAllText(assets)]) != null)
+                    metalamaProjects.Add(location.FullPath);
+            }
+            var directory = Path.GetDirectoryName(path)!;
+            bool IsMetalama(string relative) =>
+                metalamaProjects.Contains(Path.GetFullPath(Path.Combine(directory, relative.Replace('\\', Path.DirectorySeparatorChar))));
+            try
+            {
+                // Keep the BOM Visual Studio writes into .sln files.
+                var bytes = File.ReadAllBytes(path);
+                var bom = bytes.Length >= 3 && bytes[0] == 0xEF && bytes[1] == 0xBB && bytes[2] == 0xBF;
+                var text = new System.Text.UTF8Encoding(false).GetString(bytes, bom ? 3 : 0, bytes.Length - (bom ? 3 : 0));
+                var extension = Path.GetExtension(path).ToLowerInvariant();
+                var updated = extension switch
+                {
+                    ".sln" => LamaDebugConfiguration.AddToSln(text, IsMetalama),
+                    ".slnx" => LamaDebugConfiguration.AddToSlnx(text, IsMetalama),
+                    _ => null,
+                };
+                if (updated == null)
+                {
+                    RdModel.Failed.Fire($"Cannot add LamaDebug to {Path.GetFileName(path)}: only .sln and .slnx files are supported.");
+                    return;
+                }
+                if (updated != text) File.WriteAllText(path, updated, new System.Text.UTF8Encoding(bom));
+                RdModel.Info.Fire($"Added the LamaDebug configuration to {Path.GetFileName(path)}. Once Rider has reloaded the solution, run Debug with LamaDebug again.");
+            }
+            catch (Exception e) when (e is IOException or UnauthorizedAccessException or System.Xml.XmlException)
+            {
+                RdModel.Failed.Fire($"Cannot add LamaDebug to {Path.GetFileName(path)}: {e.Message}");
+            }
         });
 
     // Project paths need the read lock; the worker run must not hold it.
