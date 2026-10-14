@@ -18,7 +18,9 @@ public static partial class Program
         {
             var outDir = args[0];
             Directory.CreateDirectory(outDir);
-            using var workspace = await WorkspaceCollection.Default.LoadAsync(args[1..]);
+            var inputs = args[1..];
+            if (inputs.Length > 1) inputs = [SolutionFile.Write(outDir, inputs)];
+            using var workspace = await WorkspaceCollection.Default.LoadAsync(inputs);
             var output = Extractor.Extract(workspace, outDir);
             await File.WriteAllTextAsync(Path.Combine(outDir, "model.json"), JsonSerializer.Serialize(output, WorkerJson.Options));
             return 0;

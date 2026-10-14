@@ -98,4 +98,16 @@ public sealed class WorkerTests : IAsyncLifetime
         var file = _output.TemplateClassifications.Single(f => f.File.EndsWith("LogAttribute.cs"));
         Assert.Equal(File.ReadAllText(file.File).Replace("\r\n", "\n").Length, file.Length);
     }
+
+    [Fact]
+    public async Task Projects_referenced_by_earlier_inputs_are_not_loaded_twice()
+    {
+        // AspectTests references MetalamaSample: loading it first already adds MetalamaSample to the workspace.
+        var dir = Path.Combine(_outDir, "cli-order");
+        var code = await Program.Run([dir,
+            Path.Combine(SampleDir, "MetalamaSample.AspectTests/MetalamaSample.AspectTests.csproj"),
+            Path.Combine(SampleDir, "MetalamaSample/MetalamaSample.csproj")]);
+        Assert.Equal(0, code);
+        Assert.True(File.Exists(Path.Combine(dir, "model.json")));
+    }
 }
