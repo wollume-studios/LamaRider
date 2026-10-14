@@ -49,7 +49,7 @@ class LamaRiderService(val project: Project) {
                     log.warn("Cannot read $path", e)
                     status = "Cannot read model: ${e.message}"
                 }
-                ApplicationManager.getApplication().invokeLater { fire() }
+                fire()
             }
         }
         rdModel.codeVisionClicked.advise(lifetime) { id -> onCodeVisionClicked?.invoke(id) }
@@ -81,7 +81,8 @@ class LamaRiderService(val project: Project) {
         return model?.transformedFiles?.firstOrNull { File(it.file).canonicalPath.equals(wanted, ignoreCase = true) }?.transformedPath
     }
 
-    private fun fire() = listeners.forEach { it() }
+    // rd callbacks arrive on a background protocol thread (Rider 2026.3); listeners touch Swing.
+    private fun fire() = ApplicationManager.getApplication().invokeLater { listeners.forEach { it() } }
 
     fun notify(title: String, content: String, type: NotificationType = NotificationType.INFORMATION) =
         NotificationGroupManager.getInstance().getNotificationGroup("LamaRider").createNotification(title, content, type).notify(project)

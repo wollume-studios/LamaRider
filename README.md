@@ -56,6 +56,23 @@ refreshes, results reflect the last build. Worker output is logged to `%LOCALAPP
 
 Install `build/distributions/LamaRider-<version>.zip` via *Settings › Plugins › ⚙ › Install Plugin from Disk…*.
 
+### Automatic updates from a local plugin repository
+
+```bash
+./gradlew publishLocal
+```
+
+Builds the plugin with a fresh version (`<PluginVersion>.<yyMMddHHmm>`), copies it to `~/.lamarider/plugin-repo/`
+(override with `-PlocalRepoDir=<dir>`, e.g. a network share) and writes `updatePlugins.xml` there. Once, in Rider:
+*Settings › Plugins › ⚙ › Manage Plugin Repositories… › +* and add the printed URL, e.g.
+`file:///C:/Users/<you>/.lamarider/plugin-repo/updatePlugins.xml`. Rider then offers every `publishLocal` build as
+a plugin update.
+
+### JetBrains Marketplace
+
+`PUBLISH_TOKEN=<token> ./gradlew publishPlugin` uploads to the `eap` channel (`-PPublishChannel=<name>` for another).
+The very first upload of a new plugin has to be done by hand on plugins.jetbrains.com.
+
 Try it in a sandboxed Rider with the bundled sample:
 
 ```bash

@@ -1,3 +1,5 @@
+import java.time.LocalDateTime
+import java.time.format.DateTimeFormatter
 import com.jetbrains.plugin.structure.base.utils.isFile
 import org.jetbrains.intellij.platform.gradle.Constants
 
@@ -12,6 +14,7 @@ val DotnetSolution: String by project
 val BuildConfiguration: String by project
 val ProductVersion: String by project
 val DotnetPluginId: String by project
+val RiderPluginId: String by project
 
 allprojects {
     repositories {
@@ -42,7 +45,10 @@ tasks.test {
     dependsOn(unitTest)
 }
 
-version = extra["PluginVersion"] as String
+// publishLocal stamps a build number so Rider sees every local build as an update.
+val isLocalPublish = gradle.startParameter.taskNames.any { it.substringAfterLast(':') == "publishLocal" }
+version = (extra["PluginVersion"] as String) +
+    if (isLocalPublish) "." + LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyMMddHHmm")) else ""
 
 tasks.processResources {
     from("dependencies.json") { into("META-INF") }
@@ -93,6 +99,41 @@ tasks.buildPlugin {
     }
 }
 
+// Local plugin repository: Settings › Plugins › ⚙ › Manage Plugin Repositories… › add the printed updatePlugins.xml URL.
+// ./gradlew publishLocal [-PlocalRepoDir=<dir>]
+val publishLocal by tasks.registering {
+    group = "publishing"
+    description = "Publish the plugin zip to a local custom plugin repository (updatePlugins.xml)"
+    dependsOn(tasks.buildPlugin)
+    val repoDir = providers.gradleProperty("localRepoDir")
+        .orElse(System.getProperty("user.home") + "/.lamarider/plugin-repo")
+    val zip = tasks.buildPlugin.flatMap { it.archiveFile }
+    val pluginId = RiderPluginId
+    val pluginVersion = version.toString()
+    doLast {
+        val dir = file(repoDir.get()).apply { mkdirs() }
+        val target = File(dir, zip.get().asFile.name)
+        zip.get().asFile.copyTo(target, overwrite = true)
+        // keep the three newest builds
+        dir.listFiles { f -> f.extension == "zip" }!!.sortedByDescending { it.lastModified() }.drop(3).forEach { it.delete() }
+        val xml = File(dir, "updatePlugins.xml")
+        xml.writeText(
+            """
+            |<?xml version="1.0" encoding="UTF-8"?>
+            |<plugins>
+            |  <plugin id="$pluginId" url="${target.toPath().toUri()}" version="$pluginVersion">
+            |    <idea-version since-build="263"/>
+            |    <name>LamaRider</name>
+            |    <vendor>LamaRider</vendor>
+            |    <description>Metalama tooling for Rider: Aspect Explorer, Code Vision, T# highlighting, Metalama Diff.</description>
+            |  </plugin>
+            |</plugins>
+            |""".trimMargin()
+        )
+        println("LamaRider $pluginVersion published. Repository URL: ${xml.toPath().toUri()}")
+    }
+}
+
 dependencies {
     intellijPlatform {
         rider(ProductVersion) {
@@ -116,6 +157,9 @@ tasks.runIde {
     argumentProviders += CommandLineArgumentProvider { listOfNotNull(openSolution.orNull?.let { file(it).absolutePath }) }
     // Passing a solution explicitly means trusting it: skip the sandbox's modal "Trust solution" dialog.
     jvmArgumentProviders += CommandLineArgumentProvider { if (openSolution.isPresent) listOf("-Didea.trust.all.projects=true") else emptyList() }
+    // ./gradlew runIde -PpluginRepo=<updatePlugins.xml URL> : test update checks against a custom repository
+    val pluginRepo = providers.gradleProperty("pluginRepo")
+    jvmArgumentProviders += CommandLineArgumentProvider { listOfNotNull(pluginRepo.orNull?.let { "-Didea.plugin.hosts=$it" }) }
 }
 
 tasks.patchPluginXml {
@@ -154,6 +198,15 @@ tasks.withType<org.jetbrains.intellij.platform.gradle.tasks.PrepareSandboxTask>(
             val file = file(f)
             if (!file.exists()) throw RuntimeException("File $file does not exist")
         }
+    }
+}
+
+// JetBrains Marketplace: PUBLISH_TOKEN=<token> ./gradlew publishPlugin [-PPublishChannel=eap]
+// The first upload of a new plugin must be done manually on plugins.jetbrains.com.
+intellijPlatform {
+    publishing {
+        token = providers.environmentVariable("PUBLISH_TOKEN")
+        channels = providers.gradleProperty("PublishChannel").map { listOf(it) }.orElse(listOf("eap"))
     }
 }
 
