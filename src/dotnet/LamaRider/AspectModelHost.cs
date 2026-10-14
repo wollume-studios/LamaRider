@@ -34,6 +34,9 @@ public sealed class AspectModelHost
     readonly WorkerRunner _runner;
     readonly object _gate = new();
     bool _running, _pending, _testSettingsChecked;
+    FileSystemWatcher? _watcher;
+    Timer? _debounce;
+    static readonly TimeSpan Debounce = TimeSpan.FromSeconds(3);
     volatile AspectModel? _model;
 
     public AspectModelHost(Lifetime lifetime, ISolution solution, ISolutionBuilder solutionBuilder, ISolutionLoadTasksScheduler loadTasks)
@@ -57,6 +60,7 @@ public sealed class AspectModelHost
             {
                 if (args.HasOld && args.Old != null && args.New == null) RequestRefresh("build finished");
             });
+            StartWatching(_solution.SolutionDirectory.FullPath);
             RequestRefresh("solution loaded");
         }));
     }
@@ -150,6 +154,44 @@ public sealed class AspectModelHost
             _pending = false;
         }
         StartRun("queued");
+    }
+
+    // Refresh on its own: saved code/project files and restores (package changes), debounced.
+    void StartWatching(string solutionDirectory)
+    {
+        _debounce = new Timer(_ => RequestRefresh("files changed"));
+        _watcher = new FileSystemWatcher(solutionDirectory)
+        {
+            IncludeSubdirectories = true,
+            NotifyFilter = NotifyFilters.FileName | NotifyFilters.LastWrite,
+            InternalBufferSize = 64 * 1024,
+        };
+        _watcher.Changed += (_, e) => OnFileChanged(e.FullPath);
+        _watcher.Created += (_, e) => OnFileChanged(e.FullPath);
+        _watcher.Deleted += (_, e) => OnFileChanged(e.FullPath);
+        _watcher.Renamed += (_, e) =>
+        {
+            OnFileChanged(e.FullPath);
+            OnFileChanged(e.OldFullPath);
+        };
+        _watcher.Error += (_, _) => _debounce.Change(Debounce, Timeout.InfiniteTimeSpan); // buffer overflow: just refresh
+        _watcher.EnableRaisingEvents = true;
+        _lifetime.OnTermination(() =>
+        {
+            _watcher.Dispose();
+            _debounce.Dispose();
+        });
+    }
+
+    void OnFileChanged(string path)
+    {
+        var kind = RefreshTrigger.Classify(path);
+        if (kind == RefreshTrigger.Kind.None) return;
+        // The worker restores the solution itself; its own project.assets.json writes must not trigger another refresh.
+        if (kind == RefreshTrigger.Kind.Restore)
+            lock (_gate)
+                if (_running) return;
+        _debounce?.Change(Debounce, Timeout.InfiniteTimeSpan);
     }
 
     void RunOnce(string reason, List<string> assetsFiles, string solutionPath, IReadOnlyList<string> inputs)
