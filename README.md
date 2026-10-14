@@ -1,3 +1,8 @@
+<p align="center">
+  <img src="docs/images/app-icon.png" width="96" alt="LamaRider logo"><br>
+  <img src="docs/images/lamarider.png" width="260" alt="LamaRider">
+</p>
+
 # LamaRider
 
 Metalama tooling for JetBrains Rider — the Rider counterpart of the Visual Studio extension

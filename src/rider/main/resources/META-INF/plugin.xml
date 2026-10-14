@@ -13,7 +13,7 @@
 
   <extensions defaultExtensionNs="com.intellij">
     <rd.solutionExtListener endpoint="IDE Frontend" listener="dev.lamarider.LamaRiderProtocolListener"/>
-    <toolWindow id="Aspect Explorer" anchor="right" icon="AllIcons.Nodes.Annotationtype"
+    <toolWindow id="Aspect Explorer" anchor="right" icon="/icons/aspectExplorer.svg"
                 factoryClass="dev.lamarider.explorer.AspectExplorerToolWindowFactory"/>
     <notificationGroup id="LamaRider" displayType="BALLOON"/>
   </extensions>
