@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Threading;
@@ -8,6 +9,7 @@ using JetBrains.Application.Threading;
 using JetBrains.Lifetimes;
 using JetBrains.ProjectModel;
 using JetBrains.ProjectModel.Features.SolutionBuilders;
+using JetBrains.ProjectModel.Tasks;
 using JetBrains.ReSharper.Feature.Services.Daemon;
 using JetBrains.ReSharper.Feature.Services.Protocol;
 using JetBrains.Rider.Model;
@@ -33,7 +35,7 @@ public sealed class AspectModelHost
     bool _running, _pending;
     volatile AspectModel? _model;
 
-    public AspectModelHost(Lifetime lifetime, ISolution solution, ISolutionBuilder solutionBuilder)
+    public AspectModelHost(Lifetime lifetime, ISolution solution, ISolutionBuilder solutionBuilder, ISolutionLoadTasksScheduler loadTasks)
     {
         _lifetime = lifetime;
         _solution = solution;
@@ -43,7 +45,8 @@ public sealed class AspectModelHost
         var cache = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "LamaRider");
         _runner = new WorkerRunner(Path.Combine(pluginDir, "worker"), cache, typeof(AspectModelHost).Assembly.GetName().Version.ToString());
 
-        _solution.Locks.ExecuteOrQueueEx(lifetime, "LamaRider.Init", () =>
+        // Project model queries are not allowed while the solution loads.
+        loadTasks.EnqueueTask(new SolutionLoadTask(typeof(AspectModelHost), "LamaRider.Init", SolutionLoadTaskKinds.AfterDone, () =>
         {
             RdModel.Refresh.Advise(lifetime, _ => RequestRefresh("manual"));
             solutionBuilder.RunningRequest.Change.Advise(lifetime, args =>
@@ -51,7 +54,7 @@ public sealed class AspectModelHost
                 if (args.HasOld && args.Old != null && args.New == null) RequestRefresh("build finished");
             });
             RequestRefresh("solution loaded");
-        });
+        }));
     }
 
     public AspectModel? Model => _model;
@@ -72,38 +75,42 @@ public sealed class AspectModelHost
             }
             _running = true;
         }
-        _ = Task.Run(() => RefreshLoop(reason)); // RefreshLoop logs its own failures
+        StartRun(reason);
     }
 
-    void RefreshLoop(string reason)
-    {
-        while (true)
+    // Project paths need the read lock; the worker run must not hold it.
+    void StartRun(string reason) =>
+        _solution.Locks.ExecuteOrQueueReadLockEx(_lifetime, "LamaRider.CollectProjects", () =>
         {
-            try { RunOnce(reason); }
-            catch (Exception e) { Logger.Error(e); }
+            var assetsFiles = _solution.GetAllProjects()
+                .Select(p => p.ProjectFileLocation)
+                .Where(p => !p.IsEmpty)
+                .Select(p => p.Directory.Combine("obj").Combine("project.assets.json").FullPath)
+                .ToList();
+            var solutionPath = _solution.SolutionFilePath.FullPath;
+            _ = Task.Run(() => RunAndContinue(reason, assetsFiles, solutionPath));
+        });
 
-            lock (_gate)
+    void RunAndContinue(string reason, List<string> assetsFiles, string solutionPath)
+    {
+        try { RunOnce(reason, assetsFiles, solutionPath); }
+        catch (Exception e) { Logger.Error(e); }
+
+        lock (_gate)
+        {
+            if (!_pending || !_lifetime.IsAlive)
             {
-                if (!_pending || !_lifetime.IsAlive)
-                {
-                    _running = false;
-                    return;
-                }
-                _pending = false;
-                reason = "queued";
+                _running = false;
+                return;
             }
+            _pending = false;
         }
+        StartRun("queued");
     }
 
-    void RunOnce(string reason)
+    void RunOnce(string reason, List<string> assetsFiles, string solutionPath)
     {
-        var assets = _solution.GetAllProjects()
-            .Select(p => p.ProjectFileLocation)
-            .Where(p => !p.IsEmpty)
-            .Select(p => p.Directory.Combine("obj").Combine("project.assets.json"))
-            .Where(p => p.ExistsFile)
-            .Select(p => File.ReadAllText(p.FullPath))
-            .ToList();
+        var assets = assetsFiles.Where(File.Exists).Select(File.ReadAllText).ToList();
         var version = MetalamaVersionDetector.FromAssetsFiles(assets);
         if (version == null)
         {
@@ -117,7 +124,7 @@ public sealed class AspectModelHost
         try
         {
             CancellationToken ct = _lifetime;
-            var model = _runner.Run(version, _solution.SolutionFilePath.FullPath, ct);
+            var model = _runner.Run(version, solutionPath, ct);
             _model = model;
             Publish(
                 $"Refreshed {DateTime.Now:HH:mm} · {model.AspectClasses.Count} aspects / {model.Instances.Count} instances",

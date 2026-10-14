@@ -86,6 +86,11 @@ dependencies {
 tasks.runIde {
     // Match Rider's default heap size of 1.5Gb (default for runIde is 512Mb)
     maxHeapSize = "1500m"
+    // ./gradlew runIde -PopenSolution=samples/MetalamaSample/MetalamaSample.sln
+    val openSolution = providers.gradleProperty("openSolution")
+    argumentProviders += CommandLineArgumentProvider { listOfNotNull(openSolution.orNull?.let { file(it).absolutePath }) }
+    // Passing a solution explicitly means trusting it: skip the sandbox's modal "Trust solution" dialog.
+    jvmArgumentProviders += CommandLineArgumentProvider { if (openSolution.isPresent) listOf("-Didea.trust.all.projects=true") else emptyList() }
 }
 
 tasks.patchPluginXml {
@@ -99,7 +104,8 @@ tasks.patchPluginXml {
     }.take(1).joinToString())
 }
 
-tasks.prepareSandbox {
+// All sandbox tasks (buildPlugin uses prepareSandbox, runIde uses prepareSandbox_runIde).
+tasks.withType<org.jetbrains.intellij.platform.gradle.tasks.PrepareSandboxTask>().configureEach {
     dependsOn(compileDotNet)
 
     val outputFolder = "${rootDir}/src/dotnet/${DotnetPluginId}/bin/${DotnetPluginId}.Rider/${BuildConfiguration}"
