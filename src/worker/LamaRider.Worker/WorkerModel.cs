@@ -1,0 +1,36 @@
+using System.Text.Json;
+
+namespace LamaRider.Worker;
+
+public sealed record WorkerOutput(
+    int Schema,
+    string? MetalamaVersion,
+    List<AspectClassInfo> AspectClasses,
+    List<AspectInstanceInfo> Instances,
+    List<TransformationInfo> Transformations,
+    List<DiagnosticInfo> Diagnostics,
+    List<FileClassification> TemplateClassifications,
+    List<TransformedFileInfo> TransformedFiles);
+
+public sealed record SourceLocation(string File, int Start, int End);
+
+public sealed record AspectClassInfo(string Id, string Name, string Project, bool IsLibrary, SourceLocation? Location);
+
+public sealed record AspectInstanceInfo(
+    string AspectClass, string Target, string TargetName, string TargetType, string TargetKind,
+    string Project, string AppliedVia, SourceLocation? Location);
+
+public sealed record TransformationInfo(string AspectClass, string Target, string Kind, string Description, SourceLocation? Location);
+
+public sealed record DiagnosticInfo(string Id, string Severity, string Message, string? Target, string? File, int? Line);
+
+public sealed record ClassifiedSpan(int Start, int End, string Kind);
+
+public sealed record FileClassification(string File, List<ClassifiedSpan> Spans);
+
+public sealed record TransformedFileInfo(string File, string TransformedPath);
+
+public static class WorkerJson
+{
+    public static readonly JsonSerializerOptions Options = new(JsonSerializerDefaults.Web);
+}
