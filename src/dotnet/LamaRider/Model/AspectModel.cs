@@ -22,6 +22,9 @@ public sealed class AspectClassInfo
     public string Project = "";
     public bool IsLibrary;
     public SourceLocation? Location;
+    public string Package = "";
+    public string? Summary;
+    public string? DocUrl;
 }
 
 public sealed class AspectInstanceInfo
@@ -125,15 +128,14 @@ public sealed class AspectModel
         return inFile.Where(i => i.Location!.End == declarationEnd && i.Location.Start <= nameOffset).ToList();
     }
 
-    /// <summary>"" or " · N Metalama errors, first: ID message" for the status line (results may be incomplete).</summary>
+    /// <summary>"" or " · N Metalama errors" for the status line; the frontend shows the details in a notification.</summary>
     public string ErrorSummary
     {
         get
         {
             var errors = Diagnostics.Where(d => d.Severity == "Error").ToList();
             if (errors.Count == 0) return "";
-            var noun = errors.Count == 1 ? "Metalama error" : "Metalama errors";
-            return $" · {errors.Count} {noun}, first: {errors[0].Id} {errors[0].Message}";
+            return errors.Count == 1 ? " · 1 Metalama error" : $" · {errors.Count} Metalama errors";
         }
     }
 

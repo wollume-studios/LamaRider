@@ -1,5 +1,7 @@
 package dev.lamarider
 
+import com.intellij.ide.BrowserUtil
+import com.intellij.notification.NotificationAction
 import com.intellij.notification.NotificationGroupManager
 import com.intellij.notification.NotificationType
 import com.intellij.openapi.Disposable
@@ -8,6 +10,8 @@ import com.intellij.openapi.components.Service
 import com.intellij.openapi.diagnostic.logger
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.Disposer
+import com.intellij.openapi.util.text.StringUtil
+import dev.lamarider.explorer.Navigation
 import com.jetbrains.rd.util.lifetime.Lifetime
 import com.jetbrains.rd.ide.model.LamaRiderModel
 import java.io.File
@@ -44,7 +48,7 @@ class LamaRiderService(val project: Project) {
             if (path == null) return@advise
             ApplicationManager.getApplication().executeOnPooledThread {
                 try {
-                    model = ModelData.load(path)
+                    model = ModelData.load(path).also(::notifyErrorsIfChanged)
                 } catch (e: Exception) {
                     log.warn("Cannot read $path", e)
                     status = "Cannot read model: ${e.message}"
@@ -83,6 +87,36 @@ class LamaRiderService(val project: Project) {
 
     // rd callbacks arrive on a background protocol thread (Rider 2026.3); listeners touch Swing.
     private fun fire() = ApplicationManager.getApplication().invokeLater { listeners.forEach { it() } }
+
+    @Volatile
+    private var lastErrorSignature = ""
+
+    /** Metalama errors as a notification, once per new set of errors (not after every build). */
+    private fun notifyErrorsIfChanged(model: ModelData) {
+        val signature = model.errorSignature()
+        if (signature == lastErrorSignature) return
+        lastErrorSignature = signature
+        val errors = model.errors()
+        if (errors.isEmpty()) return
+        val list = errors.take(3).joinToString("<br>") { e ->
+            val where = e.file?.let { " (${File(it).name}${e.line?.let { l -> ":$l" } ?: ""})" } ?: ""
+            "<b>${e.id}</b> ${StringUtil.escapeXmlEntities(e.message)}$where"
+        } + if (errors.size > 3) "<br>… and ${errors.size - 3} more" else ""
+        val notification = NotificationGroupManager.getInstance().getNotificationGroup("LamaRider").createNotification(
+            if (errors.size == 1) "Metalama reported an error" else "Metalama reported ${errors.size} errors",
+            list, NotificationType.WARNING,
+        )
+        val first = errors.first()
+        if (first.id.startsWith("LAMA")) {
+            notification.addAction(NotificationAction.createSimple("${first.id} documentation") {
+                BrowserUtil.browse("https://doc.metalama.net/errors/${first.id.lowercase()}")
+            })
+        }
+        first.file?.let { file ->
+            notification.addAction(NotificationAction.createSimple("Go to error") { Navigation.openLine(project, file, (first.line ?: 1) - 1) })
+        }
+        notification.notify(project)
+    }
 
     fun notify(title: String, content: String, type: NotificationType = NotificationType.INFORMATION) =
         NotificationGroupManager.getInstance().getNotificationGroup("LamaRider").createNotification(title, content, type).notify(project)

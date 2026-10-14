@@ -82,11 +82,11 @@ public class AspectModelTests
     }
 
     [Fact]
-    public void Error_summary_names_count_and_first_error()
+    public void Error_summary_counts_errors()
     {
         var json = Json("").Replace("\"diagnostics\":[]",
             "\"diagnostics\":[{\"id\":\"CS1061\",\"severity\":\"Error\",\"message\":\"'IMethod' does not contain 'Nme'\"},{\"id\":\"LAMA0001\",\"severity\":\"Error\",\"message\":\"x\"},{\"id\":\"W1\",\"severity\":\"Warning\",\"message\":\"w\"}]");
-        Assert.Equal(" · 2 Metalama errors, first: CS1061 'IMethod' does not contain 'Nme'", AspectModel.Parse(json).ErrorSummary);
+        Assert.Equal(" · 2 Metalama errors", AspectModel.Parse(json).ErrorSummary); // details go to a notification
     }
 
     [Fact]

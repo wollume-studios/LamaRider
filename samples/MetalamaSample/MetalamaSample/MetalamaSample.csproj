@@ -10,6 +10,8 @@
 
   <ItemGroup>
     <PackageReference Include="Metalama.Framework" Version="2026.1.30" />
+    <!-- Library aspects for the Aspect Explorer grouping/documentation tests -->
+    <PackageReference Include="Metalama.Patterns.Contracts" Version="2026.1.30" />
   </ItemGroup>
 
 </Project>

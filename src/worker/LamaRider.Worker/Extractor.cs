@@ -37,10 +37,20 @@ public static class Extractor
 
         var classes = workspace.AspectClasses
             .GroupBy(c => c.FullName).Select(g => g.First())
+            .Where(c => !c.ShortName.StartsWith("<") && !c.FullName.Contains('<')) // Metalama-internal (<Fabric>, transitive helper aspects)
             .Select(c =>
             {
                 sourceTypes.TryGetValue(c.FullName, out var type);
-                return new AspectClassInfo(ClassId(c), c.ShortName, type?.Compilation.Project.Name ?? "", type == null, Locate(type));
+                var symbol = workspace.Projects.Select(p => p.RoslynCompilation.GetTypeByMetadataName(c.FullName)).FirstOrDefault(s => s != null);
+                var isLibrary = type == null;
+                var project = type?.Compilation.Project.Name ?? "";
+                return new AspectClassInfo(
+                    ClassId(c), c.ShortName, project, isLibrary, Locate(type),
+                    Package: isLibrary ? symbol?.ContainingAssembly.Name ?? "" : project,
+                    Summary: Documentation.Summary(symbol?.GetDocumentationCommentXml()),
+                    DocUrl: isLibrary && c.FullName.StartsWith("Metalama.", StringComparison.Ordinal)
+                        ? "https://doc.metalama.net/api/" + c.FullName.ToLowerInvariant().Replace('.', '-')
+                        : null);
             })
             .OrderBy(c => c.Name)
             .ToList();

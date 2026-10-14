@@ -2,6 +2,7 @@ package dev.lamarider
 
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertNull
+import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 
 class ModelDataTest {
@@ -29,4 +30,39 @@ class ModelDataTest {
     @Test
     fun `caret elsewhere finds nothing`() =
         assertNull(model.targetAt(file, 150))
+}
+
+class ModelDataGroupingTest {
+    private fun cls(name: String, pkg: String, library: Boolean) =
+        AspectClassInfo("T:$pkg.$name", name, if (library) "" else pkg, library, null, pkg, null, null)
+
+    private val model = ModelData(
+        aspectClasses = listOf(
+            cls("Url", "Metalama.Patterns.Contracts", true),
+            cls("Class1", "EFA", false),
+            cls("Memoize", "Metalama.Patterns.Memoization", true),
+            cls("NotNull", "Metalama.Patterns.Contracts", true),
+        ),
+        diagnostics = listOf(
+            DiagnosticInfo("LAMA0042", "Error", "ordering", null, null, null),
+            DiagnosticInfo("LAMA0001", "Warning", "w", null, null, null),
+        ),
+    )
+
+    @Test
+    fun `projects come first, then packages, each sorted`() =
+        assertEquals(
+            listOf("EFA" to listOf("Class1"), "Metalama.Patterns.Contracts" to listOf("NotNull", "Url"), "Metalama.Patterns.Memoization" to listOf("Memoize")),
+            model.groups("").map { g -> g.name to g.classes.map { it.name } },
+        )
+
+    @Test
+    fun `filter keeps only matching classes and non-empty groups`() =
+        assertEquals(listOf("Metalama.Patterns.Contracts" to listOf("Url")), model.groups("ur").map { g -> g.name to g.classes.map { it.name } })
+
+    @Test
+    fun `error signature covers errors only`() {
+        assertEquals("LAMA0042|ordering|null|null", model.errorSignature())
+        assertEquals("", ModelData().errorSignature())
+    }
 }

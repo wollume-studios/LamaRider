@@ -14,7 +14,11 @@ public sealed record WorkerOutput(
 
 public sealed record SourceLocation(string File, int Start, int End);
 
-public sealed record AspectClassInfo(string Id, string Name, string Project, bool IsLibrary, SourceLocation? Location);
+/// <param name="Package">Project name for aspects in the solution, assembly (package) name for library aspects.</param>
+/// <param name="Summary">XML-doc summary, when available.</param>
+/// <param name="DocUrl">Online API documentation (Metalama packages only).</param>
+public sealed record AspectClassInfo(
+    string Id, string Name, string Project, bool IsLibrary, SourceLocation? Location, string Package, string? Summary, string? DocUrl);
 
 public sealed record AspectInstanceInfo(
     string AspectClass, string Target, string TargetName, string TargetType, string TargetKind,

@@ -134,4 +134,26 @@ public sealed class WorkerTests : IAsyncLifetime
         Assert.Equal(0, code);
         Assert.Contains("\"schema\":1", File.ReadAllText(Path.Combine(dir, "model.json")));
     }
+
+    [Fact]
+    public void Library_aspects_report_package_summary_and_api_link()
+    {
+        var url = _output.AspectClasses.Single(c => c.Id == "T:Metalama.Patterns.Contracts.UrlAttribute");
+        Assert.True(url.IsLibrary);
+        Assert.Equal("Metalama.Patterns.Contracts", url.Package);
+        Assert.Contains("ArgumentException", url.Summary);
+        Assert.Equal("https://doc.metalama.net/api/metalama-patterns-contracts-urlattribute", url.DocUrl);
+    }
+
+    [Fact]
+    public void Project_aspects_are_grouped_under_their_project()
+    {
+        var log = _output.AspectClasses.Single(c => c.Id == "T:MetalamaSample.LogAttribute");
+        Assert.Equal("MetalamaSample", log.Package);
+        Assert.Null(log.DocUrl);
+    }
+
+    [Fact]
+    public void Metalama_internal_aspects_are_hidden() =>
+        Assert.DoesNotContain(_output.AspectClasses, c => c.Name.StartsWith("<"));
 }
