@@ -94,8 +94,7 @@ cache dir elsewhere). Keying by plugin version means a cached worker always matc
 }
 ```
 
-Offsets are character offsets into the file text **with line breaks normalized to `
-`**, matching
+Offsets are character offsets into the file text **with line breaks normalized to `\n`**, matching
 Rider/IntelliJ documents. `appliedVia` values are Metalama's `AspectPredecessorKind` names.
 
 ## Features
