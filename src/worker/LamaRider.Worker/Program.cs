@@ -6,19 +6,21 @@ return await Program.Run(args);
 
 public static partial class Program
 {
+    /// <summary>LamaRider.Worker &lt;outDir&gt; &lt;solution-or-project&gt;... (.sln, .slnf or .csproj: what Metalama Workspaces accepts)</summary>
     public static async Task<int> Run(string[] args)
     {
-        if (args.Length != 2)
+        if (args.Length < 2)
         {
-            Console.Error.WriteLine("usage: LamaRider.Worker <solution-or-project> <outDir>");
+            Console.Error.WriteLine("usage: LamaRider.Worker <outDir> <solution-or-project>...");
             return 2;
         }
         try
         {
-            Directory.CreateDirectory(args[1]);
-            using var workspace = await WorkspaceCollection.Default.LoadAsync(args[0]);
-            var output = Extractor.Extract(workspace, args[1]);
-            await File.WriteAllTextAsync(Path.Combine(args[1], "model.json"), JsonSerializer.Serialize(output, WorkerJson.Options));
+            var outDir = args[0];
+            Directory.CreateDirectory(outDir);
+            using var workspace = await WorkspaceCollection.Default.LoadAsync(args[1..]);
+            var output = Extractor.Extract(workspace, outDir);
+            await File.WriteAllTextAsync(Path.Combine(outDir, "model.json"), JsonSerializer.Serialize(output, WorkerJson.Options));
             return 0;
         }
         catch (Exception e)

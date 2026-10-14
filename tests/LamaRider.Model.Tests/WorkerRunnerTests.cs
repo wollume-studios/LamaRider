@@ -66,4 +66,13 @@ public class WorkerRunnerTests
         Assert.NotEqual(before, WorkerRunner.SourceKey(copy));
         Assert.Equal(WorkerRunner.SourceKey(WorkerSrc), WorkerRunner.SourceKey(WorkerSrc));
     }
+
+    [Fact]
+    public void Runs_worker_on_project_files_when_the_solution_format_is_not_loadable()
+    {
+        var runner = new WorkerRunner(WorkerSrc, NewCache());
+        var project = Path.Combine(Root, "samples/MetalamaSample/MetalamaSample/MetalamaSample.csproj");
+        var model = runner.Run("2026.1.30", Path.Combine(Root, "samples/MetalamaSample/MetalamaSample.slnx"), [project], CancellationToken.None);
+        Assert.Equal(2, model.TargetCountOf("T:MetalamaSample.LogAttribute"));
+    }
 }

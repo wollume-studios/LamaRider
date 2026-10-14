@@ -125,18 +125,19 @@ public sealed class AspectModelHost
     void StartRun(string reason) =>
         _solution.Locks.ExecuteOrQueueReadLockEx(_lifetime, "LamaRider.CollectProjects", () =>
         {
-            var assetsFiles = _solution.GetAllProjects()
+            var projectFiles = _solution.GetAllProjects()
                 .Select(p => p.ProjectFileLocation)
                 .Where(p => !p.IsEmpty)
-                .Select(p => p.Directory.Combine("obj").Combine("project.assets.json").FullPath)
                 .ToList();
+            var assetsFiles = projectFiles.Select(p => p.Directory.Combine("obj").Combine("project.assets.json").FullPath).ToList();
             var solutionPath = _solution.SolutionFilePath.FullPath;
-            _ = Task.Run(() => RunAndContinue(reason, assetsFiles, solutionPath));
+            var inputs = WorkspaceInputs.For(solutionPath, projectFiles.Select(p => p.FullPath).Distinct());
+            _ = Task.Run(() => RunAndContinue(reason, assetsFiles, solutionPath, inputs));
         });
 
-    void RunAndContinue(string reason, List<string> assetsFiles, string solutionPath)
+    void RunAndContinue(string reason, List<string> assetsFiles, string solutionPath, IReadOnlyList<string> inputs)
     {
-        try { RunOnce(reason, assetsFiles, solutionPath); }
+        try { RunOnce(reason, assetsFiles, solutionPath, inputs); }
         catch (Exception e) { Logger.Error(e); }
 
         lock (_gate)
@@ -151,7 +152,7 @@ public sealed class AspectModelHost
         StartRun("queued");
     }
 
-    void RunOnce(string reason, List<string> assetsFiles, string solutionPath)
+    void RunOnce(string reason, List<string> assetsFiles, string solutionPath, IReadOnlyList<string> inputs)
     {
         var assets = assetsFiles.Where(File.Exists).Select(File.ReadAllText).ToList();
         if (!_testSettingsChecked && MetalamaVersionDetector.UsesAspectTesting(assets))
@@ -176,7 +177,7 @@ public sealed class AspectModelHost
         try
         {
             CancellationToken ct = _lifetime;
-            var model = _runner.Run(version, solutionPath, ct);
+            var model = _runner.Run(version, solutionPath, inputs, ct);
             _model = model;
             Publish(
                 $"Refreshed {DateTime.Now:HH:mm} · {model.AspectClasses.Count} aspects / {model.Instances.Count} instances",

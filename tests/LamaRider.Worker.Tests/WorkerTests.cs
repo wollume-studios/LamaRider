@@ -78,7 +78,7 @@ public sealed class WorkerTests : IAsyncLifetime
     public async Task Main_writes_model_json()
     {
         var dir = Path.Combine(_outDir, "cli");
-        var code = await Program.Run([Path.Combine(SampleDir, "MetalamaSample.sln"), dir]);
+        var code = await Program.Run([dir, Path.Combine(SampleDir, "MetalamaSample/MetalamaSample.csproj"), Path.Combine(SampleDir, "MetalamaSample.AspectTests/MetalamaSample.AspectTests.csproj")]);
         Assert.Equal(0, code);
         Assert.Contains("\"schema\":1", File.ReadAllText(Path.Combine(dir, "model.json")));
     }
