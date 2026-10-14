@@ -22,4 +22,14 @@ public class MetalamaVersionDetectorTests
     public void Version_detection_ignores_versions_that_could_inject_arguments_or_paths() =>
         Assert.Equal("2026.1.9", MetalamaVersionDetector.FromAssetsFiles([
             """{"libraries":{"Metalama.Framework/2026.1.9":{},"Metalama.Framework/9999.0.0 -p:Evil=1":{},"Metalama.Framework/9999.0.0/../../x":{}}}"""]));
+
+    [Fact]
+    public void Detects_aspect_testing_projects() =>
+        Assert.True(MetalamaVersionDetector.UsesAspectTesting([
+            """{"libraries":{"Metalama.Framework/2026.1.30":{}}}""",
+            """{"libraries":{"Metalama.Testing.AspectTesting/2026.1.30":{}}}"""]));
+
+    [Fact]
+    public void No_aspect_testing_without_the_package() =>
+        Assert.False(MetalamaVersionDetector.UsesAspectTesting(["""{"libraries":{"Metalama.Framework/2026.1.30":{},"Metalama.Testing.UnitTesting/2026.1.30":{}}}"""]));
 }

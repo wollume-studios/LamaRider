@@ -10,6 +10,7 @@ Metalama tooling for JetBrains Rider — the Rider counterpart of the Visual Stu
 | **T# highlighting** | Compile-time code in templates is tinted, `meta.*` and compile-time variables stand out. Colors: *Settings › Editor › Color Scheme › Metalama T#*. |
 | **Metalama Diff** | Right-click a `.cs` file (editor or Solution Explorer) › *Metalama Diff*: source vs transformed code. `Ctrl+K, 0` in the Visual Studio keymap. |
 | **Show Metalama Aspects** | Editor context menu / Find Action: the Code Vision popup for the declaration at the caret (keyboard access). |
+| **Rider setup for aspect tests** | When a solution references `Metalama.Testing.AspectTesting` and xUnit discovery is still *Metadata* (Metalama's docs: aspect tests need *Test Runner* discovery), a notification offers to fix it — team-shared (`.sln.DotSettings`), personal, or global. It also stops the orphaned-processes prompt for diff tools that failing aspect tests open. Also on demand: *Tools › Configure Rider for Metalama Tests*. Rider 2026.3 already defaults to Test Runner, so usually nothing is needed. |
 | **Debug transformed code** | *Tools › Debug Transformed Code* sets `MetalamaDebugTransformedCode` in the solution's `Directory.Build.props`; rebuild, then *Open Transformed File* (editor context menu) and set breakpoints in the transformed code. Toggle off to remove the setting again. |
 
 PostSharp classic (MSIL) projects are not supported.
@@ -21,6 +22,10 @@ PostSharp classic (MSIL) projects are not supported.
 | Aspect Explorer | Metalama Diff |
 |---|---|
 | ![Aspect Explorer](docs/screenshots/aspect-explorer.png) | ![Metalama Diff](docs/screenshots/metalama-diff.png) |
+
+| Aspect-test settings | Configure on demand |
+|---|---|
+| ![Aspect-test settings notification](docs/screenshots/test-settings-notification.png) | ![Configure Rider for Metalama Tests](docs/screenshots/configure-tests.png) |
 
 | Show Metalama Aspects | Debugging transformed code |
 |---|---|

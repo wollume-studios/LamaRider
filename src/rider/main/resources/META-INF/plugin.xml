@@ -38,5 +38,9 @@
             description="Set MetalamaDebugTransformedCode in the solution's Directory.Build.props">
       <add-to-group group-id="ToolsMenu" anchor="last"/>
     </action>
+    <action id="LamaRider.ConfigureTests" class="dev.lamarider.actions.ConfigureTestsAction" text="Configure Rider for Metalama Tests"
+            description="xUnit discovery by Test Runner and no orphaned-process prompt for diff tools (Metalama aspect tests)">
+      <add-to-group group-id="ToolsMenu" anchor="last"/>
+    </action>
   </actions>
 </idea-plugin>

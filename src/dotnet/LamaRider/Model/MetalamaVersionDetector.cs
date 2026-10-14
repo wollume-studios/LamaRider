@@ -16,6 +16,10 @@ public static class MetalamaVersionDetector
 
     public static bool IsSafe(string version) => SafeVersion.IsMatch(version);
 
+    /// <summary>True when a project restored Metalama.Testing.AspectTesting (aspect tests need xUnit Test Runner discovery in Rider).</summary>
+    public static bool UsesAspectTesting(IEnumerable<string> assetsJsonContents) =>
+        assetsJsonContents.Any(json => json.Contains("\"Metalama.Testing.AspectTesting/"));
+
     public static string? FromAssetsFiles(IEnumerable<string> assetsJsonContents) =>
         assetsJsonContents
             .SelectMany(json => Library.Matches(json).Cast<Match>())

@@ -15,6 +15,7 @@ using JetBrains.ReSharper.Feature.Services.Protocol;
 using JetBrains.Rider.Model;
 using JetBrains.Util;
 using LamaRider.Model;
+using LamaRider.Testing;
 using LamaRider.Worker;
 
 namespace LamaRider;
@@ -32,7 +33,7 @@ public sealed class AspectModelHost
     readonly ISolution _solution;
     readonly WorkerRunner _runner;
     readonly object _gate = new();
-    bool _running, _pending;
+    bool _running, _pending, _testSettingsChecked;
     volatile AspectModel? _model;
 
     public AspectModelHost(Lifetime lifetime, ISolution solution, ISolutionBuilder solutionBuilder, ISolutionLoadTasksScheduler loadTasks)
@@ -51,6 +52,7 @@ public sealed class AspectModelHost
             RdModel.Refresh.Advise(lifetime, _ => RequestRefresh("manual"));
             RdModel.DebugTransformedCode.Value = DebugTransformedCodeProps.IsEnabled(ReadProps());
             RdModel.SetDebugTransformedCode.Advise(lifetime, SetDebugTransformedCode);
+            RdModel.ApplyTestSettings.Advise(lifetime, ApplyTestSettings);
             solutionBuilder.RunningRequest.Change.Advise(lifetime, args =>
             {
                 if (args.HasOld && args.Old != null && args.New == null) RequestRefresh("build finished");
@@ -85,6 +87,20 @@ public sealed class AspectModelHost
         {
             RdModel.DebugTransformedCode.Value = DebugTransformedCodeProps.IsEnabled(ReadProps());
             RdModel.Failed.Fire($"Cannot update {PropsPath}: {e.Message}");
+        }
+    }
+
+    void ApplyTestSettings(string scope)
+    {
+        try
+        {
+            var where = _solution.GetComponent<MetalamaTestSettings>().Apply(scope);
+            RdModel.Info.Fire($"Rider is configured for Metalama aspect tests in {where}: xUnit discovery by Test Runner, diff tools ignored as orphaned processes. Rebuild the test project.");
+        }
+        catch (Exception e)
+        {
+            Logger.Error(e);
+            RdModel.Failed.Fire("Cannot apply Metalama test settings: " + e.Message);
         }
     }
 
@@ -138,6 +154,15 @@ public sealed class AspectModelHost
     void RunOnce(string reason, List<string> assetsFiles, string solutionPath)
     {
         var assets = assetsFiles.Where(File.Exists).Select(File.ReadAllText).ToList();
+        if (!_testSettingsChecked && MetalamaVersionDetector.UsesAspectTesting(assets))
+        {
+            _testSettingsChecked = true; // ask once per session
+            _solution.Locks.ExecuteOrQueueReadLockEx(_lifetime, "LamaRider.TestSettings", () =>
+            {
+                if (!_solution.GetComponent<MetalamaTestSettings>().IsConfigured()) RdModel.TestSettingsSuggested.Fire(JetBrains.Core.Unit.Instance);
+            });
+        }
+
         var version = MetalamaVersionDetector.FromAssetsFiles(assets);
         if (version == null)
         {

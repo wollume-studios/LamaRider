@@ -5,6 +5,8 @@ VisualStudioVersion = 17.0.31903.59
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MetalamaSample", "MetalamaSample\MetalamaSample.csproj", "{EA0DEF68-A191-4287-91BD-80D111783641}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MetalamaSample.AspectTests", "MetalamaSample.AspectTests\MetalamaSample.AspectTests.csproj", "{FD83E2D9-ADE7-4195-9DF4-47C3160BEAFE}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -27,6 +29,18 @@ Global
 		{EA0DEF68-A191-4287-91BD-80D111783641}.Release|x64.Build.0 = Release|Any CPU
 		{EA0DEF68-A191-4287-91BD-80D111783641}.Release|x86.ActiveCfg = Release|Any CPU
 		{EA0DEF68-A191-4287-91BD-80D111783641}.Release|x86.Build.0 = Release|Any CPU
+		{FD83E2D9-ADE7-4195-9DF4-47C3160BEAFE}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{FD83E2D9-ADE7-4195-9DF4-47C3160BEAFE}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{FD83E2D9-ADE7-4195-9DF4-47C3160BEAFE}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{FD83E2D9-ADE7-4195-9DF4-47C3160BEAFE}.Debug|x64.Build.0 = Debug|Any CPU
+		{FD83E2D9-ADE7-4195-9DF4-47C3160BEAFE}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{FD83E2D9-ADE7-4195-9DF4-47C3160BEAFE}.Debug|x86.Build.0 = Debug|Any CPU
+		{FD83E2D9-ADE7-4195-9DF4-47C3160BEAFE}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{FD83E2D9-ADE7-4195-9DF4-47C3160BEAFE}.Release|Any CPU.Build.0 = Release|Any CPU
+		{FD83E2D9-ADE7-4195-9DF4-47C3160BEAFE}.Release|x64.ActiveCfg = Release|Any CPU
+		{FD83E2D9-ADE7-4195-9DF4-47C3160BEAFE}.Release|x64.Build.0 = Release|Any CPU
+		{FD83E2D9-ADE7-4195-9DF4-47C3160BEAFE}.Release|x86.ActiveCfg = Release|Any CPU
+		{FD83E2D9-ADE7-4195-9DF4-47C3160BEAFE}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

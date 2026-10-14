@@ -19,6 +19,12 @@ object LamaRiderModel : Ext(SolutionModel.Solution) {
         property("debugTransformedCode", false)
         // frontend -> backend: add/remove that setting
         signal("setDebugTransformedCode", bool)
+        // backend -> frontend: solution has aspect tests but Rider is not configured for them (ask the user)
+        signal("testSettingsSuggested", void)
+        // frontend -> backend: apply the aspect-test settings; payload is the scope: Shared | Personal | Global
+        signal("applyTestSettings", string)
+        // backend -> frontend: informational message, shown as a balloon
+        signal("info", string)
         // backend -> frontend: Code Vision entry clicked, payload is the declaration's doc id
         signal("codeVisionClicked", string)
     }

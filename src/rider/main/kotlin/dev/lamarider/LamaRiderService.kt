@@ -53,11 +53,17 @@ class LamaRiderService(val project: Project) {
             }
         }
         rdModel.codeVisionClicked.advise(lifetime) { id -> onCodeVisionClicked?.invoke(id) }
+        rdModel.info.advise(lifetime) { message -> notify("LamaRider", message) }
+        rdModel.testSettingsSuggested.advise(lifetime) { TestSettingsNotification.show(project) }
         rdModel.failed.advise(lifetime) { message ->
             NotificationGroupManager.getInstance().getNotificationGroup("LamaRider")
                 .createNotification("Metalama aspects could not be refreshed", message, NotificationType.WARNING)
                 .notify(project)
         }
+    }
+
+    fun applyTestSettings(scope: String) {
+        rd?.applyTestSettings?.fire(scope)
     }
 
     fun refresh() {
