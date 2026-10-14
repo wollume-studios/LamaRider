@@ -1,0 +1,59 @@
+package dev.lamarider.diff
+
+import com.intellij.diff.DiffContentFactory
+import com.intellij.diff.DiffManager
+import com.intellij.diff.requests.SimpleDiffRequest
+import com.intellij.diff.util.DiffUserDataKeys
+import com.intellij.diff.util.Side
+import com.intellij.notification.NotificationGroupManager
+import com.intellij.notification.NotificationType
+import com.intellij.openapi.components.service
+import com.intellij.openapi.fileEditor.FileDocumentManager
+import com.intellij.openapi.project.Project
+import com.intellij.openapi.util.Pair
+import com.intellij.openapi.vfs.LocalFileSystem
+import dev.lamarider.LamaRiderService
+import java.io.File
+
+object MetalamaDiff {
+    fun open(project: Project, file: String, offset: Int = 0) {
+        val source = LocalFileSystem.getInstance().findFileByPath(file) ?: return
+        val transformedPath = project.service<LamaRiderService>().transformedPathFor(file) ?: findObjFallback(file)
+        if (transformedPath == null) {
+            NotificationGroupManager.getInstance().getNotificationGroup("LamaRider").createNotification(
+                "No Metalama transformations in ${source.name}",
+                "If aspects should apply here, build the solution or refresh the Aspect Explorer. " +
+                    "Without the worker, set <code>MetalamaEmitCompilerTransformedFiles</code> to <code>true</code> in the project.",
+                NotificationType.INFORMATION,
+            ).notify(project)
+            return
+        }
+
+        val factory = DiffContentFactory.getInstance()
+        val transformedText = File(transformedPath).readText().replace("\r\n", "\n")
+        val request = SimpleDiffRequest(
+            "Metalama Diff: ${source.name}",
+            factory.create(project, source),
+            factory.create(project, transformedText, source.fileType),
+            "Source",
+            "Transformed (read-only)",
+        )
+        val line = FileDocumentManager.getInstance().getDocument(source)?.let { doc ->
+            doc.getLineNumber(offset.coerceIn(0, doc.textLength))
+        } ?: 0
+        request.putUserData(DiffUserDataKeys.SCROLL_TO_LINE, Pair.create(Side.LEFT, line))
+        DiffManager.getInstance().showDiff(project, request)
+    }
+
+    /** obj/<Configuration>/<tfm>/metalama/... is written when MetalamaEmitCompilerTransformedFiles=true. */
+    fun findObjFallback(file: String): String? {
+        val source = File(file)
+        var dir = source.parentFile
+        while (dir != null && dir.listFiles { f -> f.extension == "csproj" }.isNullOrEmpty()) dir = dir.parentFile
+        val obj = File(dir ?: return null, "obj").takeIf { it.isDirectory } ?: return null
+        val metalamaSegment = "${File.separator}metalama${File.separator}"
+        return obj.walkTopDown()
+            .filter { it.isFile && it.name.equals(source.name, ignoreCase = true) && it.path.contains(metalamaSegment, ignoreCase = true) }
+            .maxByOrNull { it.lastModified() }?.path
+    }
+}

@@ -11,4 +11,20 @@
 ]]>
   </description>
 
+  <extensions defaultExtensionNs="com.intellij">
+    <rd.solutionExtListener endpoint="IDE Frontend" listener="dev.lamarider.LamaRiderProtocolListener"/>
+    <toolWindow id="Aspect Explorer" anchor="right" icon="AllIcons.Nodes.Annotationtype"
+                factoryClass="dev.lamarider.explorer.AspectExplorerToolWindowFactory"/>
+    <notificationGroup id="LamaRider" displayType="BALLOON"/>
+  </extensions>
+
+  <actions>
+    <action id="LamaRider.Refresh" class="dev.lamarider.RefreshAction"/>
+    <action id="LamaRider.MetalamaDiff" class="dev.lamarider.diff.MetalamaDiffAction" text="Metalama Diff"
+            description="Compare source with Metalama-transformed code">
+      <add-to-group group-id="EditorPopupMenu" anchor="last"/>
+      <add-to-group group-id="SolutionExplorerPopupMenu" anchor="last"/>
+      <keyboard-shortcut keymap="Visual Studio" first-keystroke="control K" second-keystroke="0"/>
+    </action>
+  </actions>
 </idea-plugin>
