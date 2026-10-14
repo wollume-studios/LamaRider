@@ -60,46 +60,43 @@ the installable zip, which bundles the backend DLLs and the worker source.
 
 The plugin ships the worker **source**. On first use per Metalama version it runs
 `dotnet build -p:MetalamaVersion=<detected>` and caches the output in
-`%LOCALAPPDATA%\LamaRider\worker\<version>\` (platform-equivalent cache dir elsewhere).
+`%LOCALAPPDATA%\LamaRider\worker\<pluginVersion>-<metalamaVersion>\` (platform-equivalent
+cache dir elsewhere). Keying by plugin version means a cached worker always matches the plugin's schema.
 
 ### Data flow
 
-1. Backend detects a `Metalama.Framework` PackageReference in the solution and reads its version.
+1. Backend reads the `Metalama.Framework/<version>` entry from each project's `obj/project.assets.json`.
 2. Refresh triggers: solution load (once), build finished, manual *Refresh* action.
-3. Backend runs `LamaRider.Worker <solution.sln>`; worker writes one JSON document to stdout.
+3. Backend runs `LamaRider.Worker <solution.sln> <outDir>`; worker writes `<outDir>/model.json` and
+   transformed files under `<outDir>/transformed/` (files, not stdout: MSBuild may log to stdout).
 4. Backend parses it into an `AspectModel` cache and maps entries to PSI declarations
    (documentation ID first, file + span fallback).
-5. Consumers read `AspectModel`: Code Vision provider, T# daemon stage, Explorer (via rd),
-   Diff (via rd).
+5. Consumers read `AspectModel`: Code Vision provider, T# daemon stage. The backend publishes the
+   `model.json` path over rd; the frontend reads it for the Explorer and Diff.
 
 ### Worker JSON (schema 1)
 
 ```json
 {
   "schema": 1,
-  "metalamaVersion": "2026.1.8",
-  "aspectClasses": [
-    { "id": "T:Sample.LogAttribute", "name": "LogAttribute", "project": "Sample",
-      "isLibrary": false, "file": "...", "span": [120, 480] }
-  ],
-  "instances": [
-    { "aspectClass": "T:Sample.LogAttribute", "target": "M:Sample.Calc.Add(System.Int32,System.Int32)",
-      "targetKind": "Method", "project": "Sample", "file": "...", "span": [900, 1010],
-      "appliedVia": "Attribute|Fabric|Inheritance|Child", "predecessor": "..." }
-  ],
-  "transformations": [
-    { "aspectClass": "...", "target": "...", "kind": "OverrideMethod|IntroduceProperty|...",
-      "description": "Override method Add", "file": "...", "span": [900, 1010] }
-  ],
-  "diagnostics": [ { "id": "LAMA0001", "severity": "Error", "message": "...", "file": "...", "span": [0, 0] } ],
-  "templateClassifications": [
-    { "file": "...", "spans": [ { "span": [10, 20], "kind": "CompileTime|CompileTimeVariable|TemplateKeyword|Dynamic" } ] }
-  ],
-  "transformedFiles": [ { "file": "...", "text": "..." } ]
+  "metalamaVersion": "2026.1.30",
+  "aspectClasses": [ { "id": "T:Sample.LogAttribute", "name": "LogAttribute", "project": "Sample",
+                       "isLibrary": false, "location": { "file": "...", "start": 120, "end": 480 } } ],
+  "instances": [ { "aspectClass": "T:Sample.LogAttribute", "target": "M:Sample.Calc.Add(System.Int32,System.Int32)",
+                   "targetName": "Sample.Calc.Add(int, int)", "targetType": "Sample.Calc", "targetKind": "Method",
+                   "project": "Sample", "appliedVia": "Attribute|Fabric|Inherited|ChildAspect|RequiredAspect",
+                   "location": { "file": "...", "start": 900, "end": 1010 } } ],
+  "transformations": [ { "aspectClass": "...", "target": "...", "kind": "OverrideMember|IntroduceMember|...",
+                         "description": "Override method Add", "location": { ... } } ],
+  "diagnostics": [ { "id": "LAMA0001", "severity": "Error", "message": "...", "target": "...", "file": "...", "line": 3 } ],
+  "templateClassifications": [ { "file": "...", "spans": [ { "start": 10, "end": 20, "kind": "TemplateKeyword" } ] } ],
+  "transformedFiles": [ { "file": "...", "transformedPath": "<outDir>/transformed/0_Calc.cs" } ]
 }
 ```
 
-Spans are character offsets into the file text on disk at refresh time.
+Offsets are character offsets into the file text **with line breaks normalized to `
+`**, matching
+Rider/IntelliJ documents. `appliedVia` values are Metalama's `AspectPredecessorKind` names.
 
 ## Features
 
@@ -155,7 +152,7 @@ Spans are character offsets into the file text on disk at refresh time.
 | Refresh requested while worker running | Single-flight; pending triggers coalesce into one follow-up run. |
 | Mixed Metalama versions across projects | Use highest version, warn. `ponytail:` ceiling — per-version workers if needed. |
 | Multi-targeted projects | Deduplicate declarations across TFMs; first TFM wins. |
-| JSON `schema` mismatch | Rebuild the worker for that version, retry once. |
+| JSON `schema` mismatch | Not reachable: worker cache is keyed by plugin version. Parse error surfaces as a worker failure. |
 
 ## Testing
 
