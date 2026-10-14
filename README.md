@@ -22,21 +22,19 @@ Metalama tooling for JetBrains Rider — the Rider counterpart of the Visual Stu
 
 PostSharp classic (MSIL) projects are not supported.
 
-| Code Vision | T# highlighting |
-|---|---|
-| ![Code Vision](docs/screenshots/code-vision.png) | ![T# highlighting](docs/screenshots/tsharp-highlighting.png) |
+![LamaRider tool window](docs/screenshots/lamarider-window.png)
 
-| Aspect Explorer | Metalama Diff |
+| Transformed code popup | Metalama errors |
 |---|---|
-| ![Aspect Explorer](docs/screenshots/aspect-explorer.png) | ![Metalama Diff](docs/screenshots/metalama-diff.png) |
+| ![Show Transformed Code](docs/screenshots/transformed-code-popup.png) | ![Metalama error info bar](docs/screenshots/error-banner.png) |
 
-| Aspect-test settings | Configure on demand |
+| T# highlighting | Metalama Diff |
 |---|---|
-| ![Aspect-test settings notification](docs/screenshots/test-settings-notification.png) | ![Configure Rider for Metalama Tests](docs/screenshots/configure-tests.png) |
+| ![T# highlighting](docs/screenshots/tsharp-highlighting.png) | ![Metalama Diff](docs/screenshots/metalama-diff.png) |
 
-| Show Metalama Aspects | Debugging transformed code |
+| Settings › Tools › LamaRider | Debugging transformed code |
 |---|---|
-| ![Show Metalama Aspects](docs/screenshots/show-aspects-popup.png) | ![Debugging transformed code](docs/screenshots/debug-transformed-code.png) |
+| ![LamaRider settings](docs/screenshots/settings.png) | ![Debugging transformed code](docs/screenshots/debug-transformed-code.png) |
 
 ## Requirements
 
@@ -95,6 +93,13 @@ dotnet test LamaRider.sln
 ```bash
 ./gradlew unitTest
 ```
+
+## Plugin description
+
+The Marketplace / *Settings › Plugins* description comes from [docs/plugin-description.html](docs/plugin-description.html).
+Its screenshots need public URLs: set `ScreenshotBaseUrl` in `gradle.properties` (for a public GitHub repo:
+`https://raw.githubusercontent.com/wollume-studios/LamaRider/main/docs/screenshots`); while it is empty the description
+is built without images.
 
 ## Layout
 

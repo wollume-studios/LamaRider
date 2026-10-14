@@ -16,6 +16,7 @@ import com.intellij.openapi.ui.SimpleToolWindowPanel
 import com.intellij.openapi.util.Disposer
 import com.intellij.openapi.util.text.StringUtil
 import com.intellij.openapi.vfs.LocalFileSystem
+import com.intellij.openapi.wm.IdeFocusManager
 import com.intellij.ui.ColoredTreeCellRenderer
 import com.intellij.ui.DocumentAdapter
 import com.intellij.ui.OnePixelSplitter
@@ -225,7 +226,11 @@ class AspectExplorerPanel(private val project: Project, parent: Disposable) : Si
         when (node) {
             is TargetNode -> Navigation.open(project, node.instance.location)
             is TransformationNode -> node.transformation.location?.let {
-                TransformedCodePopup.showOrDiff(project, it.file, AspectModelIds.owner(node.transformation.target), it.start)
+                // Next to the declaration: open it first, show the popup once the editor has focus.
+                Navigation.open(project, it)
+                IdeFocusManager.getInstance(project).doWhenFocusSettlesDown {
+                    TransformedCodePopup.showOrDiff(project, it.file, AspectModelIds.owner(node.transformation.target), it.start)
+                }
             }
             is DiagnosticNode -> node.diagnostic.file?.let { Navigation.openLine(project, it, (node.diagnostic.line ?: 1) - 1) }
         }

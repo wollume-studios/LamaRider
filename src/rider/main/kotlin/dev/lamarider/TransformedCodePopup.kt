@@ -11,7 +11,6 @@ import com.intellij.openapi.project.Project
 import com.intellij.openapi.ui.popup.JBPopupFactory
 import com.intellij.openapi.ui.popup.JBPopupListener
 import com.intellij.openapi.ui.popup.LightweightWindowEvent
-import com.intellij.ui.awt.RelativePoint
 import com.intellij.util.ui.JBUI
 import dev.lamarider.diff.MetalamaDiff
 import java.awt.Dimension
@@ -20,7 +19,8 @@ import java.io.File
 /** Transformed code of one declaration in a popup (like Quick Definition); Metalama Diff shows the whole file. */
 object TransformedCodePopup {
     /** False when the worker has no transformed code for [target] in [sourceFile]. */
-    fun show(project: Project, sourceFile: String, target: String, at: RelativePoint? = null): Boolean {
+    /** [caretAt]: moves the caret there first (Code Vision clicks), so the popup opens next to the declaration. */
+    fun show(project: Project, sourceFile: String, target: String, caretAt: Int? = null): Boolean {
         val model = project.service<LamaRiderService>().model ?: return false
         val (file, declaration) = model.transformedDeclaration(sourceFile, target) ?: return false
         val text = File(file.transformedPath).takeIf { it.isFile }?.readText()?.replace("\r\n", "\n") ?: return false
@@ -57,16 +57,17 @@ object TransformedCodePopup {
             })
             .createPopup()
         val editor = FileEditorManager.getInstance(project).selectedTextEditor
-        when {
-            at != null -> popup.show(at)
-            editor != null -> popup.showInBestPositionFor(editor)
-            else -> popup.showCenteredInCurrentWindow(project)
+        if (editor == null) {
+            popup.showCenteredInCurrentWindow(project)
+            return true
         }
+        if (caretAt != null) editor.caretModel.moveToOffset(caretAt.coerceIn(0, editor.document.textLength))
+        popup.showInBestPositionFor(editor)
         return true
     }
 
     /** Popup when possible, otherwise the whole-file diff. */
-    fun showOrDiff(project: Project, sourceFile: String, target: String, offset: Int, at: RelativePoint? = null) {
-        if (!show(project, sourceFile, target, at)) MetalamaDiff.open(project, sourceFile, offset)
+    fun showOrDiff(project: Project, sourceFile: String, target: String, offset: Int) {
+        if (!show(project, sourceFile, target)) MetalamaDiff.open(project, sourceFile, offset)
     }
 }

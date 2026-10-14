@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.5.0
+- Settings › Tools › LamaRider shows whether Rider is set up for aspect tests, updated live.
+- Show Transformed Code from Code Vision and the LamaRider tool window opens next to the declaration.
+- Plugin description with feature overview and screenshots.
+
 ## 0.4.0
 - Tool window renamed to LamaRider (new llama icon); its toolbar and gear menu replace the Tools menu entries; new *Settings › Tools › LamaRider* page.
 - *Debug with LamaDebug*: selects Metalama's LamaDebug configuration (adds it to the solution when missing) and starts debugging.

@@ -5,11 +5,10 @@ import com.intellij.openapi.components.service
 import com.intellij.openapi.fileEditor.FileEditorManager
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.ui.popup.JBPopupFactory
+import com.intellij.openapi.wm.IdeFocusManager
 import com.intellij.openapi.wm.ToolWindowManager
 import com.intellij.ui.awt.RelativePoint
 import java.awt.MouseInfo
-import java.awt.Point
-import javax.swing.SwingUtilities
 import dev.lamarider.diff.MetalamaDiff
 import dev.lamarider.explorer.AspectExplorerPanel
 import dev.lamarider.explorer.AspectExplorerToolWindowFactory
@@ -30,7 +29,7 @@ object AspectPopup {
         val pointer = if (atMouse) MouseInfo.getPointerInfo()?.location else null
         instances.firstOrNull()?.location?.let { loc ->
             if (model.transformedDeclaration(loc.file, docId) != null) {
-                choices += "Show Transformed Code" to { TransformedCodePopup.show(project, loc.file, docId, pointer?.let { inEditor(project, it) }) }
+                choices += "Show Transformed Code" to { TransformedCodePopup.show(project, loc.file, docId, caretAt = loc.start) }
             }
             choices += "Metalama Diff (whole file)" to { MetalamaDiff.open(project, loc.file, loc.start) }
         }
@@ -47,17 +46,10 @@ object AspectPopup {
         val popup = JBPopupFactory.getInstance()
             .createPopupChooserBuilder(choices.map { it.first })
             .setTitle("Metalama Aspects")
-            // Later: a popup opened while this one closes would be cancelled with it.
-            .setItemChosenCallback { label -> ApplicationManager.getApplication().invokeLater { choices.first { it.first == label }.second() } }
+            // After focus returns to the editor: a popup opened earlier is deactivated (and cancelled) by that.
+            .setItemChosenCallback { label -> IdeFocusManager.getInstance(project).doWhenFocusSettlesDown { choices.first { it.first == label }.second() } }
             .createPopup()
         if (pointer != null) popup.show(RelativePoint.fromScreen(pointer)) else popup.showInBestPositionFor(editor)
-    }
-
-    /** Anchored to the editor: a screen point would resolve to this (closing) chooser popup's window. */
-    private fun inEditor(project: Project, screen: Point): RelativePoint? {
-        val component = FileEditorManager.getInstance(project).selectedTextEditor?.contentComponent ?: return null
-        val point = Point(screen).also { SwingUtilities.convertPointFromScreen(it, component) }
-        return RelativePoint(component, point)
     }
 
     private fun showInExplorer(project: Project, aspectClassId: String) {

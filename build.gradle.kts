@@ -174,6 +174,17 @@ tasks.patchPluginXml {
     sinceBuild.set("263")
     untilBuild.set(provider { null })
 
+    // docs/plugin-description.html; images need public URLs (Marketplace, Settings › Plugins), e.g.
+    // ScreenshotBaseUrl=https://raw.githubusercontent.com/wollume-studios/LamaRider/main/docs/screenshots
+    val screenshotBaseUrl = providers.gradleProperty("ScreenshotBaseUrl").orElse("")
+    val descriptionFile = file("${rootDir}/docs/plugin-description.html")
+    inputs.file(descriptionFile)
+    pluginDescription.set(screenshotBaseUrl.map { base ->
+        val html = descriptionFile.readText().replace(Regex("""(?s)<!--.*?-->\s*"""), "")
+        if (base.isBlank()) html.replace(Regex("""<p><img [^>]*></p>\s*"""), "")
+        else html.replace("{{screenshots}}", base.trimEnd('/'))
+    })
+
     val changelogText = file("${rootDir}/CHANGELOG.md").readText()
     val changelogMatches = Regex("(?s)(-.+?)(?=##|\$)").findAll(changelogText)
     changeNotes.set(changelogMatches.map {

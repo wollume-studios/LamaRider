@@ -6,6 +6,7 @@ import com.intellij.openapi.util.Disposer
 import com.intellij.ui.components.JBLabel
 import com.intellij.openapi.options.BoundConfigurable
 import com.intellij.openapi.project.Project
+import com.intellij.ui.dsl.builder.AlignX
 import com.intellij.ui.dsl.builder.bindSelected
 import com.intellij.ui.dsl.builder.panel
 import dev.lamarider.LamaRiderService
@@ -18,7 +19,7 @@ class LamaRiderConfigurable(private val project: Project) : BoundConfigurable("L
     private val listening = Disposer.newDisposable()
 
     private fun showTestStatus(status: Pair<Boolean?, String>?) {
-        testStatus.text = status?.second ?: "Checking…"
+        testStatus.text = "<html>${status?.second ?: "Checking…"}</html>" // wraps
         testStatus.icon = when (status?.first) {
             true -> AllIcons.General.InspectionsOK
             false -> AllIcons.General.Warning
@@ -51,7 +52,7 @@ class LamaRiderConfigurable(private val project: Project) : BoundConfigurable("L
             }
         }
         group("Aspect Tests") {
-            row { cell(testStatus) }
+            row { cell(testStatus).align(AlignX.FILL) }
             row {
                 button("Configure Rider for Metalama Tests…") { ConfigureTestsAction.choose(project) }
                     .comment("xUnit discovery by Test Runner and no orphaned-process prompt for diff tools.")

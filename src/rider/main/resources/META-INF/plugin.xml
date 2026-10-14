@@ -5,11 +5,8 @@
   <vendor>LamaRider</vendor>
   <depends>com.intellij.modules.rider</depends>
 
-  <description>
-<![CDATA[
-<p>Metalama tooling for Rider: Aspect Explorer, Code Vision, T# highlighting and Metalama Diff.</p>
-]]>
-  </description>
+  <!-- description: docs/plugin-description.html, set by patchPluginXml -->
+  <description>Metalama tooling for Rider.</description>
 
   <extensions defaultExtensionNs="com.intellij">
     <rd.solutionExtListener endpoint="IDE Frontend" listener="dev.lamarider.LamaRiderProtocolListener"/>

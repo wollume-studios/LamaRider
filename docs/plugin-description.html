@@ -1,0 +1,42 @@
+<!-- Plugin description (Marketplace and Settings › Plugins). build.gradle.kts copies it into plugin.xml and turns
+     {{screenshots}} into the ScreenshotBaseUrl property; without that property the images are left out. -->
+<p><b>Metalama tooling for Rider</b>: see which aspects touch your code, what they generate, and debug the result.
+The Rider counterpart of the Visual Studio extension "Metalama Tools".</p>
+
+<h3>LamaRider tool window</h3>
+<p>Aspect classes grouped by project and package, with their documentation. Select one to see every target
+(project, namespace, type, member) with the transformations it causes and the diagnostics it reports. Library
+aspects open their sources or decompiled code. The window refreshes on its own when code, projects or packages change.</p>
+<p><img src="{{screenshots}}/lamarider-window.png" width="800" alt="LamaRider tool window"></p>
+
+<h3>Code Vision and transformed code</h3>
+<ul>
+  <li><b>N aspects</b> above every declaration an aspect touches; <b>applied to N targets</b> above aspect classes.</li>
+  <li><b>Show Transformed Code</b>: the transformed code of one declaration in a popup, with the aspects that changed it.</li>
+  <li><b>Metalama Diff</b>: source and transformed code of a whole file side by side.</li>
+</ul>
+<p><img src="{{screenshots}}/transformed-code-popup.png" width="640" alt="Transformed code popup"></p>
+
+<h3>T# template highlighting</h3>
+<p>Compile-time code in templates is tinted; <code>meta.*</code> and compile-time variables stand out
+(<i>Settings › Editor › Color Scheme › Metalama T#</i>).</p>
+<p><img src="{{screenshots}}/tsharp-highlighting.png" width="640" alt="T# highlighting"></p>
+
+<h3>Metalama errors</h3>
+<ul>
+  <li>An info bar on C# editors when Metalama reports errors: go to the error, open the LAMA documentation, build.</li>
+  <li>Errors without a location, such as LAMA0042 aspect ordering, are underlined on your aspect classes.</li>
+  <li>Alt+Enter in aspect and template code: <b>Build project to resume Metalama analysis</b> (LAMA0118), or build on save.</li>
+</ul>
+<p><img src="{{screenshots}}/error-banner.png" width="640" alt="Metalama error info bar"></p>
+
+<h3>Debugging transformed code</h3>
+<p><b>Debug with LamaDebug</b> selects Metalama's LamaDebug configuration (adding it to the .sln or .slnx when missing)
+and starts debugging: step into aspect code or set breakpoints in the transformed files.</p>
+
+<h3>Settings</h3>
+<p><i>Settings › Tools › LamaRider</i>: build after aspect changes, debug transformed code in every configuration, and the
+Rider setup Metalama aspect tests need (shows whether it is in place).</p>
+<p><img src="{{screenshots}}/settings.png" width="640" alt="LamaRider settings"></p>
+
+<p>Works with Metalama 2026.x and Rider 2026.3. No Metalama license needed for the IDE features.</p>
