@@ -1,0 +1,66 @@
+using LamaRider.Model;
+
+namespace LamaRider.Model.Tests;
+
+public class AspectModelTests
+{
+    const string File1 = @"C:\src\Calc.cs";
+    const string Add = "M:Calc.Add(System.Int32)";
+
+    static string Json(string instances, int schema = 1) => $$$"""
+        {"schema":{{{schema}}},"metalamaVersion":"2026.1.30",
+         "aspectClasses":[{"id":"T:Log","name":"LogAttribute","project":"P","isLibrary":false,"location":null}],
+         "instances":[{{{instances}}}],
+         "transformations":[],"diagnostics":[],
+         "templateClassifications":[{"file":"C:\\src\\Log.cs","spans":[{"start":1,"end":5,"kind":"TemplateKeyword"}]}],
+         "transformedFiles":[]}
+        """;
+
+    static string Instance(string target, int start, int end, string cls = "T:Log") =>
+        $$$"""{"aspectClass":"{{{cls}}}","target":"{{{target}}}","targetName":"x","targetType":"Calc","targetKind":"Method","project":"P","appliedVia":"Attribute","location":{"file":"C:\\src\\Calc.cs","start":{{{start}}},"end":{{{end}}}}}""";
+
+    [Fact]
+    public void Rejects_unknown_schema() =>
+        Assert.Throws<InvalidDataException>(() => AspectModel.Parse(Json("", schema: 2)));
+
+    [Fact]
+    public void Finds_instances_by_doc_id()
+    {
+        var model = AspectModel.Parse(Json(Instance(Add, 10, 50)));
+        Assert.Single(model.InstancesFor(Add, "other.cs", 0, 0));
+    }
+
+    [Fact]
+    public void Falls_back_to_span_when_doc_id_differs()
+    {
+        var model = AspectModel.Parse(Json(Instance("M:Weird", 10, 50)));
+        Assert.Single(model.InstancesFor("M:Calc.Add(int)", @"c:\SRC\calc.cs", 20, 50));
+    }
+
+    [Fact]
+    public void Span_fallback_does_not_leak_container_aspects()
+    {
+        // class instance spans 0..100, member declaration ends at 50 -> must not match
+        var model = AspectModel.Parse(Json(Instance("T:Calc", 0, 100)));
+        Assert.Empty(model.InstancesFor("M:Calc.Sub(System.Int32)", File1, 20, 50));
+    }
+
+    [Fact]
+    public void Duplicate_instances_are_collapsed()
+    {
+        var model = AspectModel.Parse(Json(Instance(Add, 10, 50) + "," + Instance(Add, 10, 50)));
+        Assert.Single(model.InstancesFor(Add, File1, 0, 0));
+    }
+
+    [Fact]
+    public void Counts_targets_of_aspect_class()
+    {
+        var model = AspectModel.Parse(Json(Instance(Add, 10, 50) + "," + Instance("M:Calc.Sub", 60, 90)));
+        Assert.Equal(2, model.TargetCountOf("T:Log"));
+        Assert.True(model.IsAspectClass("T:Log"));
+    }
+
+    [Fact]
+    public void Finds_classification_by_path_case_insensitively() =>
+        Assert.NotNull(AspectModel.Parse(Json("")).ClassificationFor(@"c:\src\LOG.cs"));
+}

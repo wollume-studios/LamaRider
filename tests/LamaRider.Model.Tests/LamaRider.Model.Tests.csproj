@@ -1,0 +1,23 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <RollForward>Major</RollForward>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Using Include="Xunit" />
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.12.0" />
+    <PackageReference Include="xunit" Version="2.9.2" />
+    <PackageReference Include="xunit.runner.visualstudio" Version="2.8.2" />
+    <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
+  </ItemGroup>
+
+  <!-- Backend sources with no JetBrains dependencies, compiled here so they can be tested without the Rider SDK -->
+  <ItemGroup>
+    <Compile Include="..\..\src\dotnet\LamaRider\Model\*.cs" Link="Model\%(Filename).cs" />
+  </ItemGroup>
+
+</Project>
