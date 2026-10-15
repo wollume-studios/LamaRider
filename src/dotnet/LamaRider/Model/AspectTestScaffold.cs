@@ -158,6 +158,14 @@ public static class AspectTestScaffold
         return folder == "" || elementTestId.IndexOf(folder + "." + stem, StringComparison.OrdinalIgnoreCase) >= 0;
     }
 
+    /// <summary>Rider's xUnit test id of the aspect test <paramref name="relativePath"/>: class (folder path + file) and method (file).</summary>
+    public static string TestId(string relativePath)
+    {
+        var stem = Path.GetFileNameWithoutExtension(relativePath);
+        var folder = (Path.GetDirectoryName(relativePath.Replace('\\', '/')) ?? "").Replace('\\', '.').Replace('/', '.');
+        return (folder == "" ? "" : folder + ".") + stem + "." + stem;
+    }
+
     public static string SnapshotPath(string testFile) => Path.ChangeExtension(testFile, ".t.cs");
 
     /// <summary>

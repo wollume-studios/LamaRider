@@ -125,21 +125,30 @@ public static class AspectTests
         if (file == null || project == null || !File.Exists(csproj) || !AspectTestScaffold.IsAspectTestProject(File.ReadAllText(csproj)))
             return "This file is not in a Metalama aspect test project.";
 
+        // Discovery from metadata does not see aspect tests (they are found by running Metalama's test framework).
+        var settings = solution.GetComponent<MetalamaTestSettings>();
+        string? note = null;
+        if (!settings.IsConfigured())
+            note = $"Rider finds aspect tests only with Test Runner discovery: turned on in {settings.Apply(MetalamaTestSettings.Personal)}. " +
+                   "Settings › Tools › LamaRider can share it with the team.";
+
         var facade = solution.GetComponent<IUnitTestingFacade>();
         var relative = file.Location.MakeRelativeTo(project.Location).FullPath;
         // Aspect tests are found by running the test runner (not in source): a criterion, not elements, lets Rider build
-        // the project and discover them first when it has not yet. Metalama names the test (and its class) after the file.
-        var criterion = new ProjectCriterion(project).And(new ShortNameCriterion(Path.GetFileNameWithoutExtension(file.Name)));
-        var known = facade.ElementRepository.Query(criterion)
-            .Where(e => !e.Children.Any() && AspectTestScaffold.IsTestFor(e.ShortName, e.NaturalId.TestId, relative))
-            .ToList();
+        // the project and discover them first when it has not yet.
+        var criterion = new ProjectCriterion(project).And(new TestIdCriterion(AspectTestScaffold.TestId(relative)));
+        var elements = facade.ElementRepository.Query(new ProjectCriterion(project)).ToList();
+        var known = elements.Where(e => !e.Children.Any() && AspectTestScaffold.IsTestFor(e.ShortName, e.NaturalId.TestId, relative)).ToList();
+        if (known.Count == 0 && elements.Count > 0)
+            JetBrains.Util.Logging.Logger.GetLogger(typeof(AspectTests)).Warn($"LamaRider: no test element for {relative} among: " +
+                string.Join(", ", elements.Take(20).Select(e => $"{e.ShortName} [{e.NaturalId.TestId}]")));
 
         var host = UnitTestHost.Instance.GetProvider(debug ? WellKnownHostProvidersIds.DebugProviderId : WellKnownHostProvidersIds.RunProviderId);
         facade.Run(known.Count > 0 ? new UnitTestElements(new TestElementCriterion(known), known) : new UnitTestElements(criterion))
             .Using(host, null, null, null, false)
             .AndOpenWindow(true)
             .In.CurrentOrNewSession(file.Name);
-        return null;
+        return note;
     }
 
     public static void Accept(ISolution solution, string test, string output)
