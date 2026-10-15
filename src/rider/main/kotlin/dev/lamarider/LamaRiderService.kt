@@ -62,6 +62,10 @@ class LamaRiderService(val project: Project) {
         rd?.createAspectTest?.fire(position)
     }
 
+    fun runAspectTest(run: com.jetbrains.rd.ide.model.RunAspectTest) {
+        rd?.runAspectTest?.fire(run)
+    }
+
     fun acceptAspectTestOutput(path: String) {
         rd?.acceptAspectTestOutput?.fire(path)
     }

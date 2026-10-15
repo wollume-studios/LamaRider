@@ -180,6 +180,7 @@ dependencies {
             useInstaller = false
         }
         jetbrainsRuntime()
+        bundledModule("intellij.platform.debugger") // XDebugger API: breakpoints in compile-time code
     }
     // Plain unit tests for frontend logic that needs no IDE
     testImplementation(libs.kotlinStdLib)

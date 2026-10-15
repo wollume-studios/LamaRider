@@ -17,6 +17,10 @@ using JetBrains.ReSharper.Psi.CSharp.Tree;
 using JetBrains.ReSharper.Psi.Tree;
 using JetBrains.ReSharper.Psi.Util;
 using JetBrains.Rider.Model;
+using JetBrains.ReSharper.UnitTestFramework;
+using JetBrains.ReSharper.UnitTestFramework.Criteria;
+using JetBrains.ReSharper.UnitTestFramework.Execution.Hosting;
+using JetBrains.ReSharper.UnitTestFramework.Execution.Launch;
 using JetBrains.TextControl;
 using JetBrains.Util;
 using LamaRider.Model;
@@ -81,18 +85,20 @@ public static class AspectTests
                 var testProjectName = Path.GetFileNameWithoutExtension(testCsproj);
                 if (newProject) CreateProject(solutionPath, aspectCsproj, testCsproj);
 
-                var shortName = aspectName.EndsWith("Attribute") && aspectName.Length > 9 ? aspectName.Substring(0, aspectName.Length - 9) : aspectName;
-                var folder = Path.Combine(testDir, shortName);
+                var folderName = AspectTestScaffold.TestFolder(aspectName);
+                var folder = Path.Combine(testDir, folderName);
                 Directory.CreateDirectory(folder);
                 var file = Path.Combine(folder, AspectTestScaffold.NextTestFileName(Directory.GetFiles(folder).Select(Path.GetFileName), aspectName));
-                File.WriteAllText(file, AspectTestScaffold.TestFile(testProjectName.Replace('-', '_'), aspectNamespace, aspectName, isAttribute, kind));
-                OnShell(solution, () =>
-                {
-                    model.OpenFile.Fire(file);
-                    model.Info.Fire(newProject
-                        ? $"Created {testProjectName} and the test {Path.GetFileName(file)}. Run it: the first run writes the output; accept it with Alt+Enter > Accept Metalama test output."
-                        : $"Added the test {Path.GetFileName(file)}. Run it, then accept the output with Alt+Enter > Accept Metalama test output.");
-                });
+                var testNamespace = AspectTestScaffold.TestNamespace(File.ReadAllText(testCsproj), testProjectName, folderName);
+                File.WriteAllText(file, AspectTestScaffold.TestFile(testNamespace, aspectNamespace, aspectName, isAttribute, kind));
+                OnShell(solution, () => model.OpenFile.Fire(file));
+
+                // Rider lists the test cases of an aspect test project only once it has been built.
+                var (code, output) = Run("dotnet", $"build \"{testCsproj}\"", testDir);
+                var created = newProject ? $"Created {testProjectName} and the test {Path.GetFileName(file)}." : $"Added the test {Path.GetFileName(file)}.";
+                OnShell(solution, () => model.Info.Fire(code == 0
+                    ? created + " Run or debug it from the Unit Tests window (debugging stops at Debugger.Break() in BuildAspect and meta.DebugBreak() in templates). The first run fails and writes the output; accept it with Alt+Enter > Accept Metalama test output."
+                    : created + " Building it failed, so Rider does not list the test yet: " + LastLine(output)));
             }
             catch (Exception e) when (e is IOException or UnauthorizedAccessException or InvalidOperationException or InvalidDataException)
             {
@@ -109,6 +115,40 @@ public static class AspectTests
         if (!File.Exists(csproj) || !AspectTestScaffold.IsAspectTestProject(File.ReadAllText(csproj))) return null;
         var output = AspectTestScaffold.ActualOutput(Path.GetDirectoryName(csproj)!, path);
         return output == null ? null : (path, output);
+    }
+
+    /// <summary>Runs or debugs the aspect test of <paramref name="file"/> in Rider's unit test runner; the reason when it can't.</summary>
+    public static string? Run(ISolution solution, IProjectFile? file, bool debug)
+    {
+        var project = file?.GetProject();
+        var csproj = project?.ProjectFileLocation.FullPath;
+        if (file == null || project == null || !File.Exists(csproj) || !AspectTestScaffold.IsAspectTestProject(File.ReadAllText(csproj)))
+            return "This file is not in a Metalama aspect test project.";
+
+        // Discovery from metadata does not see aspect tests (they are found by running Metalama's test framework).
+        var settings = solution.GetComponent<MetalamaTestSettings>();
+        string? note = null;
+        if (!settings.IsConfigured())
+            note = $"Rider finds aspect tests only with Test Runner discovery: turned on in {settings.Apply(MetalamaTestSettings.Personal)}. " +
+                   "Settings › Tools › LamaRider can share it with the team.";
+
+        var facade = solution.GetComponent<IUnitTestingFacade>();
+        var relative = file.Location.MakeRelativeTo(project.Location).FullPath;
+        // Aspect tests are found by running the test runner (not in source): a criterion, not elements, lets Rider build
+        // the project and discover them first when it has not yet.
+        var criterion = new ProjectCriterion(project).And(new TestIdCriterion(AspectTestScaffold.TestId(project.Name, relative)));
+        var elements = facade.ElementRepository.Query(new ProjectCriterion(project)).ToList();
+        var known = elements.Where(e => !e.Children.Any() && AspectTestScaffold.IsTestFor(e.ShortName, e.NaturalId.TestId, relative)).ToList();
+        if (known.Count == 0 && elements.Count > 0)
+            JetBrains.Util.Logging.Logger.GetLogger(typeof(AspectTests)).Warn($"LamaRider: no test element for {relative} among: " +
+                string.Join(", ", elements.Take(20).Select(e => $"{e.ShortName} [{e.NaturalId.TestId}]")));
+
+        var host = UnitTestHost.Instance.GetProvider(debug ? WellKnownHostProvidersIds.DebugProviderId : WellKnownHostProvidersIds.RunProviderId);
+        facade.Run(known.Count > 0 ? new UnitTestElements(new TestElementCriterion(known), known) : new UnitTestElements(criterion))
+            .Using(host, null, null, null, false)
+            .AndOpenWindow(true)
+            .In.CurrentOrNewSession(file.Name);
+        return note;
     }
 
     public static void Accept(ISolution solution, string test, string output)
@@ -167,6 +207,13 @@ public static class AspectTests
     {
         var from = new Uri(fromDir.TrimEnd(Path.DirectorySeparatorChar) + Path.DirectorySeparatorChar);
         return Uri.UnescapeDataString(from.MakeRelativeUri(new Uri(path)).ToString()).Replace('/', Path.DirectorySeparatorChar);
+    }
+
+    /// <summary>The first error of a build's output, or its last line.</summary>
+    static string LastLine(string output)
+    {
+        var lines = output.Split('\n').Select(l => l.Trim()).Where(l => l != "").ToList();
+        return lines.FirstOrDefault(l => l.Contains(" error ")) ?? lines.LastOrDefault() ?? "";
     }
 
     static (int Code, string Output) Run(string file, string arguments, string workingDir)

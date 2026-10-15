@@ -16,7 +16,12 @@
     <projectConfigurable parentId="tools" id="dev.lamarider.settings" displayName="LamaRider"
                          instance="dev.lamarider.settings.LamaRiderConfigurable"/>
     <editorNotificationProvider implementation="dev.lamarider.errors.MetalamaErrorBanner"/>
+    <runLineMarkerContributor language="C#" implementationClass="dev.lamarider.actions.AspectTestRunLineMarker"/>
   </extensions>
+
+  <projectListeners>
+    <listener class="dev.lamarider.debug.CompileTimeBreakpoints" topic="com.intellij.xdebugger.XDebuggerManagerListener"/>
+  </projectListeners>
 
   <actions>
     <action id="LamaRider.Refresh" class="dev.lamarider.RefreshAction"/>
@@ -56,6 +61,16 @@
     <action id="LamaRider.AcceptAspectTestOutput" class="dev.lamarider.actions.AcceptAspectTestOutputAction" text="Accept Metalama Test Output"
             description="Save the last run's transformed output of this aspect test as its .t.cs snapshot">
       <add-to-group group-id="EditorPopupMenu" anchor="last"/>
+    </action>
+    <action id="LamaRider.RunAspectTest" class="dev.lamarider.actions.RunAspectTestAction" text="Run Metalama Aspect Test"
+            description="Run this aspect test in the unit test runner" icon="AllIcons.RunConfigurations.TestState.Run">
+      <add-to-group group-id="EditorPopupMenu" anchor="last"/>
+      <add-to-group group-id="ProjectViewPopupMenu" anchor="last"/>
+    </action>
+    <action id="LamaRider.DebugAspectTest" class="dev.lamarider.actions.DebugAspectTestAction" text="Debug Metalama Aspect Test"
+            description="Debug this aspect test: breakpoints in aspects, templates and fabrics stop" icon="AllIcons.Actions.StartDebugger">
+      <add-to-group group-id="EditorPopupMenu" anchor="last"/>
+      <add-to-group group-id="ProjectViewPopupMenu" anchor="last"/>
     </action>
     <action id="LamaRider.OnlyAtCaret" class="dev.lamarider.explorer.OnlyAtCaretAction"/>
     <action id="LamaRider.DebugLamaDebug" class="dev.lamarider.actions.DebugWithLamaDebugAction"/>

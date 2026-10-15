@@ -1,6 +1,10 @@
 # Changelog
 
 ## Unreleased
+- Aspect tests run and debug from the file: the run icon in the gutter, the editor and Solution Explorer menus (*Run / Debug Metalama Aspect Test*). Rider builds and discovers the test first; Test Runner discovery, which aspect tests need, is turned on for the solution if it was off.
+- Breakpoints in aspects, templates and fabrics stop while debugging: LamaRider mirrors them into Metalama's compiled copy of that code (no more `Debugger.Break()` / `meta.DebugBreak()` needed).
+- Aspect test inputs show their aspects (LamaRider window, Code Vision, Track Caret, transformed code) although Metalama.Testing.AspectTesting turns Metalama off in the test project; Rider no longer greys them out as unused.
+- New aspect tests go to `<Aspect>Tests/` with the namespace Rider expects (no redundant using); the test project is built right away so Rider lists the test, and never compiles `.t.cs` snapshots.
 - Aspect tests: Alt+Enter on an aspect class (or editor menu *Create Metalama Aspect Test*) adds a prefilled test file to the aspect test project next to the aspect's project, creating that project (xUnit, Metalama.Testing.AspectTesting, added to the solution) when there is none. *Accept Metalama Test Output* saves the last run's output as the test's `.t.cs`.
 - Track Caret (Rider's locate icon) fills the targets tree with every aspect affecting the code at the caret; selecting an item shows and selects its aspect. *Show Only Aspects at Caret* filters the aspect list; *Group By*: ungrouped, project/package, namespace.
 - Metalama errors located in code (e.g. LAMA0037) are underlined from LamaRider's own analysis seconds after a save; Rider's own Metalama squiggles wait for a build after compile-time changes.

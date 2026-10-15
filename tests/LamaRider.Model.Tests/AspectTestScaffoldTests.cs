@@ -20,12 +20,36 @@ public class AspectTestScaffoldTests
     [Fact]
     public void Method_aspect_test_applies_the_attribute_to_a_method()
     {
-        var text = AspectTestScaffold.TestFile("Sample.AspectTests", "Sample", "LogAttribute", isAttribute: true, AspectTestScaffold.TargetKind.Method);
+        var text = AspectTestScaffold.TestFile("Tests.LogTests", "Sample", "LogAttribute", isAttribute: true, AspectTestScaffold.TargetKind.Method);
         Assert.Contains("using Sample;", text);
-        Assert.Contains("namespace Sample.AspectTests;", text);
+        Assert.Contains("namespace Tests.LogTests;", text);
         Assert.Contains("    [Log]\n    public int Add(int a, int b) => a + b;", text);
         Assert.Contains(".t.cs", text); // explains the snapshot
     }
+
+    [Fact]
+    public void No_using_when_the_test_namespace_is_inside_the_aspect_namespace()
+    {
+        // Rider greys out such a using as redundant.
+        Assert.DoesNotContain("using", AspectTestScaffold.TestFile("EFA.AspectTests.EfCoreAspectTests", "EFA", "EfCoreAspect", isAttribute: true, AspectTestScaffold.TargetKind.Type));
+        Assert.DoesNotContain("using", AspectTestScaffold.TestFile("T.LogTests", "", "LogAttribute", isAttribute: true, AspectTestScaffold.TargetKind.Type));
+        Assert.Contains("using EFAX;", AspectTestScaffold.TestFile("EFA.AspectTests.LogTests", "EFAX", "LogAttribute", isAttribute: true, AspectTestScaffold.TargetKind.Type));
+    }
+
+    [Fact]
+    public void Folder_name_never_equals_the_aspect_name()
+    {
+        // A namespace EfCoreAspect next to the test's namespace would hide the aspect class [EfCoreAspect] (CS0616).
+        Assert.Equal("EfCoreAspectTests", AspectTestScaffold.TestFolder("EfCoreAspect"));
+        Assert.Equal("LogTests", AspectTestScaffold.TestFolder("LogAttribute"));
+    }
+
+    [Theory]
+    [InlineData("<Project><PropertyGroup><RootNamespace>Efa.Tests</RootNamespace></PropertyGroup></Project>", "EFA.AspectTests", "Efa.Tests.LogTests")]
+    [InlineData("<Project />", "EFA.AspectTests", "EFA.AspectTests.LogTests")]
+    [InlineData("<Project />", "My-Lib.Aspect Tests", "My_Lib.Aspect_Tests.LogTests")]
+    public void Test_namespace_follows_the_folder_like_Rider_expects(string csproj, string projectName, string expected) =>
+        Assert.Equal(expected, AspectTestScaffold.TestNamespace(csproj, projectName, "LogTests"));
 
     [Theory]
     [InlineData(AspectTestScaffold.TargetKind.Type, "[Url]\npublic partial class UrlTarget")]
@@ -56,6 +80,15 @@ public class AspectTestScaffoldTests
         Assert.Contains("<PackageReference Include=\"xunit\" Version=", csproj);
         Assert.Contains("<ProjectReference Include=\"..\\Sample\\Sample.csproj\" />", csproj);
         Assert.Contains("<TargetFramework>net8.0</TargetFramework>", csproj);
+    }
+
+    [Fact]
+    public void Snapshots_are_never_compiled_even_before_the_first_restore()
+    {
+        // Metalama.Testing.AspectTesting removes .t.cs from Compile, but only once restored: Rider evaluating the new
+        // project before that compiles the snapshot next to its test (duplicate members).
+        var csproj = AspectTestScaffold.TestProject("2026.1.30", "../Sample/Sample.csproj", "net8.0", centralPackages: false);
+        Assert.Contains("<Compile Remove=\"**/*.t.cs\" />", csproj);
     }
 
     [Fact]
@@ -108,4 +141,22 @@ public class AspectTestScaffoldTests
         Assert.Equal(output, AspectTestScaffold.ActualOutput(project, test));
         Assert.Equal(Path.Combine(project, "Log", "Add.t.cs"), AspectTestScaffold.SnapshotPath(test));
     }
+
+    // Rider's ids as seen on Linux and Windows: class = project + folder path + file name, method = file name.
+    // ReSharper's relative paths use '\' on every OS.
+    [Theory]
+    [InlineData("Add", "MetalamaSample.AspectTests.Log.Add.Add", "Log/Add.cs", true)]
+    [InlineData("Add", "MetalamaSample.AspectTests.Log.Add.Add", @"Log\Add.cs", true)]
+    [InlineData("Add", "MetalamaSample.AspectTests.Log.Add", @"Log\Add.cs", false)] // the class
+    [InlineData("Add", "MetalamaSample.AspectTests.Other.Add.Add", @"Log\Add.cs", false)] // same file name, other folder
+    [InlineData("Add", "MetalamaSample.AspectTests.Add.Add", "Add.cs", true)]
+    public void Rider_test_element_is_found_for_a_test_file(string shortName, string testId, string relativePath, bool expected) =>
+        Assert.Equal(expected, AspectTestScaffold.IsTestFor(shortName, testId, relativePath));
+
+    [Theory]
+    [InlineData(@"Log\Add.cs", "MetalamaSample.AspectTests.Log.Add.Add")]
+    [InlineData("Sub/Log/Add.cs", "MetalamaSample.AspectTests.Sub.Log.Add.Add")]
+    [InlineData("Add.cs", "MetalamaSample.AspectTests.Add.Add")]
+    public void Test_id_is_predicted_before_Rider_discovers_the_test(string relativePath, string expected) =>
+        Assert.Equal(expected, AspectTestScaffold.TestId("MetalamaSample.AspectTests", relativePath));
 }

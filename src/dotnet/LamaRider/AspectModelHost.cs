@@ -77,6 +77,7 @@ public sealed class AspectModelHost
             RdModel.NavigateToClass.Advise(lifetime, NavigateToClass);
             RdModel.CreateAspectTest.Advise(lifetime, position => CreateAspectTest(position.File, position.Offset));
             RdModel.AcceptAspectTestOutput.Advise(lifetime, AcceptAspectTestOutput);
+            RdModel.RunAspectTest.Advise(lifetime, run => RunAspectTest(run.File, run.Debug));
             RdModel.AutoBuild.Advise(lifetime, enabled => _autoBuild = enabled);
             RdModel.AddLamaDebugConfiguration.Advise(lifetime, _ => AddLamaDebugConfiguration());
             solutionBuilder.RunningRequest.Change.Advise(lifetime, args =>
@@ -191,6 +192,13 @@ public sealed class AspectModelHost
             }
             var (testCsproj, newProject) = Testing.AspectTests.Targets(_solution, project)[0];
             Testing.AspectTests.Create(_solution, type, project, testCsproj, newProject);
+        });
+
+    void RunAspectTest(string path, bool debug) =>
+        _solution.Locks.ExecuteOrQueueReadLockEx(_lifetime, "LamaRider.RunAspectTest", () =>
+        {
+            if (Testing.AspectTests.Run(_solution, SourceFile(path)?.ToProjectFile(), debug) is { } problem)
+                RdModel.Info.Fire(problem);
         });
 
     void AcceptAspectTestOutput(string path) =>
