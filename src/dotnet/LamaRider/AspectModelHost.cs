@@ -14,6 +14,11 @@ using JetBrains.ProjectModel.Tasks;
 using JetBrains.ReSharper.Feature.Services.Daemon;
 using JetBrains.ReSharper.Feature.Services.Navigation;
 using JetBrains.ReSharper.Psi;
+using JetBrains.ReSharper.Psi.Tree;
+using JetBrains.ReSharper.Psi.Files;
+using JetBrains.ReSharper.Psi.CSharp.Tree;
+using JetBrains.ReSharper.Psi.CSharp;
+using JetBrains.DocumentModel;
 using JetBrains.ReSharper.Psi.Caches;
 using JetBrains.ReSharper.Psi.Modules;
 using JetBrains.ReSharper.Feature.Services.Protocol;
@@ -70,6 +75,8 @@ public sealed class AspectModelHost
             RdModel.ApplyTestSettings.Advise(lifetime, ApplyTestSettings);
             RdModel.RefreshTestSettingsStatus.Advise(lifetime, _ => UpdateTestSettingsStatus());
             RdModel.NavigateToClass.Advise(lifetime, NavigateToClass);
+            RdModel.CreateAspectTest.Advise(lifetime, position => CreateAspectTest(position.File, position.Offset));
+            RdModel.AcceptAspectTestOutput.Advise(lifetime, AcceptAspectTestOutput);
             RdModel.AutoBuild.Advise(lifetime, enabled => _autoBuild = enabled);
             RdModel.AddLamaDebugConfiguration.Advise(lifetime, _ => AddLamaDebugConfiguration());
             solutionBuilder.RunningRequest.Change.Advise(lifetime, args =>
@@ -167,6 +174,36 @@ public sealed class AspectModelHost
             else _solution.GetComponent<DeclaredElementNavigationService>()
                 .Navigate(type, _solution.GetComponent<IMainWindowPopupWindowContext>().Source, true);
         });
+
+    // Editor menu twins of the Alt+Enter actions in Testing/AspectTestActions.cs.
+    void CreateAspectTest(string path, int offset) =>
+        _solution.Locks.ExecuteOrQueueReadLockEx(_lifetime, "LamaRider.CreateAspectTest", () =>
+        {
+            var sourceFile = SourceFile(path);
+            var psiFile = sourceFile?.GetDominantPsiFile<CSharpLanguage>();
+            var node = psiFile?.FindNodeAt(psiFile.Translate(new DocumentOffset(sourceFile!.Document, offset)));
+            var declaration = node?.GetContainingNode<IClassDeclaration>(returnThis: true);
+            if (declaration?.DeclaredElement is not { } type || !Testing.AspectTests.IsAspect(type) || sourceFile!.GetProject() is not { } project)
+            {
+                RdModel.Info.Fire("Place the caret in an aspect class to create a Metalama aspect test for it.");
+                return;
+            }
+            var (testCsproj, newProject) = Testing.AspectTests.Targets(_solution, project)[0];
+            Testing.AspectTests.Create(_solution, type, project, testCsproj, newProject);
+        });
+
+    void AcceptAspectTestOutput(string path) =>
+        _solution.Locks.ExecuteOrQueueReadLockEx(_lifetime, "LamaRider.AcceptAspectTestOutput", () =>
+        {
+            if (Testing.AspectTests.OutputFor(SourceFile(path)?.GetProject(), path) is var (test, output))
+                Testing.AspectTests.Accept(_solution, test, output);
+            else
+                RdModel.Info.Fire("No Metalama test output for this file: run the aspect test first.");
+        });
+
+    IPsiSourceFile? SourceFile(string path) =>
+        _solution.FindProjectItemsByLocation(VirtualFileSystemPath.Parse(path, InteractionContext.SolutionContext))
+            .OfType<IProjectFile>().FirstOrDefault()?.ToSourceFiles().FirstOrDefault();
 
     void AddLamaDebugConfiguration() =>
         _solution.Locks.ExecuteOrQueueReadLockEx(_lifetime, "LamaRider.AddLamaDebug", () =>

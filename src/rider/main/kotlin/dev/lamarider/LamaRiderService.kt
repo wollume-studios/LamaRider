@@ -58,6 +58,14 @@ class LamaRiderService(val project: Project) {
         rd?.refreshTestSettingsStatus?.fire(Unit)
     }
 
+    fun createAspectTest(position: com.jetbrains.rd.ide.model.EditorPosition) {
+        rd?.createAspectTest?.fire(position)
+    }
+
+    fun acceptAspectTestOutput(path: String) {
+        rd?.acceptAspectTestOutput?.fire(path)
+    }
+
     fun addLamaDebugConfiguration() {
         rd?.addLamaDebugConfiguration?.fire(Unit)
     }

@@ -49,6 +49,14 @@
     </action>
     <action id="LamaRider.TrackCaret" class="dev.lamarider.explorer.TrackCaretAction" text="Track Caret"
             description="LamaRider window: show the aspects that affect the code at the caret" icon="AllIcons.General.Locate"/>
+    <action id="LamaRider.CreateAspectTest" class="dev.lamarider.actions.CreateAspectTestAction" text="Create Metalama Aspect Test"
+            description="Aspect test for the aspect class at the caret, in an existing or new aspect test project">
+      <add-to-group group-id="EditorPopupMenu" anchor="last"/>
+    </action>
+    <action id="LamaRider.AcceptAspectTestOutput" class="dev.lamarider.actions.AcceptAspectTestOutputAction" text="Accept Metalama Test Output"
+            description="Save the last run's transformed output of this aspect test as its .t.cs snapshot">
+      <add-to-group group-id="EditorPopupMenu" anchor="last"/>
+    </action>
     <action id="LamaRider.OnlyAtCaret" class="dev.lamarider.explorer.OnlyAtCaretAction"/>
     <action id="LamaRider.DebugLamaDebug" class="dev.lamarider.actions.DebugWithLamaDebugAction"/>
     <action id="LamaRider.Settings" class="dev.lamarider.actions.OpenSettingsAction"/>
