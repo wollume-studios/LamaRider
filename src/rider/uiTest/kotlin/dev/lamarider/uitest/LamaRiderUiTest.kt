@@ -34,6 +34,7 @@ import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.fail
 import org.kodein.di.DI
 import org.kodein.di.bindSingleton
+import java.awt.event.KeyEvent
 import java.nio.file.Files
 import java.nio.file.Path
 import kotlin.io.path.createTempDirectory
@@ -116,16 +117,14 @@ class LamaRiderUiTest {
     fun `aspect test is added to the existing test project and its output accepted`() = withRider("aspecttest") {
         openToolWindow("LamaRider")
         ideFrame { waitForText("aspects listed (first refresh done)", "Log") }
-        caretAt("MetalamaSample/LogAttribute.cs", "LogAttribute :")
-        chooseIntention("Add Metalama aspect test for LogAttribute")
+        chooseIntention("MetalamaSample/LogAttribute.cs", "LogAttribute :", "Add Metalama aspect test for LogAttribute")
         val test = solutionDir.resolve("MetalamaSample.AspectTests/Log/LogTest.cs")
         waitFor("test file created", timeout = 1.minutes) { Files.exists(test) }
         assertTrue(Files.readString(test).contains("    [Log]\n    public int Add("), Files.readString(test))
 
         // First run: fails, writes the output (and a placeholder snapshot).
         dotnet("test", solutionDir.resolve("MetalamaSample.AspectTests").toString())
-        caretAt("MetalamaSample.AspectTests/Log/LogTest.cs", "Add(")
-        chooseIntention("Accept Metalama test output")
+        chooseIntention("MetalamaSample.AspectTests/Log/LogTest.cs", "Add(", "Accept Metalama test output")
         val snapshot = solutionDir.resolve("MetalamaSample.AspectTests/Log/LogTest.t.cs")
         waitFor("snapshot accepted", timeout = 1.minutes) { Files.exists(snapshot) && Files.readString(snapshot).contains("Entering Add") }
         assertTrue(dotnet("test", solutionDir.resolve("MetalamaSample.AspectTests").toString()) == 0, "accepted test passes")
@@ -138,8 +137,7 @@ class LamaRiderUiTest {
     }) {
         openToolWindow("LamaRider")
         ideFrame { waitForText("aspects listed (first refresh done)", "Log") }
-        caretAt("MetalamaSample/IdAttribute.cs", "IdAttribute :")
-        chooseIntention("Create aspect test project 'MetalamaSample.AspectTests'")
+        chooseIntention("MetalamaSample/IdAttribute.cs", "IdAttribute :", "Create aspect test project 'MetalamaSample.AspectTests'")
         val test = solutionDir.resolve("MetalamaSample.AspectTests/Id/IdTest.cs")
         waitFor("project and test created", timeout = 2.minutes) { Files.exists(test) }
         assertTrue(Files.readString(test).contains("[Id]\npublic partial class IdTarget"), Files.readString(test))
@@ -171,13 +169,21 @@ class LamaRiderUiTest {
         }
     }
 
-    /** Alt+Enter in the editor, then the item starting with [text] (the popup filters as you type). */
-    private fun Driver.chooseIntention(text: String) {
+    /**
+     * Alt+Enter at [marker] in [relativePath], then the item containing [text]. Real input (the intention popup needs keyboard
+     * focus, which the window-manager-less Xvfb display only gives to a clicked window): run these in the VM, not on a desktop.
+     */
+    private fun Driver.chooseIntention(relativePath: String, marker: String, text: String) {
         // The backend learns the caret position asynchronously: Alt+Enter again until the item is offered.
         waitFor("'$text' offered", timeout = 1.minutes, interval = 3.seconds) {
-            ideFrame { invokeAction("ShowIntentionActions", component = codeEditor().component) }
+            ideFrame { codeEditor().click() }
+            caretAt(relativePath, marker)
+            Thread.sleep(500)
+            ideFrame { codeEditor().keyboard { hotKey(KeyEvent.VK_ALT, KeyEvent.VK_ENTER) } }
             Thread.sleep(1500) // the list is computed by the backend
-            ui.x(xQuery { contains(byVisibleText(text)) }).present()
+            val offered = ui.x(xQuery { contains(byVisibleText(text)) }).present()
+            if (!offered) ideFrame { codeEditor().keyboard { escape() } }
+            offered
         }
         ui.x(xQuery { contains(byVisibleText(text)) }).click()
     }
