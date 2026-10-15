@@ -17,7 +17,10 @@ data class AspectClassInfo(
     val group: String get() = `package`?.takeIf { it.isNotEmpty() } ?: if (isLibrary) "Other libraries" else project
 }
 
-/** A project or package with its aspect classes (Aspect Explorer top pane). */
+/** How the LamaRider window's aspect list is grouped. */
+enum class AspectGrouping(val label: String) { NONE("Ungrouped"), PACKAGE("Project / Package"), NAMESPACE("Namespace") }
+
+/** A project, package or namespace with its aspect classes (LamaRider window, top list); NONE: one nameless group. */
 data class AspectGroup(val name: String, val isProject: Boolean, val classes: List<AspectClassInfo>)
 
 data class AspectInstanceInfo(
@@ -62,12 +65,14 @@ data class ModelData(
     fun aspectClass(id: String) = aspectClasses.firstOrNull { it.id == id }
 
     /** Projects first, then packages; classes sorted by name; [filter] matches class names (case-insensitive). */
-    fun groups(filter: String): List<AspectGroup> =
-        aspectClasses
-            .filter { filter.isEmpty() || it.name.contains(filter, ignoreCase = true) }
-            .groupBy { it.group }
+    fun groups(filter: String, by: AspectGrouping = AspectGrouping.PACKAGE): List<AspectGroup> {
+        val matching = aspectClasses.filter { filter.isEmpty() || it.name.contains(filter, ignoreCase = true) }
+        if (by == AspectGrouping.NONE) return listOf(AspectGroup("", true, matching.sortedBy { it.name.lowercase() }))
+        return matching
+            .groupBy { if (by == AspectGrouping.NAMESPACE) it.id.substringAfter(':').substringBeforeLast('.', "<global>") else it.group }
             .map { (name, classes) -> AspectGroup(name, classes.none { it.isLibrary }, classes.sortedBy { it.name.lowercase() }) }
             .sortedWith(compareBy<AspectGroup> { !it.isProject }.thenBy { it.name.lowercase() })
+    }
 
     fun errors() = diagnostics.filter { it.severity == "Error" }
 

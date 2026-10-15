@@ -83,8 +83,9 @@ class AspectExplorerPanel(private val project: Project, parent: Disposable) : Si
     private val status = JBLabel().apply { minimumSize = Dimension(0, 0); preferredSize = Dimension(0, preferredSize.height) }
     private var shownModel: ModelData? = null
 
-    // Track Caret: only the aspects affecting the code at the caret (null: not tracking).
+    // Track Caret: the targets tree shows every aspect affecting the code at the caret (null: not tracking).
     private var tracked: List<AspectInstanceInfo>? = null
+    private var syncingSelection = false
     private val trackAlarm = Alarm(Alarm.ThreadToUse.SWING_THREAD, parent)
     private val trackCaret: Boolean get() = TrackCaretAction.isEnabled()
 
@@ -99,6 +100,15 @@ class AspectExplorerPanel(private val project: Project, parent: Disposable) : Si
 
         targetTree.isRootVisible = false
         targetTree.cellRenderer = TargetRenderer()
+        targetTree.addTreeSelectionListener {
+            val node = (targetTree.lastSelectedPathComponent as? DefaultMutableTreeNode)?.userObject
+            val aspectClass = when (node) {
+                is TargetNode -> node.instance.aspectClass
+                is TransformationNode -> node.transformation.aspectClass
+                else -> null
+            }
+            if (tracked != null && aspectClass != null) showAspect(aspectClass)
+        }
         targetTree.addMouseListener(object : MouseAdapter() {
             override fun mouseClicked(e: MouseEvent) {
                 if (e.clickCount == 2) activate((targetTree.lastSelectedPathComponent as? DefaultMutableTreeNode)?.userObject)
@@ -141,6 +151,8 @@ class AspectExplorerPanel(private val project: Project, parent: Disposable) : Si
         val actions = DefaultActionGroup(
             ActionManager.getInstance().getAction("LamaRider.Refresh"),
             ActionManager.getInstance().getAction("LamaRider.TrackCaret"),
+            ActionManager.getInstance().getAction("LamaRider.OnlyAtCaret"),
+            GroupingActions(),
             ExpandAllAction { expander },
             CollapseAllAction { expander },
             Separator.getInstance(),
@@ -165,6 +177,9 @@ class AspectExplorerPanel(private val project: Project, parent: Disposable) : Si
         }
     }
 
+    /** View options (filter, grouping) changed. */
+    fun viewOptionsChanged() = rebuildClasses()
+
     private fun scheduleTrack() {
         if (!trackCaret) return
         trackAlarm.cancelAllRequests()
@@ -177,7 +192,22 @@ class AspectExplorerPanel(private val project: Project, parent: Disposable) : Si
         val now = if (editor == null || file == null) emptyList() else service.model?.instancesAt(file.path, editor.caretModel.offset).orEmpty()
         if (now == tracked) return
         tracked = now
-        rebuildClasses()
+        if (ExplorerOptions.onlyAtCaret) rebuildClasses() else rebuildTargets(selectedClass())
+    }
+
+    /** Selects [aspectClassId] in the aspect list and shows its documentation; the targets tree stays (tracking). */
+    private fun showAspect(aspectClassId: String) {
+        val node = TreeUtil.findNode(classRoot) { (it.userObject as? AspectClassInfo)?.id == aspectClassId } ?: return
+        val path = TreePath(node.path)
+        syncingSelection = true
+        try {
+            classTree.expandPath(path.parentPath)
+            classTree.selectionPath = path
+            classTree.scrollPathToVisible(path)
+        } finally {
+            syncingSelection = false
+        }
+        showDetails(node.userObject as AspectClassInfo)
     }
 
     fun select(aspectClassId: String) {
@@ -207,32 +237,39 @@ class AspectExplorerPanel(private val project: Project, parent: Disposable) : Si
         val selected = selectedClass()?.id
         val filter = search.text.trim()
         classRoot.removeAllChildren()
-        val trackedClasses = tracked?.map { it.aspectClass }?.toSet()
-        for (group in service.model?.groups(filter).orEmpty()) {
-            val classes = trackedClasses?.let { only -> group.classes.filter { it.id in only } } ?: group.classes
+        val onlyAtCaret = tracked?.takeIf { ExplorerOptions.onlyAtCaret }?.map { it.aspectClass }?.toSet()
+        for (group in service.model?.groups(filter, ExplorerOptions.grouping).orEmpty()) {
+            val classes = onlyAtCaret?.let { only -> group.classes.filter { it.id in only } } ?: group.classes
             if (classes.isEmpty()) continue
-            val groupNode = DefaultMutableTreeNode(group).also(classRoot::add)
-            classes.forEach { groupNode.add(DefaultMutableTreeNode(it)) }
+            // Ungrouped: classes directly under the root.
+            val parent = if (group.name.isEmpty()) classRoot else DefaultMutableTreeNode(group).also(classRoot::add)
+            classes.forEach { parent.add(DefaultMutableTreeNode(it)) }
         }
-        classTree.emptyText.text = if (tracked != null) "No aspects at the caret" else "Nothing to show"
+        classTree.emptyText.text = if (onlyAtCaret != null) "No aspects at the caret" else "Nothing to show"
         (classTree.model as DefaultTreeModel).reload()
         // Projects open, packages closed (expanded while searching).
         for (child in classRoot.children()) {
             val node = child as DefaultMutableTreeNode
-            if (filter.isNotEmpty() || tracked != null || (node.userObject as AspectGroup).isProject) classTree.expandPath(TreePath(node.path))
+            val group = node.userObject as? AspectGroup ?: continue
+            if (filter.isNotEmpty() || onlyAtCaret != null || group.isProject) classTree.expandPath(TreePath(node.path))
         }
         val keep = selected?.let { id -> TreeUtil.findNode(classRoot) { (it.userObject as? AspectClassInfo)?.id == id } }
-        // Tracking: the first aspect at the caret is selected so its targets show right away.
-        val show = keep ?: if (tracked != null) TreeUtil.findNode(classRoot) { it.userObject is AspectClassInfo } else null
+        // Filtered to the caret: the first aspect is selected so its documentation shows right away.
+        val show = keep ?: if (onlyAtCaret != null) TreeUtil.findNode(classRoot) { it.userObject is AspectClassInfo } else null
         show?.let { classTree.selectionPath = TreePath(it.path) }
         showSelection()
     }
 
     private fun showSelection() {
+        if (syncingSelection) return
         val aspect = selectedClass()
+        showDetails(aspect)
+        if (tracked == null) rebuildTargets(aspect)
+    }
+
+    private fun showDetails(aspect: AspectClassInfo?) {
         details.text = aspect?.let(::detailsHtml) ?: "<html><body><span style=\"color:gray\">Select an aspect to see its documentation and targets.</span></body></html>"
         details.caretPosition = 0
-        rebuildTargets(aspect)
     }
 
     private fun goToSource(aspect: AspectClassInfo) {
@@ -254,10 +291,8 @@ class AspectExplorerPanel(private val project: Project, parent: Disposable) : Si
     private fun rebuildTargets(aspect: AspectClassInfo?) {
         targetRoot.removeAllChildren()
         val model = service.model
-        if (model != null && aspect != null) {
-            val instances = model.instancesOf(aspect.id).let { all ->
-                tracked?.let { at -> all.filter { i -> at.any { it.target == i.target && it.aspectClass == i.aspectClass } } } ?: all
-            }
+        val instances = tracked ?: aspect?.let { model?.instancesOf(it.id) }
+        if (model != null && instances != null) {
             for ((projectName, inProject) in instances.groupBy { it.project }.toSortedMap()) {
                 val projectNode = DefaultMutableTreeNode(Container(projectName, AllIcons.Nodes.Module)).also(targetRoot::add)
                 for ((ns, inNs) in inProject.groupBy { it.targetType.substringBeforeLast('.', "<global>") }.toSortedMap()) {
@@ -275,6 +310,7 @@ class AspectExplorerPanel(private val project: Project, parent: Disposable) : Si
                 }
             }
         }
+        targetTree.emptyText.text = if (tracked != null) "No aspects at the caret" else "Nothing to show"
         (targetTree.model as DefaultTreeModel).reload()
         TreeUtil.expandAll(targetTree)
     }
@@ -309,7 +345,7 @@ class AspectExplorerPanel(private val project: Project, parent: Disposable) : Si
         }
     }
 
-    private class TargetRenderer : ColoredTreeCellRenderer() {
+    private inner class TargetRenderer : ColoredTreeCellRenderer() {
         override fun customizeCellRenderer(tree: JTree, value: Any?, selected: Boolean, expanded: Boolean, leaf: Boolean, row: Int, hasFocus: Boolean) {
             when (val item = (value as? DefaultMutableTreeNode)?.userObject) {
                 is Container -> { icon = item.icon; append(item.name) }
@@ -317,6 +353,11 @@ class AspectExplorerPanel(private val project: Project, parent: Disposable) : Si
                     icon = kindIcon(item.instance.targetKind)
                     append(item.name)
                     append("  ${kindLabel(item.instance.targetKind)} · ${item.instance.appliedVia}", SimpleTextAttributes.GRAYED_ATTRIBUTES)
+                    // Tracking shows several aspects in one tree: name the one behind this target.
+                    if (tracked != null) {
+                        val aspect = service.model?.aspectClass(item.instance.aspectClass)?.name ?: item.instance.aspectClass.substringAfterLast('.')
+                        append("  $aspect", SimpleTextAttributes.REGULAR_ITALIC_ATTRIBUTES)
+                    }
                 }
                 is TransformationNode -> { icon = AllIcons.Actions.Diff; append(item.transformation.description) }
                 is DiagnosticNode -> {

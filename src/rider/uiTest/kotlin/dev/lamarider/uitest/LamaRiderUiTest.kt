@@ -113,24 +113,26 @@ class LamaRiderUiTest {
     }
 
     @Test
-    fun `Track Caret lists only the aspects at the caret`() = withRider("track") {
+    fun `Track Caret shows the aspects at the caret in the targets tree`() = withRider("track") {
         openToolWindow("LamaRider")
         ideFrame { waitForText("aspects listed (first refresh done)", "Log") }
         invokeAction("LamaRider.TrackCaret")
         try {
             caretAt("MetalamaSample/Links.cs", "address")
-            ideFrame { waitForText("contract on the parameter", "Url") }
+            ideFrame { waitForText("contract on the parameter", "Open(string) › address") }
             caretAt("MetalamaSample/Calculator.cs", "Multiply(")
             ideFrame {
-                waitForText("fabric aspect on Multiply", "Log")
-                waitFor("Url gone outside Links", timeout = 30.0.toDuration()) { !hasSubtext("Url") }
+                waitForText("fabric aspect on Multiply", "Multiply(int, int)")
+                waitFor("Links target gone", timeout = 30.seconds) { !hasSubtext("Open(string) › address") }
+                waitForText("aspect list not filtered", "Metalama.Patterns.Contracts")
             }
+            invokeAction("LamaRider.OnlyAtCaret")
+            ideFrame { waitFor("aspect list filtered to the caret", timeout = 30.seconds) { !hasSubtext("Metalama.Patterns.Contracts") } }
+            invokeAction("LamaRider.OnlyAtCaret")
         } finally {
             invokeAction("LamaRider.TrackCaret") // the setting is global to the test IDE
         }
     }
-
-    private fun Double.toDuration() = kotlin.time.Duration.parse("${this}s")
 
     private fun UiComponent.waitForText(what: String, text: String) =
         waitFor(what, timeout = 5.minutes) { hasSubtext(text) }

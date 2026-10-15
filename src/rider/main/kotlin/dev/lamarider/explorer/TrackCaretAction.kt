@@ -5,7 +5,7 @@ import com.intellij.openapi.actionSystem.ActionUpdateThread
 import com.intellij.openapi.actionSystem.AnActionEvent
 import com.intellij.openapi.project.DumbAwareToggleAction
 
-/** LamaRider window: show only the aspects affecting the code at the caret (remembered). */
+/** LamaRider window: the targets tree shows the aspects affecting the code at the caret (remembered). */
 class TrackCaretAction : DumbAwareToggleAction() {
     override fun getActionUpdateThread() = ActionUpdateThread.EDT
 

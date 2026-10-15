@@ -145,4 +145,18 @@ class ModelDataGroupingTest {
         assertEquals(setOf(onType), model.instancesAt(file, 450).toSet())
         assertEquals(emptyList<AspectInstanceInfo>(), model.instancesAt("C:/src/Other.cs", 150))
     }
+
+    @Test
+    fun `grouping by namespace uses the aspect class namespace`() =
+        assertEquals(
+            listOf("EFA" to listOf("Class1"), "Metalama.Patterns.Contracts" to listOf("NotNull", "Url"), "Metalama.Patterns.Memoization" to listOf("Memoize")),
+            model.groups("", AspectGrouping.NAMESPACE).map { g -> g.name to g.classes.map { it.name } },
+        )
+
+    @Test
+    fun `ungrouped is one nameless group with all classes sorted`() =
+        assertEquals(
+            listOf("" to listOf("Class1", "Memoize", "NotNull", "Url")),
+            model.groups("", AspectGrouping.NONE).map { g -> g.name to g.classes.map { it.name } },
+        )
 }
