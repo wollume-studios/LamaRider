@@ -135,6 +135,7 @@ public sealed class AspectModelHost
 
     public void RequestRefresh(string reason)
     {
+        Logger.Info($"LamaRider: refresh requested ({reason})");
         lock (_gate)
         {
             if (_running)
@@ -263,6 +264,7 @@ public sealed class AspectModelHost
     {
         var kind = RefreshTrigger.Classify(path);
         if (kind == RefreshTrigger.Kind.None) return;
+        Logger.Info($"LamaRider: {kind} change {path}");
         // The worker restores the solution itself; its own project.assets.json writes must not trigger another refresh.
         if (kind == RefreshTrigger.Kind.Restore)
             lock (_gate)
@@ -345,6 +347,7 @@ public sealed class AspectModelHost
     void Publish(string status, string? modelPath) =>
         _solution.Locks.ExecuteOrQueueEx(_lifetime, "LamaRider.Publish", () =>
         {
+            Logger.Info($"LamaRider: {status}");
             RdModel.Status.Value = status;
             if (modelPath != null) RdModel.ModelPath.Value = modelPath;
         });

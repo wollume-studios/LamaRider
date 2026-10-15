@@ -50,6 +50,11 @@ public class WorkerRunnerTests
         File.WriteAllText(links, File.ReadAllText(links).Replace("    public string Open(", "    [Log]\n    public string Open("));
         Assert.Equal(3, runner.Run("2026.1.30", sln, CancellationToken.None).TargetCountOf("T:MetalamaSample.LogAttribute"));
         Assert.Equal(firstProcess, runner.WorkerProcessId);
+
+        // A new file (git checkout, another editor): the project's file globs must be evaluated again.
+        File.WriteAllText(Path.Combine(copy, "MetalamaSample", "Added.cs"),
+            "namespace MetalamaSample;\npublic class Added\n{\n    [Log]\n    public int Twice(int x) => 2 * x;\n}\n");
+        Assert.Equal(4, runner.Run("2026.1.30", sln, CancellationToken.None).TargetCountOf("T:MetalamaSample.LogAttribute"));
     }
 
     [Fact]
