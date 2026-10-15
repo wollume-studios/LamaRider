@@ -5,6 +5,7 @@ using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
 using JetBrains.Application.Progress;
+using JetBrains.Application.Threading;
 using JetBrains.ProjectModel;
 using JetBrains.ReSharper.Feature.Services.Bulbs;
 using JetBrains.ReSharper.Feature.Services.ContextActions;
@@ -85,14 +86,17 @@ public static class AspectTests
                 Directory.CreateDirectory(folder);
                 var file = Path.Combine(folder, AspectTestScaffold.NextTestFileName(Directory.GetFiles(folder).Select(Path.GetFileName), aspectName));
                 File.WriteAllText(file, AspectTestScaffold.TestFile(testProjectName.Replace('-', '_'), aspectNamespace, aspectName, isAttribute, kind));
-                model.OpenFile.Fire(file);
-                model.Info.Fire(newProject
-                    ? $"Created {testProjectName} and the test {Path.GetFileName(file)}. Run it: the first run writes the output; accept it with Alt+Enter > Accept Metalama test output."
-                    : $"Added the test {Path.GetFileName(file)}. Run it, then accept the output with Alt+Enter > Accept Metalama test output.");
+                OnShell(solution, () =>
+                {
+                    model.OpenFile.Fire(file);
+                    model.Info.Fire(newProject
+                        ? $"Created {testProjectName} and the test {Path.GetFileName(file)}. Run it: the first run writes the output; accept it with Alt+Enter > Accept Metalama test output."
+                        : $"Added the test {Path.GetFileName(file)}. Run it, then accept the output with Alt+Enter > Accept Metalama test output.");
+                });
             }
             catch (Exception e) when (e is IOException or UnauthorizedAccessException or InvalidOperationException or InvalidDataException)
             {
-                model.Failed.Fire("Cannot create the aspect test: " + e.Message);
+                OnShell(solution, () => model.Failed.Fire("Cannot create the aspect test: " + e.Message));
             }
         });
     }
@@ -121,6 +125,10 @@ public static class AspectTests
             model.Failed.Fire("Cannot save the test snapshot: " + e.Message);
         }
     }
+
+    // rd signals must fire on the shell thread, not on the thread pool.
+    static void OnShell(ISolution solution, Action fire) =>
+        solution.Locks.ExecuteOrQueueEx(solution.GetSolutionLifetimes().UntilSolutionCloseLifetime, "LamaRider.AspectTest", fire);
 
     static void CreateProject(string solutionPath, string aspectCsproj, string testCsproj)
     {
