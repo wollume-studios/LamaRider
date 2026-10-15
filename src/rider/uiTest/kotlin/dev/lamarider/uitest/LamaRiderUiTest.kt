@@ -168,13 +168,11 @@ class LamaRiderUiTest {
         val file = utility(LocalFileSystem::class).getInstance().refreshAndFindFileByPath(aspect.toString().replace('\\', '/')) ?: fail("No $aspect")
         withContext<Unit>(OnDispatcher.EDT) { service(com.intellij.driver.sdk.XDebuggerUtil::class).toggleLineBreakpoint(singleProject(), file, line, false) }
 
-        dotnet("build", solutionDir.resolve("MetalamaSample.AspectTests").toString()) // Rider lists aspect tests once built
+        // Never built: Rider builds the test project and discovers its tests first.
         val debugger = service(XDebuggerManager::class, singleProject())
-        waitFor("debug session started", timeout = 5.minutes, interval = 20.seconds) {
-            caretAt("MetalamaSample.AspectTests/Log/Add.cs", "Add(")
-            editorAction("LamaRider.DebugAspectTest") // tells "not listed yet" until Rider has discovered the test
-            runCatching { waitFor("session", timeout = 15.seconds) { debugger.getCurrentSession() != null } }.isSuccess
-        }
+        caretAt("MetalamaSample.AspectTests/Log/Add.cs", "Add(")
+        editorAction("LamaRider.DebugAspectTest")
+        waitFor("debug session started", timeout = 10.minutes) { debugger.getCurrentSession() != null }
         try {
             waitFor("stopped at the breakpoint in the aspect", timeout = 5.minutes) { debugger.getCurrentSession()?.isPaused() == true }
         } finally {
