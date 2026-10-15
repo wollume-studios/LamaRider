@@ -113,6 +113,43 @@ class LamaRiderUiTest {
     }
 
     @Test
+    fun `aspect test is added to the existing test project and its output accepted`() = withRider("aspecttest") {
+        openToolWindow("LamaRider")
+        ideFrame { waitForText("aspects listed (first refresh done)", "Log") }
+        caretAt("MetalamaSample/LogAttribute.cs", "LogAttribute :")
+        chooseIntention("Add Metalama aspect test for LogAttribute")
+        val test = solutionDir.resolve("MetalamaSample.AspectTests/Log/LogTest.cs")
+        waitFor("test file created", timeout = 1.minutes) { Files.exists(test) }
+        assertTrue(Files.readString(test).contains("    [Log]\n    public int Add("), Files.readString(test))
+
+        // First run: fails, writes the output (and a placeholder snapshot).
+        dotnet("test", solutionDir.resolve("MetalamaSample.AspectTests").toString())
+        caretAt("MetalamaSample.AspectTests/Log/LogTest.cs", "Add(")
+        chooseIntention("Accept Metalama test output")
+        val snapshot = solutionDir.resolve("MetalamaSample.AspectTests/Log/LogTest.t.cs")
+        waitFor("snapshot accepted", timeout = 1.minutes) { Files.exists(snapshot) && Files.readString(snapshot).contains("Entering Add") }
+        assertTrue(dotnet("test", solutionDir.resolve("MetalamaSample.AspectTests").toString()) == 0, "accepted test passes")
+    }
+
+    @Test
+    fun `aspect test project is created when there is none`() = withRider("aspecttestproject", prepare = { dir ->
+        dotnet("sln", dir.resolve("MetalamaSample.sln").toString(), "remove", dir.resolve("MetalamaSample.AspectTests/MetalamaSample.AspectTests.csproj").toString())
+        dir.resolve("MetalamaSample.AspectTests").toFile().deleteRecursively()
+    }) {
+        openToolWindow("LamaRider")
+        ideFrame { waitForText("aspects listed (first refresh done)", "Log") }
+        caretAt("MetalamaSample/IdAttribute.cs", "IdAttribute :")
+        chooseIntention("Create aspect test project 'MetalamaSample.AspectTests'")
+        val test = solutionDir.resolve("MetalamaSample.AspectTests/Id/IdTest.cs")
+        waitFor("project and test created", timeout = 2.minutes) { Files.exists(test) }
+        assertTrue(Files.readString(test).contains("[Id]\npublic partial class IdTarget"), Files.readString(test))
+        assertTrue(Files.readString(solutionDir.resolve("MetalamaSample.sln")).contains("MetalamaSample.AspectTests.csproj"), "added to the solution")
+        dotnet("test", solutionDir.resolve("MetalamaSample.AspectTests").toString()) // first run writes the output
+        val output = solutionDir.resolve("MetalamaSample.AspectTests/obj/transformed")
+        waitFor("test ran", timeout = 10.seconds) { Files.exists(output) }
+    }
+
+    @Test
     fun `Track Caret shows the aspects at the caret in the targets tree`() = withRider("track") {
         openToolWindow("LamaRider")
         ideFrame { waitForText("aspects listed (first refresh done)", "Log") }
@@ -134,6 +171,16 @@ class LamaRiderUiTest {
         }
     }
 
+    /** Alt+Enter in the editor, then the item starting with [text] (the popup filters as you type). */
+    private fun Driver.chooseIntention(text: String) {
+        ideFrame { invokeAction("ShowIntentionActions", component = codeEditor().component) }
+        waitFor("'$text' offered", timeout = 1.minutes) { ui.x(xQuery { contains(byVisibleText(text)) }).present() }
+        ui.x(xQuery { contains(byVisibleText(text)) }).click()
+    }
+
+    private fun dotnet(vararg args: String): Int =
+        ProcessBuilder("dotnet", *args).inheritIO().start().waitFor()
+
     private fun UiComponent.waitForText(what: String, text: String) =
         waitFor(what, timeout = 5.minutes) { hasSubtext(text) }
 
@@ -151,8 +198,10 @@ class LamaRiderUiTest {
         }
     }
 
-    private fun withRider(name: String, test: Driver.() -> Unit) {
+    /** [prepare] changes the sample copy before Rider opens it. */
+    private fun withRider(name: String, prepare: (Path) -> Unit = {}, test: Driver.() -> Unit) {
         solutionDir = sampleCopy()
+        prepare(solutionDir)
         val context = Starter.newContext(name, TestCase(rider(), SolutionProject(solutionDir.resolve("MetalamaSample.sln"))))
         PluginConfigurator(context).installPluginFromDir(Path.of(System.getProperty("lamarider.plugin")))
         // Fresh temp copy of the sample each test: without this, Rider asks to trust it (a dialog on the user's screen).

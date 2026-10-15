@@ -42,5 +42,7 @@ object LamaRiderModel : Ext(SolutionModel.Solution) {
         property("testSettingsStatus", string.nullable)
         // frontend -> backend: recompute the two above (settings page opened)
         signal("refreshTestSettingsStatus", void)
+        // backend -> frontend: open a file the backend created (aspect test, accepted snapshot)
+        signal("openFile", string)
     }
 }
