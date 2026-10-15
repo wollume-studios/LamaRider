@@ -85,7 +85,7 @@ public static class Extractor
 
         var diagnostics = workspace.Diagnostics
             .Where(d => d.Source != IntrospectionDiagnosticSource.CSharp)
-            .Select(d => new DiagnosticInfo(d.Id, d.Severity.ToString(), d.Message, d.Declaration == null ? null : DocId(d.Declaration), d.FilePath, d.Line,
+            .Select(d => new DiagnosticInfo(d.Id, d.Severity.ToString(), d.Message, DeclarationOf(d) is { } declaration ? DocId(declaration) : null, d.FilePath, d.Line,
                 d.Compilation?.Project.Name))
             .Distinct()
             .ToList();
@@ -94,6 +94,16 @@ public static class Extractor
             Schema, workspace.MetalamaVersion, classes, instances, transformations, diagnostics,
             TemplateClassifier.Classify(workspace, offsets),
             WriteTransformedFiles(workspace, outDir, offsets));
+    }
+
+    /// <summary>
+    /// Metalama 2026.1 looks a diagnostic's declaration up in the compilation it was reported for, which throws when the
+    /// syntax tree belongs to another project (a test project's workspace also holds the projects it references).
+    /// </summary>
+    static IDeclaration? DeclarationOf(IIntrospectionDiagnostic diagnostic)
+    {
+        try { return diagnostic.Declaration; }
+        catch (ArgumentException) { return null; }
     }
 
     /// <summary>

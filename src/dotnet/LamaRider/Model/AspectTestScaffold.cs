@@ -27,12 +27,25 @@ public static class AspectTestScaffold
         _ => TargetKind.Type,
     };
 
+    /// <summary>"LogAttribute" -> "Log".</summary>
+    public static string ShortName(string aspectClass) =>
+        aspectClass.EndsWith("Attribute", StringComparison.Ordinal) && aspectClass.Length > "Attribute".Length
+            ? aspectClass.Substring(0, aspectClass.Length - "Attribute".Length)
+            : aspectClass;
+
+    /// <summary>Folder of an aspect's tests. Not the aspect's name: a namespace of that name would hide the class (CS0616).</summary>
+    public static string TestFolder(string aspectClass) => ShortName(aspectClass) + "Tests";
+
+    /// <summary>Root namespace of the test project plus the folder, the namespace Rider expects for a file there.</summary>
+    public static string TestNamespace(string csprojText, string projectName, string folder) =>
+        (Regex.Match(csprojText, @"<RootNamespace>\s*([^<\s]+)\s*</RootNamespace>") is { Success: true } m
+            ? m.Groups[1].Value
+            : Regex.Replace(projectName, @"[^\w.]", "_")) + "." + folder;
+
     /// <summary>Main test file: some code the aspect is applied to. Metalama compares its transformed code with the .t.cs snapshot.</summary>
     public static string TestFile(string testNamespace, string aspectNamespace, string aspectClass, bool isAttribute, TargetKind kind)
     {
-        var shortName = aspectClass.EndsWith("Attribute", StringComparison.Ordinal) && aspectClass.Length > "Attribute".Length
-            ? aspectClass.Substring(0, aspectClass.Length - "Attribute".Length)
-            : aspectClass;
+        var shortName = ShortName(aspectClass);
         var attr = isAttribute ? $"[{shortName}]" : "";
         var target = $"{shortName}Target";
         string Member(string line) => isAttribute ? $"    {attr}\n    {line}" : $"    {line}";
@@ -49,7 +62,8 @@ public static class AspectTestScaffold
         };
 
         var sb = new StringBuilder();
-        sb.Append($"using {aspectNamespace};\n\n");
+        if (aspectNamespace != "" && testNamespace != aspectNamespace && !testNamespace.StartsWith(aspectNamespace + ".", StringComparison.Ordinal))
+            sb.Append($"using {aspectNamespace};\n\n");
         sb.Append($"namespace {testNamespace};\n\n");
         sb.Append($"// Metalama aspect test for {aspectClass}: every .cs file in this project is a test case. The test compares the\n");
         sb.Append("// transformed code of this file with the .t.cs snapshot next to it. The first run fails and writes a placeholder\n");
@@ -63,7 +77,7 @@ public static class AspectTestScaffold
     /// <summary>"LogTest.cs", then "LogTest2.cs", ... (Metalama: no '.' in a main test file name besides the extension).</summary>
     public static string NextTestFileName(IEnumerable<string> existingFileNames, string aspectClass)
     {
-        var shortName = aspectClass.EndsWith("Attribute", StringComparison.Ordinal) && aspectClass.Length > 9 ? aspectClass.Substring(0, aspectClass.Length - 9) : aspectClass;
+        var shortName = ShortName(aspectClass);
         var existing = new HashSet<string>(existingFileNames, StringComparer.OrdinalIgnoreCase);
         for (var i = 1; ; i++)
         {

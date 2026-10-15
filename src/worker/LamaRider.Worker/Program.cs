@@ -1,3 +1,4 @@
+using System.Collections.Immutable;
 using System.Text.Json;
 using LamaRider.Worker;
 using Metalama.Framework.Workspaces;
@@ -14,6 +15,8 @@ public static partial class Program
 
     static Workspace? _workspace;
     static string? _workspaceKey;
+    static Workspace? _testWorkspace;
+    static string? _testWorkspaceKey;
 
     /// <summary>
     /// LamaRider.Worker &lt;outDir&gt; &lt;solution-or-project&gt;... (.sln, .slnf or .csproj: what Metalama Workspaces accepts), or
@@ -51,6 +54,17 @@ public static partial class Program
         return 0; // stdin closed: the IDE is gone
     }
 
+    static async Task<Workspace> LoadTests(ImmutableArray<string> projects, bool keep)
+    {
+        var key = string.Join("|", projects);
+        if (keep && _testWorkspace != null && _testWorkspaceKey == key) return _testWorkspace = await _testWorkspace.ReloadAsync(restore: false);
+        _testWorkspace?.Dispose();
+        _testWorkspace = null;
+        var loaded = await AspectTestProjects.LoadAsync(projects);
+        if (keep) (_testWorkspace, _testWorkspaceKey) = (loaded, key);
+        return loaded;
+    }
+
     /// <param name="quiet">Failure not reported to the IDE (a retry follows); still logged on stderr.</param>
     static async Task<int> RunOne(string outDir, string[] inputs, bool keep, bool quiet = false)
     {
@@ -74,15 +88,27 @@ public static partial class Program
                 if (keep) (_workspace, _workspaceKey) = (loaded, key);
             }
 
+            Workspace? tests = null;
             try
             {
                 // Code being edited often doesn't compile; report what Metalama can still analyze (errors land in Diagnostics).
                 var output = Extractor.Extract(loaded.WithIgnoreErrors(), outDir);
+                var testProjects = AspectTestProjects.In(loaded);
+                if (!testProjects.IsEmpty)
+                {
+                    tests = await LoadTests(testProjects, keep);
+                    var names = tests.Projects.Where(p => testProjects.Contains(p.Path)).Select(p => p.Name).ToImmutableArray();
+                    output = AspectTestProjects.Merge(output, Extractor.Extract(tests.WithIgnoreErrors(), Path.Combine(outDir, "aspect-tests")), names);
+                }
                 await File.WriteAllTextAsync(Path.Combine(outDir, "model.json"), JsonSerializer.Serialize(output, WorkerJson.Options));
             }
             finally
             {
-                if (!keep) loaded.Dispose();
+                if (!keep)
+                {
+                    loaded.Dispose();
+                    tests?.Dispose();
+                }
             }
             return 0;
         }
@@ -92,6 +118,8 @@ public static partial class Program
             if (keep && !quiet) Console.Out.WriteLine($"{ErrorMarker} {e.Message.ReplaceLineEndings(" ")}");
             _workspace?.Dispose(); // start from a clean load next time
             _workspace = null;
+            _testWorkspace?.Dispose();
+            _testWorkspace = null;
             return 1;
         }
     }

@@ -81,18 +81,20 @@ public static class AspectTests
                 var testProjectName = Path.GetFileNameWithoutExtension(testCsproj);
                 if (newProject) CreateProject(solutionPath, aspectCsproj, testCsproj);
 
-                var shortName = aspectName.EndsWith("Attribute") && aspectName.Length > 9 ? aspectName.Substring(0, aspectName.Length - 9) : aspectName;
-                var folder = Path.Combine(testDir, shortName);
+                var folderName = AspectTestScaffold.TestFolder(aspectName);
+                var folder = Path.Combine(testDir, folderName);
                 Directory.CreateDirectory(folder);
                 var file = Path.Combine(folder, AspectTestScaffold.NextTestFileName(Directory.GetFiles(folder).Select(Path.GetFileName), aspectName));
-                File.WriteAllText(file, AspectTestScaffold.TestFile(testProjectName.Replace('-', '_'), aspectNamespace, aspectName, isAttribute, kind));
-                OnShell(solution, () =>
-                {
-                    model.OpenFile.Fire(file);
-                    model.Info.Fire(newProject
-                        ? $"Created {testProjectName} and the test {Path.GetFileName(file)}. Run it: the first run writes the output; accept it with Alt+Enter > Accept Metalama test output."
-                        : $"Added the test {Path.GetFileName(file)}. Run it, then accept the output with Alt+Enter > Accept Metalama test output.");
-                });
+                var testNamespace = AspectTestScaffold.TestNamespace(File.ReadAllText(testCsproj), testProjectName, folderName);
+                File.WriteAllText(file, AspectTestScaffold.TestFile(testNamespace, aspectNamespace, aspectName, isAttribute, kind));
+                OnShell(solution, () => model.OpenFile.Fire(file));
+
+                // Rider lists the test cases of an aspect test project only once it has been built.
+                var (code, output) = Run("dotnet", $"build \"{testCsproj}\"", testDir);
+                var created = newProject ? $"Created {testProjectName} and the test {Path.GetFileName(file)}." : $"Added the test {Path.GetFileName(file)}.";
+                OnShell(solution, () => model.Info.Fire(code == 0
+                    ? created + " Run or debug it from the Unit Tests window (debugging stops at Debugger.Break() in BuildAspect and meta.DebugBreak() in templates). The first run fails and writes the output; accept it with Alt+Enter > Accept Metalama test output."
+                    : created + " Building it failed, so Rider does not list the test yet: " + LastLine(output)));
             }
             catch (Exception e) when (e is IOException or UnauthorizedAccessException or InvalidOperationException or InvalidDataException)
             {
@@ -167,6 +169,13 @@ public static class AspectTests
     {
         var from = new Uri(fromDir.TrimEnd(Path.DirectorySeparatorChar) + Path.DirectorySeparatorChar);
         return Uri.UnescapeDataString(from.MakeRelativeUri(new Uri(path)).ToString()).Replace('/', Path.DirectorySeparatorChar);
+    }
+
+    /// <summary>The first error of a build's output, or its last line.</summary>
+    static string LastLine(string output)
+    {
+        var lines = output.Split('\n').Select(l => l.Trim()).Where(l => l != "").ToList();
+        return lines.FirstOrDefault(l => l.Contains(" error ")) ?? lines.LastOrDefault() ?? "";
     }
 
     static (int Code, string Output) Run(string file, string arguments, string workingDir)

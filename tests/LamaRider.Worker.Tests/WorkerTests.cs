@@ -135,6 +135,22 @@ public sealed class WorkerTests : IAsyncLifetime
     }
 
     [Fact]
+    public async Task Aspect_test_inputs_report_their_aspects()
+    {
+        // Metalama.Testing.AspectTesting sets MetalamaEnabled=False: the test runner weaves each test file on its own.
+        var dir = Path.Combine(_outDir, "cli-aspect-tests");
+        Assert.Equal(0, await Program.Run([dir, Path.Combine(SampleDir, "MetalamaSample.sln")]));
+
+        var output = System.Text.Json.JsonSerializer.Deserialize<WorkerOutput>(File.ReadAllText(Path.Combine(dir, "model.json")), WorkerJson.Options)!;
+        var test = output.Instances.Single(i => i.Target == "M:MetalamaSample.AspectTests.Log.Target.Add(System.Int32,System.Int32)");
+        Assert.Equal("T:MetalamaSample.LogAttribute", test.AspectClass);
+        Assert.Equal("MetalamaSample.AspectTests", test.Project);
+        Assert.Single(output.Instances, i => i.Target == Add); // the aspect project's own instances are not reported twice
+        Assert.Single(output.AspectClasses, c => c.Id == "T:MetalamaSample.LogAttribute");
+        Assert.Contains(output.TransformedFiles, f => f.File.EndsWith("Add.cs"));
+    }
+
+    [Fact]
     public async Task Projects_referenced_by_earlier_inputs_are_not_loaded_twice()
     {
         // AspectTests references MetalamaSample: loading it first already adds MetalamaSample to the workspace.

@@ -118,15 +118,24 @@ class LamaRiderUiTest {
         ideFrame { waitForText("aspects listed (first refresh done)", "Log") }
         caretAt("MetalamaSample/LogAttribute.cs", "LogAttribute :")
         editorAction("LamaRider.CreateAspectTest")
-        val test = solutionDir.resolve("MetalamaSample.AspectTests/Log/LogTest.cs")
+        val test = solutionDir.resolve("MetalamaSample.AspectTests/LogTests/LogTest.cs")
         waitFor("test file created", timeout = 1.minutes) { Files.exists(test) }
         assertTrue(Files.readString(test).contains("    [Log]\n    public int Add("), Files.readString(test))
 
+        // The test project has MetalamaEnabled=False; LamaRider still shows what the aspect does to the test input.
+        waitFor("test input woven", timeout = 3.minutes, interval = 10.seconds) {
+            runCatching {
+                caretAt("MetalamaSample.AspectTests/LogTests/LogTest.cs", "Add(")
+                ideFrame { invokeAction("LamaRider.ShowTransformedCode", component = codeEditor().component) }
+                ui.x(xQuery { contains(byVisibleText("Entering Add")) }).present()
+            }.getOrDefault(false)
+        }
+
         // First run: fails, writes the output (and a placeholder snapshot).
         dotnet("test", solutionDir.resolve("MetalamaSample.AspectTests").toString())
-        caretAt("MetalamaSample.AspectTests/Log/LogTest.cs", "Add(")
+        caretAt("MetalamaSample.AspectTests/LogTests/LogTest.cs", "Add(")
         editorAction("LamaRider.AcceptAspectTestOutput")
-        val snapshot = solutionDir.resolve("MetalamaSample.AspectTests/Log/LogTest.t.cs")
+        val snapshot = solutionDir.resolve("MetalamaSample.AspectTests/LogTests/LogTest.t.cs")
         waitFor("snapshot accepted", timeout = 1.minutes) { Files.exists(snapshot) && Files.readString(snapshot).contains("Entering Add") }
         assertTrue(dotnet("test", solutionDir.resolve("MetalamaSample.AspectTests").toString()) == 0, "accepted test passes")
     }
@@ -140,7 +149,7 @@ class LamaRiderUiTest {
         ideFrame { waitForText("aspects listed (first refresh done)", "Log") }
         caretAt("MetalamaSample/IdAttribute.cs", "IdAttribute :")
         editorAction("LamaRider.CreateAspectTest")
-        val test = solutionDir.resolve("MetalamaSample.AspectTests/Id/IdTest.cs")
+        val test = solutionDir.resolve("MetalamaSample.AspectTests/IdTests/IdTest.cs")
         waitFor("project and test created", timeout = 2.minutes) { Files.exists(test) }
         assertTrue(Files.readString(test).contains("[Id]\npublic partial class IdTarget"), Files.readString(test))
         assertTrue(Files.readString(solutionDir.resolve("MetalamaSample.sln")).contains("MetalamaSample.AspectTests.csproj"), "added to the solution")

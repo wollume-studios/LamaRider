@@ -20,12 +20,36 @@ public class AspectTestScaffoldTests
     [Fact]
     public void Method_aspect_test_applies_the_attribute_to_a_method()
     {
-        var text = AspectTestScaffold.TestFile("Sample.AspectTests", "Sample", "LogAttribute", isAttribute: true, AspectTestScaffold.TargetKind.Method);
+        var text = AspectTestScaffold.TestFile("Tests.LogTests", "Sample", "LogAttribute", isAttribute: true, AspectTestScaffold.TargetKind.Method);
         Assert.Contains("using Sample;", text);
-        Assert.Contains("namespace Sample.AspectTests;", text);
+        Assert.Contains("namespace Tests.LogTests;", text);
         Assert.Contains("    [Log]\n    public int Add(int a, int b) => a + b;", text);
         Assert.Contains(".t.cs", text); // explains the snapshot
     }
+
+    [Fact]
+    public void No_using_when_the_test_namespace_is_inside_the_aspect_namespace()
+    {
+        // Rider greys out such a using as redundant.
+        Assert.DoesNotContain("using", AspectTestScaffold.TestFile("EFA.AspectTests.EfCoreAspectTests", "EFA", "EfCoreAspect", isAttribute: true, AspectTestScaffold.TargetKind.Type));
+        Assert.DoesNotContain("using", AspectTestScaffold.TestFile("T.LogTests", "", "LogAttribute", isAttribute: true, AspectTestScaffold.TargetKind.Type));
+        Assert.Contains("using EFAX;", AspectTestScaffold.TestFile("EFA.AspectTests.LogTests", "EFAX", "LogAttribute", isAttribute: true, AspectTestScaffold.TargetKind.Type));
+    }
+
+    [Fact]
+    public void Folder_name_never_equals_the_aspect_name()
+    {
+        // A namespace EfCoreAspect next to the test's namespace would hide the aspect class [EfCoreAspect] (CS0616).
+        Assert.Equal("EfCoreAspectTests", AspectTestScaffold.TestFolder("EfCoreAspect"));
+        Assert.Equal("LogTests", AspectTestScaffold.TestFolder("LogAttribute"));
+    }
+
+    [Theory]
+    [InlineData("<Project><PropertyGroup><RootNamespace>Efa.Tests</RootNamespace></PropertyGroup></Project>", "EFA.AspectTests", "Efa.Tests.LogTests")]
+    [InlineData("<Project />", "EFA.AspectTests", "EFA.AspectTests.LogTests")]
+    [InlineData("<Project />", "My-Lib.Aspect Tests", "My_Lib.Aspect_Tests.LogTests")]
+    public void Test_namespace_follows_the_folder_like_Rider_expects(string csproj, string projectName, string expected) =>
+        Assert.Equal(expected, AspectTestScaffold.TestNamespace(csproj, projectName, "LogTests"));
 
     [Theory]
     [InlineData(AspectTestScaffold.TargetKind.Type, "[Url]\npublic partial class UrlTarget")]

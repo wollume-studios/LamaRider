@@ -14,6 +14,19 @@ public class AspectTestScaffoldEndToEndTests : IDisposable
             try { Directory.Delete(copy, true); } catch (IOException) { } catch (UnauthorizedAccessException) { }
     }
 
+    /// <summary>What Create Metalama Aspect Test writes (Testing/AspectTestActions.cs).</summary>
+    static string WriteTest(string testProject, string aspectClass, AspectTestScaffold.TargetKind kind)
+    {
+        var folderName = AspectTestScaffold.TestFolder(aspectClass);
+        var folder = Path.Combine(testProject, folderName);
+        Directory.CreateDirectory(folder);
+        var file = Path.Combine(folder, AspectTestScaffold.NextTestFileName(Directory.GetFiles(folder).Select(Path.GetFileName)!, aspectClass));
+        var csproj = Directory.GetFiles(testProject, "*.csproj").Single();
+        var ns = AspectTestScaffold.TestNamespace(File.ReadAllText(csproj), Path.GetFileNameWithoutExtension(csproj), folderName);
+        File.WriteAllText(file, AspectTestScaffold.TestFile(ns, "MetalamaSample", aspectClass, isAttribute: true, kind));
+        return file;
+    }
+
     static readonly string Root = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "../../../../.."));
 
     [Fact]
@@ -21,8 +34,8 @@ public class AspectTestScaffoldEndToEndTests : IDisposable
     {
         var sample = CopySample();
         var testProject = Path.Combine(sample, "MetalamaSample.AspectTests");
-        var test = Path.Combine(testProject, "Log", AspectTestScaffold.NextTestFileName(Directory.GetFiles(Path.Combine(testProject, "Log")).Select(Path.GetFileName)!, "LogAttribute"));
-        File.WriteAllText(test, AspectTestScaffold.TestFile("MetalamaSample.AspectTests", "MetalamaSample", "LogAttribute", isAttribute: true, AspectTestScaffold.TargetKind.Method));
+        // Next to the existing Log/Add.cs (namespace ...AspectTests.Log): all test inputs compile into one assembly.
+        var test = WriteTest(testProject, "LogAttribute", AspectTestScaffold.TargetKind.Method);
 
         Assert.NotEqual(0, DotnetTest(testProject)); // no snapshot yet: Metalama writes a placeholder and fails the run
         var output = AspectTestScaffold.ActualOutput(testProject, test);
@@ -41,14 +54,11 @@ public class AspectTestScaffoldEndToEndTests : IDisposable
     {
         var sample = CopySample();
         var testProject = Path.Combine(sample, "MetalamaSample.NewAspectTests");
-        Directory.CreateDirectory(Path.Combine(testProject, "Log"));
+        Directory.CreateDirectory(testProject);
         File.WriteAllText(Path.Combine(testProject, "MetalamaSample.NewAspectTests.csproj"),
             AspectTestScaffold.TestProject("2026.1.30", Path.Combine("..", "MetalamaSample", "MetalamaSample.csproj"), "net8.0", centralPackages: false));
-        var logTest = Path.Combine(testProject, "Log", "LogTest.cs");
-        File.WriteAllText(logTest, AspectTestScaffold.TestFile("MetalamaSample.NewAspectTests", "MetalamaSample", "LogAttribute", isAttribute: true, AspectTestScaffold.TargetKind.Method));
-        Directory.CreateDirectory(Path.Combine(testProject, "Id"));
-        var idTest = Path.Combine(testProject, "Id", "IdTest.cs");
-        File.WriteAllText(idTest, AspectTestScaffold.TestFile("MetalamaSample.NewAspectTests", "MetalamaSample", "IdAttribute", isAttribute: true, AspectTestScaffold.TargetKind.Type));
+        var logTest = WriteTest(testProject, "LogAttribute", AspectTestScaffold.TargetKind.Method);
+        var idTest = WriteTest(testProject, "IdAttribute", AspectTestScaffold.TargetKind.Type);
 
         Assert.NotEqual(0, DotnetTest(testProject)); // first run: placeholder snapshots ("TODO: Replace this file..."), fails
         var logOutput = AspectTestScaffold.ActualOutput(testProject, logTest);
