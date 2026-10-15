@@ -47,6 +47,23 @@ class CompileTimeMapsTest {
     }
 
     @Test
+    fun `a test run's copy takes the map of the identical build copy`() {
+        val source = File(dir, "App/Aspect.cs").apply { parentFile.mkdirs(); writeText("x"); setLastModified(1) }
+        val built = compiled("h1", source, listOf(12 to 19), 3_000_000).apply { writeText("compiled code") }
+        // Same file name, other content (an older build of the aspect): its map would point to wrong lines.
+        val older = File(dir, "Metalama/CompileTime/App/.netcoreapp8.0/h2/2026.1.30").apply { mkdirs() }
+        File(older, built.name).writeText("older compiled code")
+        map(File(older, built.nameWithoutExtension + ".map"), source.path, built.name, listOf(12 to 30))
+        // Test runs extract the compile-time code again, to Tests/<guid>/CompileTime/<project>/<tfm>/<hash>/ (no map).
+        val run = File(dir, "Metalama/Tests/guid/CompileTime/App/.netcoreapp8.0/h1/${built.name}").apply { parentFile.mkdirs(); writeText("compiled code") }
+
+        val copy = CompileTimeMaps.mapOf(run, File(dir, "Metalama/CompileTime"))!!
+        assertEquals(source.path, copy.source)
+        assertEquals(run.path, copy.file.path)
+        assertEquals(19, copy.line(12))
+    }
+
+    @Test
     fun `a corrupt map is ignored`() {
         val source = File(dir, "App/Aspect.cs").apply { parentFile.mkdirs(); writeText("x"); setLastModified(1) }
         File(dir, "Metalama/CompileTime/App/x/2026.1.30/A.map").apply { parentFile.mkdirs(); writeBytes(byteArrayOf(1, 2, 3)) }

@@ -6,6 +6,7 @@ import com.intellij.openapi.diagnostic.logger
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.vfs.LocalFileSystem
 import com.intellij.openapi.vfs.VfsUtilCore
+import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.xdebugger.XDebugProcess
 import com.intellij.xdebugger.XDebugSessionListener
 import com.intellij.xdebugger.XDebuggerManager
@@ -15,10 +16,13 @@ import com.intellij.xdebugger.breakpoints.XBreakpointManager
 import com.intellij.xdebugger.breakpoints.XBreakpointProperties
 import com.intellij.xdebugger.breakpoints.XLineBreakpoint
 import com.intellij.xdebugger.breakpoints.XLineBreakpointType
+import java.io.File
+import java.util.concurrent.CopyOnWriteArrayList
 
 /**
  * Breakpoints in aspects, templates and fabrics: the debugger only knows Metalama's compiled copy of that code (see
- * [CompileTimeMaps]), so for each debug session (an aspect test, a build) they are mirrored to the copy and removed after.
+ * [CompileTimeMaps]), so for each debug session they are mirrored to the copies and removed after. An aspect test run
+ * extracts its own copy shortly before running it; the session watches for it.
  */
 class CompileTimeBreakpoints(private val project: Project) : XDebuggerManagerListener {
     private val log = logger<CompileTimeBreakpoints>()
@@ -27,35 +31,57 @@ class CompileTimeBreakpoints(private val project: Project) : XDebuggerManagerLis
         val manager = XDebuggerManager.getInstance(project).breakpointManager
         val sources = manager.allBreakpoints.filterIsInstance<XLineBreakpoint<*>>()
             .filter { it.isEnabled && it.fileUrl.endsWith(".cs") }
+            .groupBy { File(VfsUtilCore.urlToPath(it.fileUrl)).path }
         if (sources.isEmpty()) return
         val root = CompileTimeMaps.root()
-        val targets = sources.flatMap { source ->
-            CompileTimeMaps.copiesOf(root, VfsUtilCore.urlToPath(source.fileUrl).replace('/', java.io.File.separatorChar))
-                .mapNotNull { copy -> copy.line(source.line)?.let { Triple(source, copy.file.path, it) } }
-        }
-        if (targets.isEmpty()) return
+        val cache = File(root, "CompileTime")
+        val mirrors = CopyOnWriteArrayList<XBreakpoint<*>>()
 
-        val mirrors = mutableListOf<XBreakpoint<*>>()
-        ApplicationManager.getApplication().invokeAndWait {
-            runWriteAction {
-                for ((source, path, line) in targets) {
-                    val file = LocalFileSystem.getInstance().refreshAndFindFileByPath(path) ?: continue
-                    mirror(manager, source, file, line)?.let(mirrors::add)
+        fun mirror(copies: List<CompileTimeMaps.Copy>) {
+            val targets = copies.flatMap { copy ->
+                sources[File(copy.source).path].orEmpty().mapNotNull { source -> copy.line(source.line)?.let { Triple(source, copy.file.path, it) } }
+            }
+            if (targets.isEmpty()) return
+            ApplicationManager.getApplication().invokeAndWait {
+                runWriteAction {
+                    for ((source, path, line) in targets) {
+                        val file = LocalFileSystem.getInstance().refreshAndFindFileByPath(path) ?: continue
+                        mirror(manager, source, file, line)?.let(mirrors::add)
+                    }
                 }
             }
+            log.info("LamaRider: mirrored ${targets.size} breakpoints to ${copies.map { it.file.path }.distinct()}")
         }
-        log.info("LamaRider: mirrored ${mirrors.size} breakpoints to Metalama's compiled compile-time code")
+
+        mirror(sources.keys.flatMap { CompileTimeMaps.copiesOf(cache, it) })
+
+        val running = java.util.concurrent.atomic.AtomicBoolean(true)
+        val started = System.currentTimeMillis()
+        ApplicationManager.getApplication().executeOnPooledThread {
+            // ponytail: polls (the copy is compiled ~50 ms after it is written); a miss means no stop, as without LamaRider.
+            val seen = HashSet<String>()
+            while (running.get()) {
+                File(root, "Tests").listFiles()?.filter { it.lastModified() >= started - 1000 }?.forEach { run ->
+                    val fresh = File(run, "CompileTime").walk().maxDepth(4)
+                        .filter { it.isFile && it.extension == "cs" && !it.name.startsWith("sys!") && seen.add(it.path) }
+                        .toList()
+                    if (fresh.isNotEmpty()) mirror(fresh.mapNotNull { CompileTimeMaps.mapOf(it, cache) })
+                }
+                Thread.sleep(20)
+            }
+        }
         debugProcess.session.addSessionListener(object : XDebugSessionListener {
             override fun sessionStopped() {
+                running.set(false)
                 ApplicationManager.getApplication().invokeLater { runWriteAction { mirrors.forEach(manager::removeBreakpoint) } }
             }
         })
     }
 
     @Suppress("UNCHECKED_CAST")
-    private fun mirror(manager: XBreakpointManager, source: XLineBreakpoint<*>, file: com.intellij.openapi.vfs.VirtualFile, line: Int): XBreakpoint<*>? {
+    private fun mirror(manager: XBreakpointManager, source: XLineBreakpoint<*>, file: VirtualFile, line: Int): XBreakpoint<*>? {
         val type = source.type as XLineBreakpointType<XBreakpointProperties<*>>
-        if (manager.findBreakpointsAtLine(type, file, line).isNotEmpty()) return null // the user's own, after a first stop there
+        if (manager.findBreakpointsAtLine(type, file, line).isNotEmpty()) return null // already there (the user's own)
         return manager.addLineBreakpoint(type, file.url, line, type.createBreakpointProperties(file, line)).also {
             it.conditionExpression = source.conditionExpression
         }
