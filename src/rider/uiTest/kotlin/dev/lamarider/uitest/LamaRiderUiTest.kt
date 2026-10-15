@@ -136,14 +136,17 @@ class LamaRiderUiTest {
         waitFor(what, timeout = 5.minutes) { hasSubtext(text) }
 
     /** Rider's project model has no content roots the driver's project-relative lookup understands: open by absolute path. */
-    private fun Driver.caretAt(relativePath: String, marker: String) = withContext<Unit>(OnDispatcher.EDT) {
+    private fun Driver.caretAt(relativePath: String, marker: String) {
         val path = solutionDir.resolve(relativePath).toString().replace('\\', '/')
+        // VFS refresh of a new file off the EDT (on it, it needs the write-intent lock); editor work on the EDT.
         val file = utility(LocalFileSystem::class).getInstance().refreshAndFindFileByPath(path) ?: fail("No file $path")
-        openEditor(file, singleProject())
-        val editor = selectedTextEditor() ?: fail("No editor for $relativePath")
-        val offset = editor.getDocument().getText().indexOf(marker)
-        assertTrue(offset >= 0, "'$marker' not in $relativePath")
-        editor.getCaretModel().moveToOffset(offset)
+        withContext<Unit>(OnDispatcher.EDT) {
+            openEditor(file, singleProject())
+            val editor = selectedTextEditor() ?: fail("No editor for $relativePath")
+            val offset = editor.getDocument().getText().indexOf(marker)
+            assertTrue(offset >= 0, "'$marker' not in $relativePath")
+            editor.getCaretModel().moveToOffset(offset)
+        }
     }
 
     private fun withRider(name: String, test: Driver.() -> Unit) {
