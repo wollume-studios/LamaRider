@@ -41,6 +41,7 @@ import kotlin.io.path.exists
 import kotlin.io.path.name
 import kotlin.io.path.readText
 import kotlin.time.Duration.Companion.minutes
+import kotlin.time.Duration.Companion.seconds
 
 /**
  * End-to-end tests in a real Rider: the built plugin, the sample solution, the real worker and backend.
@@ -85,6 +86,30 @@ class LamaRiderUiTest {
         ideFrame { invokeAction("LamaRider.ShowTransformedCode", component = codeEditor().component) }
         // The popup is its own window: search all of them.
         waitFor("transformed Add in the popup", timeout = 1.minutes) { ui.x(xQuery { contains(byVisibleText("Entering Add")) }).present() }
+    }
+
+    @Test
+    fun `a new file is picked up without a manual refresh`() = withRider("autorefresh") {
+        openToolWindow("LamaRider")
+        ideFrame { waitForText("aspects listed (first refresh done)", "Log") }
+        // Written outside Rider, as by git or another editor: the file watcher must trigger the refresh.
+        Files.writeString(solutionDir.resolve("MetalamaSample/Added.cs"),
+            """
+            namespace MetalamaSample;
+
+            public class Added
+            {
+                [Log]
+                public int Twice(int x) => 2 * x;
+            }
+            """.trimIndent())
+        waitFor("Added.cs analyzed", timeout = 3.minutes, interval = 10.seconds) {
+            runCatching {
+                caretAt("MetalamaSample/Added.cs", "Twice(")
+                ideFrame { invokeAction("LamaRider.ShowTransformedCode", component = codeEditor().component) }
+                ui.x(xQuery { contains(byVisibleText("Entering Twice")) }).present()
+            }.getOrDefault(false)
+        }
     }
 
     @Test
