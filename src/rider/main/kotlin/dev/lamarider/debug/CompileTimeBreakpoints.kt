@@ -57,9 +57,10 @@ class CompileTimeBreakpoints(private val project: Project) : XDebuggerManagerLis
 
         val running = java.util.concurrent.atomic.AtomicBoolean(true)
         val started = System.currentTimeMillis()
-        ApplicationManager.getApplication().executeOnPooledThread {
+        ApplicationManager.getApplication().executeOnPooledThread { try {
             // ponytail: polls (the copy is compiled ~50 ms after it is written); a miss means no stop, as without LamaRider.
             val builds = CompileTimeMaps.byName(cache)
+            log.info("LamaRider: watching ${File(root, "Tests")} for ${builds.keys}")
             val done = HashSet<String>()
             val firstSeen = HashMap<String, Long>()
             while (running.get()) {
@@ -67,6 +68,7 @@ class CompileTimeBreakpoints(private val project: Project) : XDebuggerManagerLis
                     val found = File(run, "CompileTime").walk().maxDepth(4)
                         .filter { it.isFile && it.extension == "cs" && it.name in builds && it.path !in done }
                         .mapNotNull { file ->
+                            log.info("LamaRider: test run copy ${file.path}")
                             // Read while still being written: try again until it matches, for a while.
                             val copy = CompileTimeMaps.mapOf(file, builds)
                             if (copy != null || System.currentTimeMillis() - firstSeen.getOrPut(file.path) { System.currentTimeMillis() } > 2000) done += file.path
@@ -77,7 +79,7 @@ class CompileTimeBreakpoints(private val project: Project) : XDebuggerManagerLis
                 }
                 Thread.sleep(20)
             }
-        }
+        } catch (e: Exception) { log.warn("LamaRider: watching for compile-time copies failed", e) } }
         debugProcess.session.addSessionListener(object : XDebugSessionListener {
             override fun sessionStopped() {
                 running.set(false)
