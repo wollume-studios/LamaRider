@@ -58,6 +58,8 @@ val uiTest by tasks.registering(Test::class) {
         listOfNotNull(
             "-Dlamarider.plugin=${pluginDir.get().asFile.absolutePath}",
             "-Dlamarider.sample=${file("samples/MetalamaSample").absolutePath}",
+            // Sample copies with dotnet build/test output: on disk, not in a small /tmp RAM disk.
+            "-Djava.io.tmpdir=${layout.buildDirectory.dir("ui-test-tmp").get().asFile.apply { mkdirs() }.absolutePath}",
             rider.orNull?.let { "-Dlamarider.rider=$it" },
         )
     }
