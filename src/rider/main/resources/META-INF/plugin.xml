@@ -16,6 +16,7 @@
     <projectConfigurable parentId="tools" id="dev.lamarider.settings" displayName="LamaRider"
                          instance="dev.lamarider.settings.LamaRiderConfigurable"/>
     <editorNotificationProvider implementation="dev.lamarider.errors.MetalamaErrorBanner"/>
+    <runLineMarkerContributor language="C#" implementationClass="dev.lamarider.actions.AspectTestRunLineMarker"/>
   </extensions>
 
   <projectListeners>

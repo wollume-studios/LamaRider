@@ -130,7 +130,11 @@ public static class AspectTests
         var leaves = facade.ElementRepository.Query(new ProjectCriterion(project)).Where(e => !e.Children.Any()).ToList();
         var tests = leaves.Where(e => AspectTestScaffold.IsTestFor(e.ShortName, e.NaturalId.TestId, relative)).ToList();
         if (tests.Count == 0)
+        {
+            JetBrains.Util.Logging.Logger.GetLogger(typeof(AspectTests)).Warn($"LamaRider: no test element for {relative} among {leaves.Count}: " +
+                string.Join(", ", leaves.Take(20).Select(e => $"{e.ShortName} [{e.NaturalId.TestId}]")));
             return $"Rider has not listed this aspect test yet: build {project.Name}, then try again.";
+        }
 
         var host = UnitTestHost.Instance.GetProvider(debug ? WellKnownHostProvidersIds.DebugProviderId : WellKnownHostProvidersIds.RunProviderId);
         facade.Run(new UnitTestElements(new TestElementCriterion(tests), tests))
