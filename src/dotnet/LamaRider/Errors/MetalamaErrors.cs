@@ -19,11 +19,16 @@ using JetBrains.ReSharper.Psi.Tree;
 using JetBrains.ReSharper.Psi.Util;
 using JetBrains.TextControl;
 using JetBrains.Util;
+using JetBrains.Util.dataStructures.TypedIntrinsics;
 using LamaRider.Model;
 
 namespace LamaRider.Errors;
 
-/// <summary>Project-wide Metalama errors (no location, e.g. LAMA0042) underlined on the user's aspect classes of that project.</summary>
+/// <summary>
+/// Metalama errors from the worker model, which has them seconds after a save: project-wide ones (no location, e.g. LAMA0042)
+/// on the user's aspect classes of that project; located ones (e.g. LAMA0037) on their target declaration or line. Rider's
+/// own Metalama squiggles wait for a build after compile-time code changed (LAMA0118).
+/// </summary>
 [DaemonStage(HighlightingTypes = new[] { typeof(MetalamaProjectErrorHighlighting) })]
 public sealed class MetalamaErrorStage(AspectModelHost host) : IDaemonStage
 {
@@ -49,6 +54,41 @@ public sealed class MetalamaErrorStage(AspectModelHost host) : IDaemonStage
                 foreach (var diagnostic in model.ProjectErrorsFor(XMLDocUtil.GetTypeElementXmlDocId(type)))
                     result.Add(new HighlightingInfo(nameRange, new MetalamaProjectErrorHighlighting(diagnostic, nameRange)));
             }
+
+            var located = model.LocatedErrorsIn(daemonProcess.SourceFile.GetLocation().FullPath).ToList();
+            if (located.Count > 0)
+            {
+                // On the target's name when the declaration is here, else on the reported line.
+                var names = new Dictionary<string, DocumentRange>();
+                foreach (var declaration in file.Descendants<IDeclaration>())
+                {
+                    var id = declaration.DeclaredElement switch
+                    {
+                        ITypeElement type => XMLDocUtil.GetTypeElementXmlDocId(type),
+                        ITypeMember member => XMLDocUtil.GetTypeMemberXmlDocId(member, member.ShortName),
+                        _ => null,
+                    };
+                    var range = declaration.GetNameDocumentRange();
+                    if (id != null && range.IsValid()) names.TryAdd(id, range);
+                }
+                var document = daemonProcess.Document;
+                foreach (var diagnostic in located)
+                {
+                    DocumentRange range;
+                    if (diagnostic.Target != null && names.TryGetValue(diagnostic.Target, out var name)) range = name;
+                    else if (diagnostic.Line is { } line && line >= 1 && line <= (int)document.GetLineCount())
+                    {
+                        var docLine = (Int32<DocLine>)(line - 1);
+                        var start = document.GetLineStartOffset(docLine);
+                        var end = document.GetLineEndOffsetNoLineBreak(docLine);
+                        var text = document.GetText(new TextRange(start, end));
+                        var trimmedStart = start + (text.Length - text.TrimStart().Length);
+                        range = new DocumentRange(document, new TextRange(trimmedStart, Math.Max(trimmedStart, end)));
+                    }
+                    else continue;
+                    result.Add(new HighlightingInfo(range, new MetalamaProjectErrorHighlighting(diagnostic, range)));
+                }
+            }
             committer(new DaemonStageResult(result));
         }
     }
@@ -58,7 +98,9 @@ public sealed class MetalamaErrorStage(AspectModelHost host) : IDaemonStage
 public sealed class MetalamaProjectErrorHighlighting(DiagnosticInfo diagnostic, DocumentRange range) : IHighlighting
 {
     public DiagnosticInfo Diagnostic => diagnostic;
-    public string ToolTip => $"Metalama {diagnostic.Id} in project '{diagnostic.Project}': {diagnostic.Message}";
+    public string ToolTip => diagnostic.File == null
+        ? $"Metalama {diagnostic.Id} in project '{diagnostic.Project}': {diagnostic.Message}"
+        : $"Metalama {diagnostic.Id}: {diagnostic.Message}";
     public string ErrorStripeToolTip => ToolTip;
     public bool IsValid() => true;
     public DocumentRange CalculateRange() => range;

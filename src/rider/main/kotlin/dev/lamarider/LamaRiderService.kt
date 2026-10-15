@@ -36,6 +36,13 @@ class LamaRiderService(val project: Project) {
     val debugTransformedCode: Boolean
         get() = rd?.debugTransformedCode?.value ?: false
 
+    val formatTransformedCode: Boolean
+        get() = rd?.formatTransformedCode?.value ?: true
+
+    fun setFormatTransformedCode(format: Boolean) {
+        rd?.setFormatTransformedCode?.fire(format)
+    }
+
     fun setDebugTransformedCode(enable: Boolean) {
         rd?.setDebugTransformedCode?.fire(enable)
     }

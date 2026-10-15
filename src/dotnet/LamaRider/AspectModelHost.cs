@@ -62,8 +62,11 @@ public sealed class AspectModelHost
         loadTasks.EnqueueTask(new SolutionLoadTask(typeof(AspectModelHost), "LamaRider.Init", SolutionLoadTaskKinds.AfterDone, () =>
         {
             RdModel.Refresh.Advise(lifetime, _ => RequestRefresh("manual"));
-            RdModel.DebugTransformedCode.Value = DebugTransformedCodeProps.IsEnabled(ReadProps());
-            RdModel.SetDebugTransformedCode.Advise(lifetime, SetDebugTransformedCode);
+            var props = DebugTransformedCodeProps.Read(ReadProps());
+            RdModel.DebugTransformedCode.Value = props.DebugTransformedCode;
+            RdModel.FormatTransformedCode.Value = props.FormatOutput;
+            RdModel.SetDebugTransformedCode.Advise(lifetime, enable => WriteProps(o => o with { DebugTransformedCode = enable }));
+            RdModel.SetFormatTransformedCode.Advise(lifetime, format => WriteProps(o => o with { FormatOutput = format }));
             RdModel.ApplyTestSettings.Advise(lifetime, ApplyTestSettings);
             RdModel.RefreshTestSettingsStatus.Advise(lifetime, _ => UpdateTestSettingsStatus());
             RdModel.NavigateToClass.Advise(lifetime, NavigateToClass);
@@ -87,22 +90,26 @@ public sealed class AspectModelHost
     string? ReadProps() => File.Exists(PropsPath) ? File.ReadAllText(PropsPath) : null;
 
     // ponytail: solution-level Directory.Build.props only; a project-level one stops MSBuild's upward search.
-    void SetDebugTransformedCode(bool enable)
+    void WriteProps(Func<DebugTransformedCodeProps.Options, DebugTransformedCodeProps.Options> change)
     {
         try
         {
             var current = ReadProps();
-            var updated = enable ? DebugTransformedCodeProps.Enable(current) : current == null ? null : DebugTransformedCodeProps.Disable(current);
+            var options = change(DebugTransformedCodeProps.Read(current));
+            var updated = DebugTransformedCodeProps.Write(current, options);
             if (updated == null)
             {
                 if (File.Exists(PropsPath)) File.Delete(PropsPath);
             }
             else if (updated != current) File.WriteAllText(PropsPath, updated);
-            RdModel.DebugTransformedCode.Value = enable;
+            RdModel.DebugTransformedCode.Value = options.DebugTransformedCode;
+            RdModel.FormatTransformedCode.Value = options.FormatOutput;
         }
         catch (Exception e) when (e is IOException or UnauthorizedAccessException or InvalidDataException)
         {
-            RdModel.DebugTransformedCode.Value = DebugTransformedCodeProps.IsEnabled(ReadProps());
+            var actual = DebugTransformedCodeProps.Read(ReadProps());
+            RdModel.DebugTransformedCode.Value = actual.DebugTransformedCode;
+            RdModel.FormatTransformedCode.Value = actual.FormatOutput;
             RdModel.Failed.Fire($"Cannot update {PropsPath}: {e.Message}");
         }
     }

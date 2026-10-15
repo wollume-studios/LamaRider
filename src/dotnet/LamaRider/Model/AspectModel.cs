@@ -145,6 +145,16 @@ public sealed class AspectModel
 
     public bool IsAspectClass(string docId) => _aspectClassIds.Contains(docId);
 
+    /// <summary>
+    /// Metalama errors located in <paramref name="path"/>. Rider shows them too, but only after a build once compile-time
+    /// code changed (LAMA0118); the worker has them seconds after a save.
+    /// </summary>
+    public IEnumerable<DiagnosticInfo> LocatedErrorsIn(string path)
+    {
+        var normalized = Normalize(path);
+        return Diagnostics.Where(d => d.Severity == "Error" && d.File != null && Normalize(d.File) == normalized);
+    }
+
     /// <summary>Files with compile-time code (aspect classes, templates): editing them pauses Metalama until a build.</summary>
     public bool IsCompileTimeFile(string path)
     {

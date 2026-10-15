@@ -38,4 +38,25 @@ public class DebugTransformedCodePropsTests
     [Fact]
     public void Enable_rejects_props_without_project_end_tag() =>
         Assert.Throws<InvalidDataException>(() => DebugTransformedCodeProps.Enable("<Project>"));
+
+    [Fact]
+    public void Formatting_off_is_written_without_debugging()
+    {
+        var text = DebugTransformedCodeProps.Write(null, new DebugTransformedCodeProps.Options(DebugTransformedCode: false, FormatOutput: false))!;
+        Assert.Contains("<MetalamaFormatOutput>false</MetalamaFormatOutput>", text);
+        Assert.DoesNotContain("MetalamaDebugTransformedCode", text);
+        Assert.Equal(new DebugTransformedCodeProps.Options(false, false), DebugTransformedCodeProps.Read(text));
+    }
+
+    [Fact]
+    public void Both_settings_share_one_group()
+    {
+        var text = DebugTransformedCodeProps.Write(DebugTransformedCodeProps.Enable(null), new DebugTransformedCodeProps.Options(true, false))!;
+        Assert.Single(System.Text.RegularExpressions.Regex.Matches(text, "Label=\"LamaRider\""));
+        Assert.Equal(new DebugTransformedCodeProps.Options(true, false), DebugTransformedCodeProps.Read(text));
+    }
+
+    [Fact]
+    public void Defaults_remove_the_group() =>
+        Assert.Null(DebugTransformedCodeProps.Write(DebugTransformedCodeProps.Enable(null), new DebugTransformedCodeProps.Options(false, true)));
 }

@@ -138,4 +138,18 @@ public class AspectModelTests
         var model = AspectModel.Parse(Json(Instance(method + ";Parameter=0", 30, 40, "T:Url")));
         Assert.Equal(["T:Url"], model.InstancesFor(method, File1, 20, 50).Select(i => i.AspectClass));
     }
+    [Fact]
+    public void Located_errors_are_found_by_file()
+    {
+        const string json = """
+            {"schema":1,"aspectClasses":[],"instances":[],"transformations":[],"templateClassifications":[],"transformedFiles":[],
+             "diagnostics":[
+               {"id":"LAMA0037","severity":"Error","message":"must be static","target":"T:EFA.Test","file":"C:/src/Test.cs","line":23},
+               {"id":"LAMA0042","severity":"Error","message":"ordering"},
+               {"id":"LAMA0999","severity":"Warning","message":"w","file":"C:/src/Test.cs","line":3},
+               {"id":"LAMA0001","severity":"Error","message":"other file","file":"C:/src/Other.cs","line":1}]}
+            """;
+        var errors = AspectModel.Parse(json).LocatedErrorsIn("c:/src/TEST.cs");
+        Assert.Equal(["LAMA0037"], errors.Select(d => d.Id));
+    }
 }

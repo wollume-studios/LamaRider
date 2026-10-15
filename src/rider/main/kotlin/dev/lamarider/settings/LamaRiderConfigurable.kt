@@ -50,6 +50,15 @@ class LamaRiderConfigurable(private val project: Project) : BoundConfigurable("L
                     )
                     .bindSelected({ service.debugTransformedCode }, { if (it != service.debugTransformedCode) service.setDebugTransformedCode(it) })
             }
+            row {
+                checkBox("Format transformed code")
+                    .comment(
+                        "Readable transformed files when debugging them (this setting or LamaDebug), but slower builds: Metalama warns with " +
+                            "LAMA0066. Off writes <code>MetalamaFormatOutput=false</code> to Directory.Build.props. " +
+                            "LamaRider's popup and Metalama Diff are formatted either way.",
+                    )
+                    .bindSelected({ service.formatTransformedCode }, { if (it != service.formatTransformedCode) service.setFormatTransformedCode(it) })
+            }
         }
         group("Aspect Tests") {
             row { text("", maxLineLength = MAX_LINE_LENGTH_WORD_WRAP).applyToComponent { testStatus = this } }
