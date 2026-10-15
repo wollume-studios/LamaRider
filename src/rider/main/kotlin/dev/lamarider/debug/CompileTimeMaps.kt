@@ -44,8 +44,9 @@ object CompileTimeMaps {
     fun byName(cacheRoot: File): Map<String, List<Copy>> = maps(cacheRoot).mapNotNull { read(it) }.toList().groupBy { it.file.name }
 
     /** A test run's [copy] with the lines of the build copy that has the same name and content (null: none, or still being written). */
-    fun mapOf(copy: File, builds: Map<String, List<Copy>>): Copy? {
-        val candidates = builds[copy.name] ?: return null
+    fun mapOf(copy: File, builds: Map<String, List<Copy>>, wanted: (source: String) -> Boolean): Copy? {
+        // Identical copies come from every clone of the project: only maps of the sources we look for count.
+        val candidates = builds[copy.name]?.filter { wanted(File(it.source).path) } ?: return null
         val content = runCatching { copy.readBytes() }.getOrNull() ?: return null
         return candidates.firstOrNull { runCatching { it.file.readBytes().contentEquals(content) }.getOrDefault(false) }
             ?.let { Copy(copy, it.source, it.lines) }

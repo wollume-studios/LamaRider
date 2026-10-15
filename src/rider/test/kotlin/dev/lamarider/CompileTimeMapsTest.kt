@@ -57,7 +57,13 @@ class CompileTimeMapsTest {
         // Test runs extract the compile-time code again, to Tests/<guid>/CompileTime/<project>/<tfm>/<hash>/ (no map).
         val run = File(dir, "Metalama/Tests/guid/CompileTime/App/.netcoreapp8.0/h1/${built.name}").apply { parentFile.mkdirs(); writeText("compiled code") }
 
-        val copy = CompileTimeMaps.mapOf(run, CompileTimeMaps.byName(File(dir, "Metalama/CompileTime")))!!
+        // A clone of the project elsewhere compiles to the same file: its map names the other source.
+        val clone = File(dir, "Clone/Aspect.cs").apply { parentFile.mkdirs(); writeText("x") }
+        val cloneBuild = File(dir, "Metalama/CompileTime/Clone/.netcoreapp8.0/h1/2026.1.30").apply { mkdirs() }
+        File(cloneBuild, built.name).writeText("compiled code")
+        map(File(cloneBuild, built.nameWithoutExtension + ".map"), clone.path, built.name, listOf(12 to 40))
+
+        val copy = CompileTimeMaps.mapOf(run, CompileTimeMaps.byName(File(dir, "Metalama/CompileTime"))) { it == source.path }!!
         assertEquals(source.path, copy.source)
         assertEquals(run.path, copy.file.path)
         assertEquals(19, copy.line(12))
