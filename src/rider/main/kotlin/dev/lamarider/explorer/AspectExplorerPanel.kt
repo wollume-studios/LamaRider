@@ -2,6 +2,18 @@ package dev.lamarider.explorer
 
 import com.intellij.icons.AllIcons
 import com.intellij.ide.BrowserUtil
+import com.intellij.ide.util.PropertiesComponent
+import com.intellij.openapi.actionSystem.ActionUpdateThread
+import com.intellij.openapi.actionSystem.AnActionEvent
+import com.intellij.openapi.editor.EditorFactory
+import com.intellij.openapi.editor.event.CaretEvent
+import com.intellij.openapi.editor.event.CaretListener
+import com.intellij.openapi.fileEditor.FileDocumentManager
+import com.intellij.openapi.fileEditor.FileEditorManager
+import com.intellij.openapi.fileEditor.FileEditorManagerEvent
+import com.intellij.openapi.fileEditor.FileEditorManagerListener
+import com.intellij.openapi.project.DumbAwareToggleAction
+import com.intellij.util.Alarm
 import com.intellij.ide.DefaultTreeExpander
 import com.intellij.ide.actions.CollapseAllAction
 import com.intellij.ide.actions.ExpandAllAction
@@ -40,6 +52,7 @@ import dev.lamarider.SourceLocation
 import dev.lamarider.TransformationInfo
 import dev.lamarider.diff.MetalamaDiff
 import java.awt.BorderLayout
+import java.awt.Dimension
 import java.awt.event.MouseAdapter
 import java.awt.event.MouseEvent
 import javax.swing.Icon
@@ -70,8 +83,16 @@ class AspectExplorerPanel(private val project: Project, parent: Disposable) : Si
     }
     private val targetRoot = DefaultMutableTreeNode()
     private val targetTree = Tree(DefaultTreeModel(targetRoot))
-    private val status = JBLabel()
+    // Width 0: takes the panel's width and ends in "…" instead of widening the tool window; full text in the tooltip.
+    private val status = JBLabel().apply { minimumSize = Dimension(0, 0); preferredSize = Dimension(0, preferredSize.height) }
     private var shownModel: ModelData? = null
+
+    // Track Caret: only the aspects affecting the code at the caret (null: not tracking).
+    private var tracked: List<AspectInstanceInfo>? = null
+    private val trackAlarm = Alarm(Alarm.ThreadToUse.SWING_THREAD, parent)
+    private var trackCaret: Boolean
+        get() = PropertiesComponent.getInstance().getBoolean(TRACK_CARET)
+        set(value) = PropertiesComponent.getInstance().setValue(TRACK_CARET, value)
 
     init {
         classTree.isRootVisible = false
@@ -114,9 +135,30 @@ class AspectExplorerPanel(private val project: Project, parent: Disposable) : Si
             add(status, BorderLayout.SOUTH)
         })
 
+        EditorFactory.getInstance().eventMulticaster.addCaretListener(object : CaretListener {
+            override fun caretPositionChanged(event: CaretEvent) {
+                if (event.editor.project == project) scheduleTrack()
+            }
+        }, parent)
+        project.messageBus.connect(parent).subscribe(FileEditorManagerListener.FILE_EDITOR_MANAGER, object : FileEditorManagerListener {
+            override fun selectionChanged(event: FileEditorManagerEvent) = scheduleTrack()
+        })
+        val trackToggle = object : DumbAwareToggleAction("Track Caret", "Show only the aspects that affect the code at the caret", AllIcons.General.AutoscrollFromSource) {
+            override fun getActionUpdateThread() = ActionUpdateThread.EDT
+            override fun isSelected(e: AnActionEvent) = trackCaret
+            override fun setSelected(e: AnActionEvent, state: Boolean) {
+                trackCaret = state
+                if (state) track() else {
+                    tracked = null
+                    rebuildClasses()
+                }
+            }
+        }
+
         val expander = DefaultTreeExpander(targetTree)
         val actions = DefaultActionGroup(
             ActionManager.getInstance().getAction("LamaRider.Refresh"),
+            trackToggle,
             ExpandAllAction { expander },
             CollapseAllAction { expander },
             Separator.getInstance(),
@@ -130,6 +172,22 @@ class AspectExplorerPanel(private val project: Project, parent: Disposable) : Si
         current = this
         Disposer.register(parent) { if (current === this) current = null }
         onServiceChanged()
+        if (trackCaret) track()
+    }
+
+    private fun scheduleTrack() {
+        if (!trackCaret) return
+        trackAlarm.cancelAllRequests()
+        trackAlarm.addRequest(::track, 250)
+    }
+
+    private fun track() {
+        val editor = FileEditorManager.getInstance(project).selectedTextEditor
+        val file = editor?.let { FileDocumentManager.getInstance().getFile(it.document) }
+        val now = if (editor == null || file == null) emptyList() else service.model?.instancesAt(file.path, editor.caretModel.offset).orEmpty()
+        if (now == tracked) return
+        tracked = now
+        rebuildClasses()
     }
 
     fun select(aspectClassId: String) {
@@ -143,11 +201,12 @@ class AspectExplorerPanel(private val project: Project, parent: Disposable) : Si
     }
 
     private fun onServiceChanged() {
-        status.text = service.status
+        status.text = service.status.lineSequence().first()
         status.toolTipText = service.status
         if (service.model !== shownModel) {
             shownModel = service.model
             rebuildClasses()
+            if (trackCaret) track()
         }
     }
 
@@ -158,19 +217,24 @@ class AspectExplorerPanel(private val project: Project, parent: Disposable) : Si
         val selected = selectedClass()?.id
         val filter = search.text.trim()
         classRoot.removeAllChildren()
+        val trackedClasses = tracked?.map { it.aspectClass }?.toSet()
         for (group in service.model?.groups(filter).orEmpty()) {
+            val classes = trackedClasses?.let { only -> group.classes.filter { it.id in only } } ?: group.classes
+            if (classes.isEmpty()) continue
             val groupNode = DefaultMutableTreeNode(group).also(classRoot::add)
-            group.classes.forEach { groupNode.add(DefaultMutableTreeNode(it)) }
+            classes.forEach { groupNode.add(DefaultMutableTreeNode(it)) }
         }
+        classTree.emptyText.text = if (tracked != null) "No aspects at the caret" else "Nothing to show"
         (classTree.model as DefaultTreeModel).reload()
         // Projects open, packages closed (expanded while searching).
         for (child in classRoot.children()) {
             val node = child as DefaultMutableTreeNode
-            if (filter.isNotEmpty() || (node.userObject as AspectGroup).isProject) classTree.expandPath(TreePath(node.path))
+            if (filter.isNotEmpty() || tracked != null || (node.userObject as AspectGroup).isProject) classTree.expandPath(TreePath(node.path))
         }
-        if (selected != null) {
-            TreeUtil.findNode(classRoot) { (it.userObject as? AspectClassInfo)?.id == selected }?.let { classTree.selectionPath = TreePath(it.path) }
-        }
+        val keep = selected?.let { id -> TreeUtil.findNode(classRoot) { (it.userObject as? AspectClassInfo)?.id == id } }
+        // Tracking: the first aspect at the caret is selected so its targets show right away.
+        val show = keep ?: if (tracked != null) TreeUtil.findNode(classRoot) { it.userObject is AspectClassInfo } else null
+        show?.let { classTree.selectionPath = TreePath(it.path) }
         showSelection()
     }
 
@@ -201,7 +265,10 @@ class AspectExplorerPanel(private val project: Project, parent: Disposable) : Si
         targetRoot.removeAllChildren()
         val model = service.model
         if (model != null && aspect != null) {
-            for ((projectName, inProject) in model.instancesOf(aspect.id).groupBy { it.project }.toSortedMap()) {
+            val instances = model.instancesOf(aspect.id).let { all ->
+                tracked?.let { at -> all.filter { i -> at.any { it.target == i.target && it.aspectClass == i.aspectClass } } } ?: all
+            }
+            for ((projectName, inProject) in instances.groupBy { it.project }.toSortedMap()) {
                 val projectNode = DefaultMutableTreeNode(Container(projectName, AllIcons.Nodes.Module)).also(targetRoot::add)
                 for ((ns, inNs) in inProject.groupBy { it.targetType.substringBeforeLast('.', "<global>") }.toSortedMap()) {
                     val nsNode = DefaultMutableTreeNode(Container(ns, AllIcons.Nodes.Package)).also(projectNode::add)
@@ -281,6 +348,8 @@ class AspectExplorerPanel(private val project: Project, parent: Disposable) : Si
     private class DiagnosticNode(val diagnostic: DiagnosticInfo)
 
     companion object {
+        private const val TRACK_CARET = "lamarider.trackCaret"
+
         // Metalama DeclarationKind names.
         fun kindIcon(kind: String): Icon = when (kind) {
             "NamedType" -> AllIcons.Nodes.Class

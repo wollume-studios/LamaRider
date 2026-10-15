@@ -85,6 +85,21 @@ data class ModelData(
     /** Changes only when the set of Metalama errors changes: used to notify once per new error state. */
     fun errorSignature(): String = errors().joinToString(";") { "${it.id}|${it.message}|${it.file}|${it.line}" }
 
+    /**
+     * Aspects that affect the code at the caret: on every declaration containing [offset] (member, containing types)
+     * and on the parameters of those. Declarations without aspects of their own are found by their source span.
+     */
+    fun instancesAt(file: String, offset: Int): List<AspectInstanceInfo> {
+        val path = normalize(file)
+        fun contains(start: Int, end: Int) = offset in start until end
+        val targets = instances.filter { i -> i.location?.let { normalize(it.file) == path && contains(it.start, it.end) } == true }.map { it.target } +
+            transformedFiles.filter { normalize(it.file) == path }.flatMap { f ->
+                f.declarations.orEmpty().filter { d -> d.sourceStart != null && d.sourceEnd != null && contains(d.sourceStart, d.sourceEnd) }.map { it.target }
+            }
+        val set = targets.toSet()
+        return instances.filter { it.target in set || AspectModelIds.owner(it.target) in set }
+    }
+
     /** Target id under the caret: the narrowest aspect target or aspect class whose span contains [offset]. */
     fun targetAt(file: String, offset: Int): String? {
         val path = normalize(file)

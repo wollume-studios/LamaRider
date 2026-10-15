@@ -1,30 +1,30 @@
 package dev.lamarider.settings
 
-import com.intellij.icons.AllIcons
 import com.intellij.openapi.components.service
 import com.intellij.openapi.util.Disposer
-import com.intellij.ui.components.JBLabel
+import com.intellij.openapi.util.text.StringUtil
 import com.intellij.openapi.options.BoundConfigurable
 import com.intellij.openapi.project.Project
-import com.intellij.ui.dsl.builder.AlignX
+import com.intellij.ui.dsl.builder.MAX_LINE_LENGTH_WORD_WRAP
 import com.intellij.ui.dsl.builder.bindSelected
 import com.intellij.ui.dsl.builder.panel
 import dev.lamarider.LamaRiderService
 import dev.lamarider.actions.AutoBuildAction
 import dev.lamarider.actions.ConfigureTestsAction
+import javax.swing.JEditorPane
 
 /** Settings › Tools › LamaRider. */
 class LamaRiderConfigurable(private val project: Project) : BoundConfigurable("LamaRider") {
-    private val testStatus = JBLabel()
+    private lateinit var testStatus: JEditorPane
     private val listening = Disposer.newDisposable()
 
     private fun showTestStatus(status: Pair<Boolean?, String>?) {
-        testStatus.text = "<html>${status?.second ?: "Checking…"}</html>" // wraps
-        testStatus.icon = when (status?.first) {
-            true -> AllIcons.General.InspectionsOK
-            false -> AllIcons.General.Warning
-            null -> null
+        val icon = when (status?.first) {
+            true -> "<icon src='AllIcons.General.InspectionsOK'>&nbsp;"
+            false -> "<icon src='AllIcons.General.Warning'>&nbsp;"
+            null -> ""
         }
+        if (::testStatus.isInitialized) testStatus.text = icon + StringUtil.escapeXmlEntities(status?.second ?: "Checking…")
     }
 
     override fun disposeUIResources() {
@@ -52,7 +52,7 @@ class LamaRiderConfigurable(private val project: Project) : BoundConfigurable("L
             }
         }
         group("Aspect Tests") {
-            row { cell(testStatus).align(AlignX.FILL) }
+            row { text("", maxLineLength = MAX_LINE_LENGTH_WORD_WRAP).applyToComponent { testStatus = this } }
             row {
                 button("Configure Rider for Metalama Tests…") { ConfigureTestsAction.choose(project) }
                     .comment("xUnit discovery by Test Runner and no orphaned-process prompt for diff tools.")

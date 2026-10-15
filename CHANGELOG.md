@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.6.1
+- LamaRider window: *Track Caret* shows only the aspects affecting the code at the caret (member, its parameters, containing types).
+- No error balloon any more: located errors are Rider's squiggles, the others the editor info bar.
+- Long status and settings texts no longer overflow.
+- A failed workspace reload is retried with a clean load.
+
 ## 0.6.0
 - Faster refresh: the worker stays loaded and reloads the solution (about 3 s instead of 8 s on a small solution); changes are picked up 1 s after saving.
 - Refreshes when a Rider build finishes.

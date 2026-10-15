@@ -124,4 +124,25 @@ class ModelDataGroupingTest {
         assertEquals("Metalama: LAMA0042 ordering. Aspects are not applied.", ModelData(diagnostics = listOf(located, projectWide)).errorBannerText())
         assertEquals(listOf(projectWide), ModelData(diagnostics = listOf(located, projectWide)).bannerErrors())
     }
+
+    @Test
+    fun `aspects at the caret cover the member, its parameters and the containing type`() {
+        val file = "C:/src/Test.cs"
+        fun at(target: String, cls: String, start: Int, end: Int) = AspectInstanceInfo(cls, target, target, "Test", "Method", "P", "Attribute", SourceLocation(file, start, end))
+        val onType = at("T:Test", "T:Observable", 0, 500)
+        val onMethod = at("M:Test.M(System.String)", "T:Class1", 100, 200)
+        val onParam = at("M:Test.M(System.String);Parameter=0", "T:Url", 120, 130)
+        val elsewhere = at("M:Test.Other", "T:Log", 300, 400)
+        val onlyParam = at("M:Test.P(System.String);Parameter=0", "T:Url", 220, 230)
+        // P has no aspect of its own: its span comes from the transformed declarations.
+        val decls = listOf(TransformedDeclaration("M:Test.P(System.String)", 0, 10, 210, 260))
+        val model = ModelData(
+            instances = listOf(onType, onMethod, onParam, elsewhere, onlyParam),
+            transformedFiles = listOf(TransformedFileInfo(file, "C:/out/0_Test.cs", decls)),
+        )
+        assertEquals(setOf(onType, onMethod, onParam), model.instancesAt(file, 150).toSet()) // in the method body
+        assertEquals(setOf(onType, onlyParam), model.instancesAt(file, 250).toSet())
+        assertEquals(setOf(onType), model.instancesAt(file, 450).toSet())
+        assertEquals(emptyList<AspectInstanceInfo>(), model.instancesAt("C:/src/Other.cs", 150))
+    }
 }

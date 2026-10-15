@@ -31,19 +31,28 @@ public static partial class Program
         return await RunOne(args[0], args[1..], keep: false);
     }
 
+    /// <summary>A failed reload (workspace left in an odd state by edits or a running build) gets one clean load.</summary>
+    static async Task<int> RunOrReloadFresh(string outDir, string[] inputs)
+    {
+        var reloading = _workspace != null;
+        var code = await RunOne(outDir, inputs, keep: true, quiet: reloading);
+        return code != 0 && reloading ? await RunOne(outDir, inputs, keep: true) : code;
+    }
+
     static async Task<int> Serve()
     {
         while (await Console.In.ReadLineAsync() is { } line)
         {
             var request = JsonSerializer.Deserialize<string[]>(line);
-            var code = request is { Length: >= 2 } ? await RunOne(request[0], request[1..], keep: true) : 2;
+            var code = request is { Length: >= 2 } ? await RunOrReloadFresh(request[0], request[1..]) : 2;
             Console.Out.WriteLine($"{DoneMarker} {code}");
             Console.Out.Flush();
         }
         return 0; // stdin closed: the IDE is gone
     }
 
-    static async Task<int> RunOne(string outDir, string[] inputs, bool keep)
+    /// <param name="quiet">Failure not reported to the IDE (a retry follows); still logged on stderr.</param>
+    static async Task<int> RunOne(string outDir, string[] inputs, bool keep, bool quiet = false)
     {
         try
         {
@@ -80,7 +89,7 @@ public static partial class Program
         catch (Exception e)
         {
             Console.Error.WriteLine(e);
-            if (keep) Console.Out.WriteLine($"{ErrorMarker} {e.Message.ReplaceLineEndings(" ")}");
+            if (keep && !quiet) Console.Out.WriteLine($"{ErrorMarker} {e.Message.ReplaceLineEndings(" ")}");
             _workspace?.Dispose(); // start from a clean load next time
             _workspace = null;
             return 1;
