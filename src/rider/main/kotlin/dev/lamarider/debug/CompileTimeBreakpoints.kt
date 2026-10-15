@@ -68,7 +68,6 @@ class CompileTimeBreakpoints(private val project: Project) : XDebuggerManagerLis
                     val found = File(run, "CompileTime").walk().maxDepth(4)
                         .filter { it.isFile && it.extension == "cs" && it.name in builds && it.path !in done }
                         .mapNotNull { file ->
-                            log.info("LamaRider: test run copy ${file.path}")
                             // Read while still being written: try again until it matches, for a while.
                             val copy = CompileTimeMaps.mapOf(file, builds) { it in sources }
                             if (copy != null || System.currentTimeMillis() - firstSeen.getOrPut(file.path) { System.currentTimeMillis() } > 2000) done += file.path

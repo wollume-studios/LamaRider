@@ -171,6 +171,13 @@ class LamaRiderUiTest {
         // Never built: Rider builds the test project and discovers its tests first.
         val debugger = service(XDebuggerManager::class, singleProject())
         caretAt("MetalamaSample.AspectTests/Log/Add.cs", "Add(")
+        waitFor("run icon in the gutter", timeout = 2.minutes) {
+            withContext(OnDispatcher.EDT) {
+                val document = selectedTextEditor()?.getDocument() ?: return@withContext false
+                utility(DaemonCodeAnalyzerImpl::class).getLineMarkers(document, singleProject())
+                    .any { it.getLineMarkerTooltip()?.contains("Metalama aspect test") == true }
+            }
+        }
         editorAction("LamaRider.DebugAspectTest")
         waitFor("debug session started", timeout = 10.minutes) { debugger.getCurrentSession() != null }
         try {
@@ -291,4 +298,14 @@ interface XDebuggerManager {
 interface XDebugSession {
     fun isPaused(): Boolean
     fun stop()
+}
+
+@Remote("com.intellij.codeInsight.daemon.impl.DaemonCodeAnalyzerImpl")
+interface DaemonCodeAnalyzerImpl {
+    fun getLineMarkers(document: com.intellij.driver.sdk.Document, project: com.intellij.driver.sdk.Project): List<LineMarkerInfo>
+}
+
+@Remote("com.intellij.codeInsight.daemon.LineMarkerInfo")
+interface LineMarkerInfo {
+    fun getLineMarkerTooltip(): String?
 }
