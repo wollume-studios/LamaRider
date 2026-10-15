@@ -17,6 +17,10 @@ using JetBrains.ReSharper.Psi.CSharp.Tree;
 using JetBrains.ReSharper.Psi.Tree;
 using JetBrains.ReSharper.Psi.Util;
 using JetBrains.Rider.Model;
+using JetBrains.ReSharper.UnitTestFramework;
+using JetBrains.ReSharper.UnitTestFramework.Criteria;
+using JetBrains.ReSharper.UnitTestFramework.Execution.Hosting;
+using JetBrains.ReSharper.UnitTestFramework.Execution.Launch;
 using JetBrains.TextControl;
 using JetBrains.Util;
 using LamaRider.Model;
@@ -111,6 +115,29 @@ public static class AspectTests
         if (!File.Exists(csproj) || !AspectTestScaffold.IsAspectTestProject(File.ReadAllText(csproj))) return null;
         var output = AspectTestScaffold.ActualOutput(Path.GetDirectoryName(csproj)!, path);
         return output == null ? null : (path, output);
+    }
+
+    /// <summary>Runs or debugs the aspect test of <paramref name="file"/> in Rider's unit test runner; the reason when it can't.</summary>
+    public static string? Run(ISolution solution, IProjectFile? file, bool debug)
+    {
+        var project = file?.GetProject();
+        var csproj = project?.ProjectFileLocation.FullPath;
+        if (file == null || project == null || !File.Exists(csproj) || !AspectTestScaffold.IsAspectTestProject(File.ReadAllText(csproj)))
+            return "This file is not in a Metalama aspect test project.";
+
+        var facade = solution.GetComponent<IUnitTestingFacade>();
+        var relative = file.Location.MakeRelativeTo(project.Location).FullPath;
+        var leaves = facade.ElementRepository.Query(new ProjectCriterion(project)).Where(e => !e.Children.Any()).ToList();
+        var tests = leaves.Where(e => AspectTestScaffold.IsTestFor(e.ShortName, e.NaturalId.TestId, relative)).ToList();
+        if (tests.Count == 0)
+            return $"Rider has not listed this aspect test yet: build {project.Name}, then try again.";
+
+        var host = UnitTestHost.Instance.GetProvider(debug ? WellKnownHostProvidersIds.DebugProviderId : WellKnownHostProvidersIds.RunProviderId);
+        facade.Run(new UnitTestElements(new TestElementCriterion(tests), tests))
+            .Using(host, null, null, null, false)
+            .AndOpenWindow(true)
+            .In.CurrentOrNewSession(file.Name);
+        return null;
     }
 
     public static void Accept(ISolution solution, string test, string output)

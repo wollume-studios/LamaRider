@@ -83,6 +83,15 @@ public class AspectTestScaffoldTests
     }
 
     [Fact]
+    public void Snapshots_are_never_compiled_even_before_the_first_restore()
+    {
+        // Metalama.Testing.AspectTesting removes .t.cs from Compile, but only once restored: Rider evaluating the new
+        // project before that compiles the snapshot next to its test (duplicate members).
+        var csproj = AspectTestScaffold.TestProject("2026.1.30", "../Sample/Sample.csproj", "net8.0", centralPackages: false);
+        Assert.Contains("<Compile Remove=\"**/*.t.cs\" />", csproj);
+    }
+
+    [Fact]
     public void Project_for_metalama_2027_uses_xunit_v3_as_executable()
     {
         var csproj = AspectTestScaffold.TestProject("2027.0.4", "../Sample/Sample.csproj", "net10.0", centralPackages: false);
@@ -132,4 +141,14 @@ public class AspectTestScaffoldTests
         Assert.Equal(output, AspectTestScaffold.ActualOutput(project, test));
         Assert.Equal(Path.Combine(project, "Log", "Add.t.cs"), AspectTestScaffold.SnapshotPath(test));
     }
+
+    [Theory]
+    // Metalama's xUnit framework: class = folder path + file name, method = file name.
+    [InlineData("LogTest", "LogTests.LogTest.LogTest", "LogTests/LogTest.cs", true)]
+    [InlineData("LogTest", "LogTests.LogTest.LogTest", @"LogTests\LogTest.cs", true)]
+    [InlineData("LogTest", "Other.LogTest.LogTest", "LogTests/LogTest.cs", false)] // same file name, other folder
+    [InlineData("LogTest", "LogTest.LogTest", "LogTest.cs", true)]
+    [InlineData("Add", "Log.Add.Add", "Log/LogTest.cs", false)]
+    public void Rider_test_element_is_found_for_a_test_file(string shortName, string testId, string relativePath, bool expected) =>
+        Assert.Equal(expected, AspectTestScaffold.IsTestFor(shortName, testId, relativePath));
 }

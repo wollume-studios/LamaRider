@@ -159,6 +159,30 @@ class LamaRiderUiTest {
     }
 
     @Test
+    fun `debugging an aspect test stops at a breakpoint in the aspect`() = withRider("debugaspect") {
+        openToolWindow("LamaRider")
+        ideFrame { waitForText("aspects listed (first refresh done)", "Log") }
+        // A template line that runs while the test runner weaves the test input (compile time).
+        val aspect = solutionDir.resolve("MetalamaSample/LogAttribute.cs")
+        val line = Files.readAllLines(aspect).indexOfFirst { it.contains("var name = meta.Target.Method.Name;") }
+        val file = utility(LocalFileSystem::class).getInstance().refreshAndFindFileByPath(aspect.toString().replace('\\', '/')) ?: fail("No $aspect")
+        withContext<Unit>(OnDispatcher.EDT) { service(com.intellij.driver.sdk.XDebuggerUtil::class).toggleLineBreakpoint(singleProject(), file, line, false) }
+
+        dotnet("build", solutionDir.resolve("MetalamaSample.AspectTests").toString()) // Rider lists aspect tests once built
+        val debugger = service(XDebuggerManager::class, singleProject())
+        waitFor("debug session started", timeout = 5.minutes, interval = 20.seconds) {
+            caretAt("MetalamaSample.AspectTests/Log/Add.cs", "Add(")
+            editorAction("LamaRider.DebugAspectTest") // tells "not listed yet" until Rider has discovered the test
+            runCatching { waitFor("session", timeout = 15.seconds) { debugger.getCurrentSession() != null } }.isSuccess
+        }
+        try {
+            waitFor("stopped at the breakpoint in the aspect", timeout = 5.minutes) { debugger.getCurrentSession()?.isPaused() == true }
+        } finally {
+            debugger.getCurrentSession()?.stop()
+        }
+    }
+
+    @Test
     fun `Track Caret shows the aspects at the caret in the targets tree`() = withRider("track") {
         openToolWindow("LamaRider")
         ideFrame { waitForText("aspects listed (first refresh done)", "Log") }
@@ -258,4 +282,15 @@ private class SolutionProject(private val solution: Path) : ProjectInfoSpec {
 interface LocalFileSystem {
     fun getInstance(): LocalFileSystem
     fun refreshAndFindFileByPath(path: String): VirtualFile?
+}
+
+@Remote("com.intellij.xdebugger.XDebuggerManager")
+interface XDebuggerManager {
+    fun getCurrentSession(): XDebugSession?
+}
+
+@Remote("com.intellij.xdebugger.XDebugSession")
+interface XDebugSession {
+    fun isPaused(): Boolean
+    fun stop()
 }

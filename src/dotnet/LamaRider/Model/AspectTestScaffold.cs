@@ -111,7 +111,10 @@ public static class AspectTestScaffold
             sb.Append(centralPackages ? $"    <PackageReference Include=\"{id}\" />\n" : $"    <PackageReference Include=\"{id}\" Version=\"{version}\" />\n");
         sb.Append("  </ItemGroup>\n\n  <ItemGroup>\n");
         sb.Append($"    <ProjectReference Include=\"{aspectProject}\" />\n");
-        sb.Append("  </ItemGroup>\n\n</Project>\n");
+        sb.Append("  </ItemGroup>\n\n");
+        // Metalama.Testing.AspectTesting does this too, but only once restored; Rider may evaluate the project before.
+        sb.Append("  <ItemGroup>\n    <!-- .t.cs: expected test output, not code -->\n    <Compile Remove=\"**/*.t.cs\" />\n  </ItemGroup>\n\n");
+        sb.Append("</Project>\n");
         return sb.ToString();
     }
 
@@ -142,6 +145,18 @@ public static class AspectTestScaffold
     /// <summary>First target framework of a project file, if it declares one.</summary>
     public static string? TargetFramework(string csprojText) =>
         Regex.Match(csprojText, "<TargetFrameworks?>\\s*([^;<\\s]+)") is { Success: true } m ? m.Groups[1].Value : null;
+
+    /// <summary>
+    /// Whether Rider's test element (short name, test id) is the test of <paramref name="relativePath"/> (in the test project).
+    /// Metalama's xUnit framework names the test after the file and its class after the folder path and the file.
+    /// </summary>
+    public static bool IsTestFor(string elementShortName, string elementTestId, string relativePath)
+    {
+        var stem = Path.GetFileNameWithoutExtension(relativePath);
+        if (!elementShortName.Equals(stem, StringComparison.OrdinalIgnoreCase)) return false;
+        var folder = (Path.GetDirectoryName(relativePath.Replace('\\', '/')) ?? "").Replace('\\', '.').Replace('/', '.');
+        return folder == "" || elementTestId.IndexOf(folder + "." + stem, StringComparison.OrdinalIgnoreCase) >= 0;
+    }
 
     public static string SnapshotPath(string testFile) => Path.ChangeExtension(testFile, ".t.cs");
 
