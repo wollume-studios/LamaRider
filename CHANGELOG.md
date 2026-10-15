@@ -1,6 +1,7 @@
 # Changelog
 
 ## Unreleased
+- Aspect tests: Alt+Enter on an aspect class (or editor menu *Create Metalama Aspect Test*) adds a prefilled test file to the aspect test project next to the aspect's project, creating that project (xUnit, Metalama.Testing.AspectTesting, added to the solution) when there is none. *Accept Metalama Test Output* saves the last run's output as the test's `.t.cs`.
 - Track Caret (Rider's locate icon) fills the targets tree with every aspect affecting the code at the caret; selecting an item shows and selects its aspect. *Show Only Aspects at Caret* filters the aspect list; *Group By*: ungrouped, project/package, namespace.
 - Metalama errors located in code (e.g. LAMA0037) are underlined from LamaRider's own analysis seconds after a save; Rider's own Metalama squiggles wait for a build after compile-time changes.
 - *Format transformed code* setting: off avoids LAMA0066 and speeds up builds when debugging transformed code.
