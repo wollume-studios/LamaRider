@@ -40,12 +40,14 @@ object CompileTimeMaps {
             .toList()
     }
 
-    /** A test run's [copy] with the lines of the build copy that has the same name and content. */
-    fun mapOf(copy: File, cacheRoot: File): Copy? {
+    /** Build copies by file name, for [mapOf]. */
+    fun byName(cacheRoot: File): Map<String, List<Copy>> = maps(cacheRoot).mapNotNull { read(it) }.toList().groupBy { it.file.name }
+
+    /** A test run's [copy] with the lines of the build copy that has the same name and content (null: none, or still being written). */
+    fun mapOf(copy: File, builds: Map<String, List<Copy>>): Copy? {
+        val candidates = builds[copy.name] ?: return null
         val content = runCatching { copy.readBytes() }.getOrNull() ?: return null
-        return maps(cacheRoot).filter { it.nameWithoutExtension == copy.nameWithoutExtension }
-            .mapNotNull { read(it) }
-            .firstOrNull { runCatching { it.file.readBytes().contentEquals(content) }.getOrDefault(false) }
+        return candidates.firstOrNull { runCatching { it.file.readBytes().contentEquals(content) }.getOrDefault(false) }
             ?.let { Copy(copy, it.source, it.lines) }
     }
 

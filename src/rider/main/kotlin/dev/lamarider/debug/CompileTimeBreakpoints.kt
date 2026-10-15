@@ -59,13 +59,21 @@ class CompileTimeBreakpoints(private val project: Project) : XDebuggerManagerLis
         val started = System.currentTimeMillis()
         ApplicationManager.getApplication().executeOnPooledThread {
             // ponytail: polls (the copy is compiled ~50 ms after it is written); a miss means no stop, as without LamaRider.
-            val seen = HashSet<String>()
+            val builds = CompileTimeMaps.byName(cache)
+            val done = HashSet<String>()
+            val firstSeen = HashMap<String, Long>()
             while (running.get()) {
                 File(root, "Tests").listFiles()?.filter { it.lastModified() >= started - 1000 }?.forEach { run ->
-                    val fresh = File(run, "CompileTime").walk().maxDepth(4)
-                        .filter { it.isFile && it.extension == "cs" && !it.name.startsWith("sys!") && seen.add(it.path) }
+                    val found = File(run, "CompileTime").walk().maxDepth(4)
+                        .filter { it.isFile && it.extension == "cs" && it.name in builds && it.path !in done }
+                        .mapNotNull { file ->
+                            // Read while still being written: try again until it matches, for a while.
+                            val copy = CompileTimeMaps.mapOf(file, builds)
+                            if (copy != null || System.currentTimeMillis() - firstSeen.getOrPut(file.path) { System.currentTimeMillis() } > 2000) done += file.path
+                            copy
+                        }
                         .toList()
-                    if (fresh.isNotEmpty()) mirror(fresh.mapNotNull { CompileTimeMaps.mapOf(it, cache) })
+                    if (found.isNotEmpty()) mirror(found)
                 }
                 Thread.sleep(20)
             }

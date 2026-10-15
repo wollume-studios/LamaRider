@@ -57,7 +57,7 @@ class CompileTimeMapsTest {
         // Test runs extract the compile-time code again, to Tests/<guid>/CompileTime/<project>/<tfm>/<hash>/ (no map).
         val run = File(dir, "Metalama/Tests/guid/CompileTime/App/.netcoreapp8.0/h1/${built.name}").apply { parentFile.mkdirs(); writeText("compiled code") }
 
-        val copy = CompileTimeMaps.mapOf(run, File(dir, "Metalama/CompileTime"))!!
+        val copy = CompileTimeMaps.mapOf(run, CompileTimeMaps.byName(File(dir, "Metalama/CompileTime")))!!
         assertEquals(source.path, copy.source)
         assertEquals(run.path, copy.file.path)
         assertEquals(19, copy.line(12))
