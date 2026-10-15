@@ -176,7 +176,8 @@ class LamaRiderUiTest {
     private fun Driver.chooseIntention(relativePath: String, marker: String, text: String) {
         // The backend learns the caret position asynchronously: Alt+Enter again until the item is offered.
         waitFor("'$text' offered", timeout = 1.minutes, interval = 3.seconds) {
-            ideFrame { codeEditor().click() }
+            caretAt(relativePath, marker) // opens the file
+            ideFrame { codeEditor().click() } // focus; moves the caret
             caretAt(relativePath, marker)
             Thread.sleep(500)
             ideFrame { codeEditor().keyboard { hotKey(KeyEvent.VK_ALT, KeyEvent.VK_ENTER) } }
