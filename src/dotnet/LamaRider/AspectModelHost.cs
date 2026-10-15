@@ -179,6 +179,7 @@ public sealed class AspectModelHost
     void CreateAspectTest(string path, int offset) =>
         _solution.Locks.ExecuteOrQueueReadLockEx(_lifetime, "LamaRider.CreateAspectTest", () =>
         {
+            using var _ = CompilationContextCookie.GetExplicitUniversalContextIfNotSet(); // super types of the aspect
             var sourceFile = SourceFile(path);
             var psiFile = sourceFile?.GetDominantPsiFile<CSharpLanguage>();
             var node = psiFile?.FindNodeAt(psiFile.Translate(new DocumentOffset(sourceFile!.Document, offset)));
