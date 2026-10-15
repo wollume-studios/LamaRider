@@ -15,12 +15,12 @@ import java.io.File
 import java.util.function.Function
 import javax.swing.JComponent
 
-/** Like the Visual Studio extension's info bar: Metalama errors stop the aspects, shown on top of every C# editor. */
+/** Like the Visual Studio extension's info bar: Metalama errors without a location (nothing to underline) on top of every C# editor. */
 class MetalamaErrorBanner : EditorNotificationProvider {
     override fun collectNotificationData(project: Project, file: VirtualFile): Function<in FileEditor, out JComponent?>? {
         if (!file.name.endsWith(".cs", ignoreCase = true)) return null
         val model = project.service<LamaRiderService>().model ?: return null
-        val errors = model.errors()
+        val errors = model.bannerErrors()
         if (errors.isEmpty()) return null
         val first = errors.first()
         return Function { editor ->

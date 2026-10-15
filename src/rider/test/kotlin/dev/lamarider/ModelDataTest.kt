@@ -115,4 +115,13 @@ class ModelDataGroupingTest {
             ModelData(diagnostics = listOf(error("CS1061", "nope"), DiagnosticInfo("W", "Warning", "w", null, null, null), error("LAMA0001", "x"))).errorBannerText(),
         )
     }
+
+    @Test
+    fun `error banner leaves located errors to the editor squiggles`() {
+        val located = DiagnosticInfo("LAMA0037", "Error", "must be static", null, "C:/src/Test.cs", 23)
+        val projectWide = DiagnosticInfo("LAMA0042", "Error", "ordering", null, null, null)
+        assertNull(ModelData(diagnostics = listOf(located)).errorBannerText())
+        assertEquals("Metalama: LAMA0042 ordering. Aspects are not applied.", ModelData(diagnostics = listOf(located, projectWide)).errorBannerText())
+        assertEquals(listOf(projectWide), ModelData(diagnostics = listOf(located, projectWide)).bannerErrors())
+    }
 }

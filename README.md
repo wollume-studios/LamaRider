@@ -101,6 +101,12 @@ Its screenshots need public URLs: set `ScreenshotBaseUrl` in `gradle.properties`
 `https://raw.githubusercontent.com/wollume-studios/LamaRider/main/docs/screenshots`); while it is empty the description
 is built without images.
 
+## Publishing to JetBrains Marketplace
+
+The first version is uploaded by hand on plugins.jetbrains.com. Later versions: run the *Publish to JetBrains Marketplace*
+workflow (GitHub Actions, channel `eap` by default) or push a `v*` tag. It uses the `JETBRAINS_MARKETPLACE` repository secret.
+Users of the `eap` channel add `https://plugins.jetbrains.com/plugins/eap/list` as a custom plugin repository.
+
 ## Layout
 
 ```

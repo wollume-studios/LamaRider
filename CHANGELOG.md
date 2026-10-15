@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.6.0
+- Faster refresh: the worker stays loaded and reloads the solution (about 3 s instead of 8 s on a small solution); changes are picked up 1 s after saving.
+- Refreshes when a Rider build finishes.
+- Error info bar only for Metalama errors without a location; located ones keep Rider's squiggles.
+- Plugin description shows screenshots (public repository).
+
 ## 0.5.1
 - Transformed-code popup: highlighted like Metalama Diff; toggle to show the diff with the declaration's source (remembered).
 

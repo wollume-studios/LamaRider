@@ -29,6 +29,30 @@ public class WorkerRunnerTests
     }
 
     [Fact]
+    public void Later_runs_reuse_the_worker_process_and_see_file_changes()
+    {
+        // Copy of the sample: the second run must reload the edited file, not serve the first workspace again.
+        var copy = Path.Combine(NewCache(), "sample");
+        var sampleDir = Path.Combine(Root, "samples/MetalamaSample");
+        foreach (var file in Directory.GetFiles(sampleDir, "*", SearchOption.AllDirectories))
+        {
+            var relative = Path.GetRelativePath(sampleDir, file);
+            if (relative.Split(Path.DirectorySeparatorChar).Any(p => p is "bin" or "obj" or ".idea" || p.StartsWith("_ReSharper"))) continue;
+            Directory.CreateDirectory(Path.GetDirectoryName(Path.Combine(copy, relative))!);
+            File.Copy(file, Path.Combine(copy, relative));
+        }
+        var sln = Path.Combine(copy, "MetalamaSample.sln");
+        using var runner = new WorkerRunner(WorkerSrc, NewCache());
+        Assert.Equal(2, runner.Run("2026.1.30", sln, CancellationToken.None).TargetCountOf("T:MetalamaSample.LogAttribute"));
+        var firstProcess = runner.WorkerProcessId;
+
+        var links = Path.Combine(copy, "MetalamaSample", "Links.cs");
+        File.WriteAllText(links, File.ReadAllText(links).Replace("    public string Open(", "    [Log]\n    public string Open("));
+        Assert.Equal(3, runner.Run("2026.1.30", sln, CancellationToken.None).TargetCountOf("T:MetalamaSample.LogAttribute"));
+        Assert.Equal(firstProcess, runner.WorkerProcessId);
+    }
+
+    [Fact]
     public void Rejects_unsafe_metalama_version()
     {
         var cache = NewCache();

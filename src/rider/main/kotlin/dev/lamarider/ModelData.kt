@@ -71,9 +71,12 @@ data class ModelData(
 
     fun errors() = diagnostics.filter { it.severity == "Error" }
 
-    /** Editor info bar text; null without errors. The first error leads since the bar truncates. */
+    /** Errors for the editor info bar: those without a location; located ones already have Rider's squiggles. */
+    fun bannerErrors() = errors().filter { it.file == null }
+
+    /** Editor info bar text; null without such errors. The first error leads since the bar truncates. */
     fun errorBannerText(): String? {
-        val errors = errors()
+        val errors = bannerErrors()
         val first = errors.firstOrNull() ?: return null
         return "Metalama: ${first.id} ${first.message.lineSequence().first()}" +
             (if (errors.size > 1) " (+${errors.size - 1} more)" else "") + ". Aspects are not applied."

@@ -12,6 +12,7 @@ import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.Disposer
 import com.intellij.openapi.util.text.StringUtil
 import com.intellij.ui.EditorNotifications
+import com.jetbrains.rider.build.BuildHost
 import dev.lamarider.actions.AutoBuildAction
 import dev.lamarider.explorer.Navigation
 import com.jetbrains.rd.util.lifetime.Lifetime
@@ -63,6 +64,13 @@ class LamaRiderService(val project: Project) {
     fun attach(lifetime: Lifetime, rdModel: LamaRiderModel) {
         rd = rdModel
         rdModel.autoBuild.set(AutoBuildAction.isEnabled())
+        // A finished build changes what Metalama sees (compile-time code, references); the backend's own build hook
+        // does not fire for Rider's builds in 2026.3.
+        var wasBuilding = false
+        BuildHost.getInstance(project).building.advise(lifetime) { building ->
+            if (wasBuilding && !building) refresh()
+            wasBuilding = building
+        }
         rdModel.status.advise(lifetime) { status = it ?: ""; fire() }
         rdModel.testSettingsStatus.advise(lifetime) { text ->
             testSettingsStatus = text?.let { rdModel.testSettingsConfigured.value to it }

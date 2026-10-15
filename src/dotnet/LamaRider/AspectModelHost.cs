@@ -44,7 +44,7 @@ public sealed class AspectModelHost
     Timer? _debounce;
     volatile bool _autoBuild;
     readonly HashSet<string> _changedCompileTimeFiles = new(StringComparer.OrdinalIgnoreCase);
-    static readonly TimeSpan Debounce = TimeSpan.FromSeconds(3);
+    static readonly TimeSpan Debounce = TimeSpan.FromSeconds(1);
     volatile AspectModel? _model;
 
     public AspectModelHost(Lifetime lifetime, ISolution solution, ISolutionBuilder solutionBuilder, ISolutionLoadTasksScheduler loadTasks)
@@ -56,6 +56,7 @@ public sealed class AspectModelHost
         var pluginDir = Path.GetDirectoryName(Path.GetDirectoryName(typeof(AspectModelHost).Assembly.Location))!;
         var cache = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "LamaRider");
         _runner = new WorkerRunner(Path.Combine(pluginDir, "worker"), cache);
+        lifetime.OnTermination(_runner.Dispose); // the serving worker process
 
         // Project model queries are not allowed while the solution loads.
         loadTasks.EnqueueTask(new SolutionLoadTask(typeof(AspectModelHost), "LamaRider.Init", SolutionLoadTaskKinds.AfterDone, () =>
