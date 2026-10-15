@@ -173,8 +173,12 @@ class LamaRiderUiTest {
 
     /** Alt+Enter in the editor, then the item starting with [text] (the popup filters as you type). */
     private fun Driver.chooseIntention(text: String) {
-        ideFrame { invokeAction("ShowIntentionActions", component = codeEditor().component) }
-        waitFor("'$text' offered", timeout = 1.minutes) { ui.x(xQuery { contains(byVisibleText(text)) }).present() }
+        // The backend learns the caret position asynchronously: Alt+Enter again until the item is offered.
+        waitFor("'$text' offered", timeout = 1.minutes, interval = 3.seconds) {
+            ideFrame { invokeAction("ShowIntentionActions", component = codeEditor().component) }
+            Thread.sleep(1500) // the list is computed by the backend
+            ui.x(xQuery { contains(byVisibleText(text)) }).present()
+        }
         ui.x(xQuery { contains(byVisibleText(text)) }).click()
     }
 
