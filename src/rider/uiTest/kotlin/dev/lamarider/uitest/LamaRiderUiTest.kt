@@ -3,6 +3,7 @@ package dev.lamarider.uitest
 import com.intellij.driver.client.Driver
 import com.intellij.driver.sdk.invokeAction
 import com.intellij.driver.client.Remote
+import com.intellij.driver.model.OnDispatcher
 import com.intellij.driver.sdk.VirtualFile
 import com.intellij.driver.sdk.openEditor
 import com.intellij.driver.sdk.openToolWindow
@@ -108,7 +109,7 @@ class LamaRiderUiTest {
         waitFor(what, timeout = 5.minutes) { hasSubtext(text) }
 
     /** Rider's project model has no content roots the driver's project-relative lookup understands: open by absolute path. */
-    private fun Driver.caretAt(relativePath: String, marker: String) {
+    private fun Driver.caretAt(relativePath: String, marker: String) = withContext<Unit>(OnDispatcher.EDT) {
         val path = solutionDir.resolve(relativePath).toString().replace('\\', '/')
         val file = utility(LocalFileSystem::class).getInstance().refreshAndFindFileByPath(path) ?: fail("No file $path")
         openEditor(file, singleProject())
