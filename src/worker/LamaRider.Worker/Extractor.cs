@@ -93,7 +93,7 @@ public static class Extractor
         return new WorkerOutput(
             Schema, workspace.MetalamaVersion, classes, instances, transformations, diagnostics,
             TemplateClassifier.Classify(workspace, offsets),
-            WriteTransformedFiles(workspace, outDir));
+            WriteTransformedFiles(workspace, outDir, offsets));
     }
 
     /// <summary>
@@ -111,8 +111,14 @@ public static class Extractor
         return suffix < 0 ? id.Substring(0, tilde) : id.Substring(0, tilde) + id.Substring(suffix);
     }
 
-    static List<TransformedFileInfo> WriteTransformedFiles(Workspace workspace, string outDir)
+    static List<TransformedFileInfo> WriteTransformedFiles(Workspace workspace, string outDir, Offsets offsets)
     {
+        // Source compilation per file: the popup's diff shows a declaration's source next to its transformed code.
+        var sources = new Dictionary<string, Microsoft.CodeAnalysis.Compilation>(StringComparer.OrdinalIgnoreCase);
+        foreach (var project in workspace.Projects)
+        foreach (var sourceTree in project.RoslynCompilation.SyntaxTrees)
+            sources.TryAdd(sourceTree.FilePath, project.RoslynCompilation);
+
         var result = new List<TransformedFileInfo>();
         var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         var dir = Path.Combine(outDir, "transformed");
@@ -128,7 +134,7 @@ public static class Extractor
                 if (original == null || text == original) continue; // untouched by aspects
                 var target = Path.Combine(dir, $"{result.Count}_{Path.GetFileName(tree.FilePath)}");
                 File.WriteAllText(target, text);
-                result.Add(new TransformedFileInfo(tree.FilePath, target, Declarations(formatted, tree, text)));
+                result.Add(new TransformedFileInfo(tree.FilePath, target, Declarations(formatted, tree, text, sources.GetValueOrDefault(tree.FilePath), offsets)));
             }
         }
         return result;
@@ -141,7 +147,8 @@ public static class Extractor
     }
 
     /// <summary>Types and members of a transformed file with their LF offsets: the IDE shows one declaration's transformed code.</summary>
-    static List<TransformedDeclaration> Declarations(Microsoft.CodeAnalysis.Compilation compilation, SyntaxTree tree, string text)
+    static List<TransformedDeclaration> Declarations(
+        Microsoft.CodeAnalysis.Compilation compilation, SyntaxTree tree, string text, Microsoft.CodeAnalysis.Compilation? source, Offsets offsets)
     {
         // CR count before each position: offsets are LF-normalized like the rest of the model.
         var crBefore = new int[text.Length + 1];
@@ -155,7 +162,13 @@ public static class Extractor
             if (node is not (BaseTypeDeclarationSyntax or BaseMethodDeclarationSyntax or BasePropertyDeclarationSyntax)) continue;
             var id = model.GetDeclaredSymbol(node)?.GetDocumentationCommentId();
             if (id == null || !seen.Add(id)) continue;
-            result.Add(new TransformedDeclaration(id, node.Span.Start - crBefore[node.Span.Start], node.Span.End - crBefore[node.Span.End]));
+            // Declarations an aspect introduced have no source.
+            var sourceSpan = source == null ? null
+                : Microsoft.CodeAnalysis.DocumentationCommentId.GetFirstSymbolForDeclarationId(id, source)?.DeclaringSyntaxReferences
+                    .FirstOrDefault(r => string.Equals(r.SyntaxTree.FilePath, tree.FilePath, StringComparison.OrdinalIgnoreCase))?.Span;
+            result.Add(new TransformedDeclaration(id, node.Span.Start - crBefore[node.Span.Start], node.Span.End - crBefore[node.Span.End],
+                sourceSpan == null ? null : offsets.FromPosition(tree.FilePath, sourceSpan.Value.Start),
+                sourceSpan == null ? null : offsets.FromPosition(tree.FilePath, sourceSpan.Value.End)));
         }
         return result;
     }

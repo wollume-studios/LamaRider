@@ -35,8 +35,8 @@ public sealed record FileClassification(string File, int Length, List<Classified
 
 public sealed record TransformedFileInfo(string File, string TransformedPath, List<TransformedDeclaration> Declarations);
 
-/// <summary>A type or member in a transformed file: XML doc id and LF offsets.</summary>
-public sealed record TransformedDeclaration(string Target, int Start, int End);
+/// <summary>A type or member in a transformed file: XML doc id, LF offsets there and in the source file (null when introduced).</summary>
+public sealed record TransformedDeclaration(string Target, int Start, int End, int? SourceStart = null, int? SourceEnd = null);
 
 public static class WorkerJson
 {

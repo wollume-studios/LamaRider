@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.5.1
+- Transformed-code popup: highlighted like Metalama Diff; toggle to show the diff with the declaration's source (remembered).
+
 ## 0.5.0
 - Settings › Tools › LamaRider shows whether Rider is set up for aspect tests, updated live.
 - Show Transformed Code from Code Vision and the LamaRider tool window opens next to the declaration.

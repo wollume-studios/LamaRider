@@ -32,8 +32,8 @@ data class TransformationInfo(val aspectClass: String, val target: String, val k
 
 data class DiagnosticInfo(val id: String, val severity: String, val message: String, val target: String?, val file: String?, val line: Int?)
 
-/** A type or member in a transformed file: doc id and LF offsets in that file. */
-data class TransformedDeclaration(val target: String, val start: Int, val end: Int)
+/** A type or member in a transformed file: doc id, LF offsets there and in the source file (null when an aspect introduced it). */
+data class TransformedDeclaration(val target: String, val start: Int, val end: Int, val sourceStart: Int? = null, val sourceEnd: Int? = null)
 
 // declarations: null in models written before the worker recorded them (Gson ignores Kotlin defaults).
 data class TransformedFileInfo(val file: String, val transformedPath: String, val declarations: List<TransformedDeclaration>? = null)

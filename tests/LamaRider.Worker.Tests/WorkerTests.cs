@@ -74,6 +74,17 @@ public sealed class WorkerTests : IAsyncLifetime
     }
 
     [Fact]
+    public void Transformed_declarations_know_their_source_span()
+    {
+        var calc = _output.TransformedFiles.Single(f => f.File.EndsWith("Calculator.cs"));
+        var source = File.ReadAllText(calc.File).Replace("\r\n", "\n");
+        var add = calc.Declarations.Single(x => x.Target == "M:MetalamaSample.Calculator.Add(System.Int32,System.Int32)");
+        Assert.Equal("[Log]\n    public int Add(int a, int b) => a + b;", source[add.SourceStart!.Value..add.SourceEnd!.Value]);
+        // Introduced by an aspect: no source.
+        Assert.Null(calc.Declarations.Single(x => x.Target == "P:MetalamaSample.Calculator.Id").SourceStart);
+    }
+
+    [Fact]
     public void Transformed_code_is_formatted_like_metalama_output()
     {
         var links = _output.TransformedFiles.Single(f => f.File.EndsWith("Links.cs"));
