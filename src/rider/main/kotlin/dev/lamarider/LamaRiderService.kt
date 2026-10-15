@@ -6,7 +6,9 @@ import com.intellij.openapi.Disposable
 import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.components.Service
 import com.intellij.openapi.diagnostic.logger
+import com.intellij.openapi.fileEditor.OpenFileDescriptor
 import com.intellij.openapi.project.Project
+import com.intellij.openapi.vfs.LocalFileSystem
 import com.intellij.openapi.util.Disposer
 import com.intellij.ui.EditorNotifications
 import com.jetbrains.rider.build.BuildHost
@@ -56,6 +58,14 @@ class LamaRiderService(val project: Project) {
         rd?.refreshTestSettingsStatus?.fire(Unit)
     }
 
+    fun createAspectTest(position: com.jetbrains.rd.ide.model.EditorPosition) {
+        rd?.createAspectTest?.fire(position)
+    }
+
+    fun acceptAspectTestOutput(path: String) {
+        rd?.acceptAspectTestOutput?.fire(path)
+    }
+
     fun addLamaDebugConfiguration() {
         rd?.addLamaDebugConfiguration?.fire(Unit)
     }
@@ -93,6 +103,12 @@ class LamaRiderService(val project: Project) {
         }
         rdModel.codeVisionClicked.advise(lifetime) { id -> onCodeVisionClicked?.invoke(id) }
         rdModel.info.advise(lifetime) { message -> notify("LamaRider", message) }
+        rdModel.openFile.advise(lifetime) { path ->
+            ApplicationManager.getApplication().invokeLater {
+                LocalFileSystem.getInstance().refreshAndFindFileByPath(path.replace('\\', '/'))
+                    ?.let { OpenFileDescriptor(project, it).navigate(true) }
+            }
+        }
         rdModel.testSettingsSuggested.advise(lifetime) { TestSettingsNotification.show(project) }
         rdModel.failed.advise(lifetime) { message ->
             NotificationGroupManager.getInstance().getNotificationGroup("LamaRider")

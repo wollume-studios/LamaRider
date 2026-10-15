@@ -6,6 +6,11 @@ import com.jetbrains.rider.model.nova.ide.SolutionModel
 
 @Suppress("unused")
 object LamaRiderModel : Ext(SolutionModel.Solution) {
+    private val EditorPosition = structdef {
+        field("file", string)
+        field("offset", int)
+    }
+
     init {
         // backend -> frontend: human-readable refresh state
         property("status", string.nullable)
@@ -42,5 +47,10 @@ object LamaRiderModel : Ext(SolutionModel.Solution) {
         property("testSettingsStatus", string.nullable)
         // frontend -> backend: recompute the two above (settings page opened)
         signal("refreshTestSettingsStatus", void)
+        // backend -> frontend: open a file the backend created (aspect test, accepted snapshot)
+        signal("openFile", string)
+        // frontend -> backend (editor menu): aspect test for the aspect class at the position / accept the test output
+        signal("createAspectTest", EditorPosition)
+        signal("acceptAspectTestOutput", string)
     }
 }
