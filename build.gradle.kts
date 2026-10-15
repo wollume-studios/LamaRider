@@ -2,6 +2,7 @@ import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
 import com.jetbrains.plugin.structure.base.utils.isFile
 import org.jetbrains.intellij.platform.gradle.Constants
+import org.jetbrains.intellij.platform.gradle.TestFrameworkType
 
 plugins {
     id("java")
@@ -40,6 +41,29 @@ val unitTest by tasks.registering(Test::class) {
     classpath = sourceSets.test.get().output + sourceSets.main.get().output + unitTestRuntime
 }
 
+// UI tests: a real Rider with the built plugin and the sample solution, driven through actions and IDE APIs (no OS
+// mouse/keyboard, so they don't need focus). Uses the Rider installation in LAMARIDER_RIDER, else the default Windows install.
+val uiTest by tasks.registering(Test::class) {
+    description = "UI tests in a real Rider (slow; see src/rider/uiTest)"
+    group = "verification"
+    val uiTestSources = sourceSets.getByName("uiTest")
+    testClassesDirs = uiTestSources.output.classesDirs
+    classpath = uiTestSources.runtimeClasspath
+    useJUnitPlatform { excludeEngines("junit-vintage") } // Starter brings the vintage engine without JUnit 4
+    val prepareSandbox = tasks.named<org.jetbrains.intellij.platform.gradle.tasks.PrepareSandboxTask>("prepareSandbox")
+    dependsOn(prepareSandbox)
+    val pluginDir = prepareSandbox.flatMap { it.pluginDirectory }
+    val rider = providers.environmentVariable("LAMARIDER_RIDER")
+    jvmArgumentProviders += CommandLineArgumentProvider {
+        listOfNotNull(
+            "-Dlamarider.plugin=${pluginDir.get().asFile.absolutePath}",
+            "-Dlamarider.sample=${file("samples/MetalamaSample").absolutePath}",
+            rider.orNull?.let { "-Dlamarider.rider=$it" },
+        )
+    }
+    testLogging { events("passed", "failed", "skipped"); showStandardStreams = true }
+}
+
 tasks.test {
     enabled = false // the IntelliJ test harness is not needed; see unitTest
     dependsOn(unitTest)
@@ -71,7 +95,13 @@ sourceSets {
     test {
         kotlin.srcDir("src/rider/test/kotlin")
     }
+    // UI tests: Starter launches a real Rider with the built plugin, Driver talks to it (see src/rider/uiTest).
+    create("uiTest") {
+        kotlin.srcDir("src/rider/uiTest/kotlin")
+    }
 }
+
+val uiTestImplementation: Configuration by configurations.getting
 
 val compileDotNet by tasks.registering {
     dependsOn(":protocol:rdgen")
@@ -155,7 +185,20 @@ dependencies {
     unitTestRuntime(libs.kotlinStdLib)
     unitTestRuntime("org.junit.jupiter:junit-jupiter:5.13.4")
     unitTestRuntime("org.junit.platform:junit-platform-launcher:1.13.4")
+
+    intellijPlatform {
+        testFramework(TestFrameworkType.Starter, configurationName = "uiTestImplementation")
+    }
+    uiTestImplementation("org.junit.jupiter:junit-jupiter:5.13.4")
+    uiTestImplementation("org.junit.platform:junit-platform-launcher:1.13.4")
+    uiTestImplementation("org.kodein.di:kodein-di-jvm:7.20.2")
+    // Starter needs runBlockingK from JetBrains' coroutines fork: take the one this Rider ships.
+    "uiTestCompileOnly"("org.jetbrains.kotlinx:kotlinx-coroutines-core-jvm:1.10.1")
+    "uiTestRuntimeOnly"(files(configurations.named("intellijPlatformClasspath").map { platform ->
+        platform.filter { it.name == "intellij.libraries.kotlinx.coroutines.core.jar" }
+    }))
 }
+
 
 tasks.runIde {
     // Match Rider's default heap size of 1.5Gb (default for runIde is 512Mb)

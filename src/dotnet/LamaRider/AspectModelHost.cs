@@ -71,7 +71,7 @@ public sealed class AspectModelHost
             RdModel.AddLamaDebugConfiguration.Advise(lifetime, _ => AddLamaDebugConfiguration());
             solutionBuilder.RunningRequest.Change.Advise(lifetime, args =>
             {
-                if (args.HasOld && args.Old != null && args.New == null) RequestRefresh("build finished");
+                if (args.HasOld && args.Old != null && args.HasNew && args.New == null) RequestRefresh("build finished"); // no New on shutdown
             });
             StartWatching(_solution.SolutionDirectory.FullPath);
             RequestRefresh("solution loaded");

@@ -1,6 +1,6 @@
 # Changelog
 
-## 0.6.1
+## Unreleased
 - LamaRider window: *Track Caret* shows only the aspects affecting the code at the caret (member, its parameters, containing types).
 - No error balloon any more: located errors are Rider's squiggles, the others the editor info bar.
 - Long status and settings texts no longer overflow.

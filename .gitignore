@@ -28,3 +28,6 @@ _dotTrace*
 
 # Rider state of the sample solution
 /samples/**/.idea/
+
+# UI test runs (Starter copies the Rider installation here)
+out/

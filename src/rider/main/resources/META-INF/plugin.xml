@@ -47,6 +47,8 @@
     <action id="LamaRider.AutoBuild" class="dev.lamarider.actions.AutoBuildAction" text="Metalama: Build After Aspect Changes"
             description="Builds the project after aspect or template code is saved, so Metalama's design-time analysis resumes (LAMA0118)">
     </action>
+    <action id="LamaRider.TrackCaret" class="dev.lamarider.explorer.TrackCaretAction" text="Track Caret"
+            description="LamaRider window: show only the aspects that affect the code at the caret" icon="AllIcons.General.AutoscrollFromSource"/>
     <action id="LamaRider.DebugLamaDebug" class="dev.lamarider.actions.DebugWithLamaDebugAction"/>
     <action id="LamaRider.Settings" class="dev.lamarider.actions.OpenSettingsAction"/>
     <group id="LamaRider.Gear" text="LamaRider">

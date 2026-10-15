@@ -2,9 +2,6 @@ package dev.lamarider.explorer
 
 import com.intellij.icons.AllIcons
 import com.intellij.ide.BrowserUtil
-import com.intellij.ide.util.PropertiesComponent
-import com.intellij.openapi.actionSystem.ActionUpdateThread
-import com.intellij.openapi.actionSystem.AnActionEvent
 import com.intellij.openapi.editor.EditorFactory
 import com.intellij.openapi.editor.event.CaretEvent
 import com.intellij.openapi.editor.event.CaretListener
@@ -12,7 +9,6 @@ import com.intellij.openapi.fileEditor.FileDocumentManager
 import com.intellij.openapi.fileEditor.FileEditorManager
 import com.intellij.openapi.fileEditor.FileEditorManagerEvent
 import com.intellij.openapi.fileEditor.FileEditorManagerListener
-import com.intellij.openapi.project.DumbAwareToggleAction
 import com.intellij.util.Alarm
 import com.intellij.ide.DefaultTreeExpander
 import com.intellij.ide.actions.CollapseAllAction
@@ -90,9 +86,7 @@ class AspectExplorerPanel(private val project: Project, parent: Disposable) : Si
     // Track Caret: only the aspects affecting the code at the caret (null: not tracking).
     private var tracked: List<AspectInstanceInfo>? = null
     private val trackAlarm = Alarm(Alarm.ThreadToUse.SWING_THREAD, parent)
-    private var trackCaret: Boolean
-        get() = PropertiesComponent.getInstance().getBoolean(TRACK_CARET)
-        set(value) = PropertiesComponent.getInstance().setValue(TRACK_CARET, value)
+    private val trackCaret: Boolean get() = TrackCaretAction.isEnabled()
 
     init {
         classTree.isRootVisible = false
@@ -143,22 +137,10 @@ class AspectExplorerPanel(private val project: Project, parent: Disposable) : Si
         project.messageBus.connect(parent).subscribe(FileEditorManagerListener.FILE_EDITOR_MANAGER, object : FileEditorManagerListener {
             override fun selectionChanged(event: FileEditorManagerEvent) = scheduleTrack()
         })
-        val trackToggle = object : DumbAwareToggleAction("Track Caret", "Show only the aspects that affect the code at the caret", AllIcons.General.AutoscrollFromSource) {
-            override fun getActionUpdateThread() = ActionUpdateThread.EDT
-            override fun isSelected(e: AnActionEvent) = trackCaret
-            override fun setSelected(e: AnActionEvent, state: Boolean) {
-                trackCaret = state
-                if (state) track() else {
-                    tracked = null
-                    rebuildClasses()
-                }
-            }
-        }
-
         val expander = DefaultTreeExpander(targetTree)
         val actions = DefaultActionGroup(
             ActionManager.getInstance().getAction("LamaRider.Refresh"),
-            trackToggle,
+            ActionManager.getInstance().getAction("LamaRider.TrackCaret"),
             ExpandAllAction { expander },
             CollapseAllAction { expander },
             Separator.getInstance(),
@@ -173,6 +155,14 @@ class AspectExplorerPanel(private val project: Project, parent: Disposable) : Si
         Disposer.register(parent) { if (current === this) current = null }
         onServiceChanged()
         if (trackCaret) track()
+    }
+
+    /** [TrackCaretAction] switched tracking on or off. */
+    fun trackCaretChanged() {
+        if (trackCaret) track() else {
+            tracked = null
+            rebuildClasses()
+        }
     }
 
     private fun scheduleTrack() {
@@ -348,8 +338,6 @@ class AspectExplorerPanel(private val project: Project, parent: Disposable) : Si
     private class DiagnosticNode(val diagnostic: DiagnosticInfo)
 
     companion object {
-        private const val TRACK_CARET = "lamarider.trackCaret"
-
         // Metalama DeclarationKind names.
         fun kindIcon(kind: String): Icon = when (kind) {
             "NamedType" -> AllIcons.Nodes.Class

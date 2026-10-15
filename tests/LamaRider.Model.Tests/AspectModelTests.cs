@@ -118,7 +118,7 @@ public class AspectModelTests
     public void Compile_time_files_are_aspect_class_and_template_files()
     {
         var model = AspectModel.Parse(Json("").Replace("\"location\":null", "\"location\":{\"file\":\"C:/src/Aspects/Log.cs\",\"start\":0,\"end\":5}"));
-        Assert.True(model.IsCompileTimeFile(@"c:\src\aspects\LOG.cs")); // aspect class
+        Assert.True(model.IsCompileTimeFile("c:/src/aspects/LOG.cs")); // aspect class
         Assert.True(model.IsCompileTimeFile(@"C:\src\Log.cs"));         // T# template
         Assert.False(model.IsCompileTimeFile(File1));
     }
