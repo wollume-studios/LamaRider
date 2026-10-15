@@ -108,7 +108,7 @@ class LamaRiderUiTest {
                 caretAt("MetalamaSample/Added.cs", "Twice(")
                 ideFrame { invokeAction("LamaRider.ShowTransformedCode", component = codeEditor().component) }
                 ui.x(xQuery { contains(byVisibleText("Entering Twice")) }).present()
-            }.onFailure { println("Added.cs not ready: $it") }.getOrDefault(false)
+            }.onFailure { println("Added.cs not ready: " + generateSequence(it) { e -> e.cause }.joinToString(" <- ") { e -> "${e.javaClass.simpleName}: ${e.message?.lineSequence()?.firstOrNull { l -> l.isNotBlank() }}" }) }.getOrDefault(false)
         }
     }
 
