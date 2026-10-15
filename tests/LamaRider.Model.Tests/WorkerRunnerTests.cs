@@ -2,12 +2,26 @@ using LamaRider.Worker;
 
 namespace LamaRider.Model.Tests;
 
-public class WorkerRunnerTests
+public class WorkerRunnerTests : IDisposable
 {
+    // Each cache holds a worker build (hundreds of MB): removed after each test.
+    readonly List<string> _caches = [];
+
+    public void Dispose()
+    {
+        foreach (var cache in _caches)
+            try { Directory.Delete(cache, true); } catch (IOException) { } catch (UnauthorizedAccessException) { }
+    }
+
     static readonly string Root = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "../../../../.."));
     static readonly string WorkerSrc = Path.Combine(Root, "src/worker/LamaRider.Worker");
 
-    static string NewCache() => Path.Combine(Path.GetTempPath(), "lamarider-runner", Guid.NewGuid().ToString("N"));
+    string NewCache()
+    {
+        var cache = Path.Combine(Path.GetTempPath(), "lamarider-runner", Guid.NewGuid().ToString("N"));
+        _caches.Add(cache);
+        return cache;
+    }
 
     [Fact]
     public void Failed_run_reports_stderr()

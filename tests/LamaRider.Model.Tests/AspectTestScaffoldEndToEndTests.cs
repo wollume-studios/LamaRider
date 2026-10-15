@@ -4,8 +4,16 @@ using LamaRider.Model;
 namespace LamaRider.Model.Tests;
 
 /// <summary>The generated test runs in Metalama's test framework: first run writes the output, accepted it passes.</summary>
-public class AspectTestScaffoldEndToEndTests
+public class AspectTestScaffoldEndToEndTests : IDisposable
 {
+    readonly List<string> _copies = [];
+
+    public void Dispose()
+    {
+        foreach (var copy in _copies)
+            try { Directory.Delete(copy, true); } catch (IOException) { } catch (UnauthorizedAccessException) { }
+    }
+
     static readonly string Root = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "../../../../.."));
 
     [Fact]
@@ -68,10 +76,11 @@ public class AspectTestScaffoldEndToEndTests
         return process.ExitCode;
     }
 
-    static string CopySample()
+    string CopySample()
     {
         var source = Path.Combine(Root, "samples", "MetalamaSample");
         var target = Path.Combine(Path.GetTempPath(), "lamarider-scaffold-e2e", Guid.NewGuid().ToString("N"));
+        _copies.Add(target);
         foreach (var file in Directory.GetFiles(source, "*", SearchOption.AllDirectories))
         {
             var relative = Path.GetRelativePath(source, file);
