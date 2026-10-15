@@ -136,7 +136,7 @@ public static class AspectTests
         var relative = file.Location.MakeRelativeTo(project.Location).FullPath;
         // Aspect tests are found by running the test runner (not in source): a criterion, not elements, lets Rider build
         // the project and discover them first when it has not yet.
-        var criterion = new ProjectCriterion(project).And(new TestIdCriterion(AspectTestScaffold.TestId(relative)));
+        var criterion = new ProjectCriterion(project).And(new TestIdCriterion(AspectTestScaffold.TestId(project.Name, relative)));
         var elements = facade.ElementRepository.Query(new ProjectCriterion(project)).ToList();
         var known = elements.Where(e => !e.Children.Any() && AspectTestScaffold.IsTestFor(e.ShortName, e.NaturalId.TestId, relative)).ToList();
         if (known.Count == 0 && elements.Count > 0)

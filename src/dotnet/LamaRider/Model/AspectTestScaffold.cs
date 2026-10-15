@@ -148,22 +148,31 @@ public static class AspectTestScaffold
 
     /// <summary>
     /// Whether Rider's test element (short name, test id) is the test of <paramref name="relativePath"/> (in the test project).
-    /// Metalama's xUnit framework names the test after the file and its class after the folder path and the file.
     /// </summary>
     public static bool IsTestFor(string elementShortName, string elementTestId, string relativePath)
     {
-        var stem = Path.GetFileNameWithoutExtension(relativePath);
-        if (!elementShortName.Equals(stem, StringComparison.OrdinalIgnoreCase)) return false;
-        var folder = (Path.GetDirectoryName(relativePath.Replace('\\', '/')) ?? "").Replace('\\', '.').Replace('/', '.');
-        return folder == "" || elementTestId.IndexOf(folder + "." + stem, StringComparison.OrdinalIgnoreCase) >= 0;
+        var (folder, stem) = Split(relativePath);
+        return elementShortName.Equals(stem, StringComparison.OrdinalIgnoreCase) &&
+               elementTestId.EndsWith("." + folder + stem + "." + stem, StringComparison.OrdinalIgnoreCase);
     }
 
-    /// <summary>Rider's xUnit test id of the aspect test <paramref name="relativePath"/>: class (folder path + file) and method (file).</summary>
-    public static string TestId(string relativePath)
+    /// <summary>
+    /// Rider's xUnit test id of the aspect test <paramref name="relativePath"/>, before Rider has discovered it. Metalama's
+    /// xUnit framework names the class after the project, folder path and file, and the test after the file.
+    /// </summary>
+    public static string TestId(string projectName, string relativePath)
     {
-        var stem = Path.GetFileNameWithoutExtension(relativePath);
-        var folder = (Path.GetDirectoryName(relativePath.Replace('\\', '/')) ?? "").Replace('\\', '.').Replace('/', '.');
-        return (folder == "" ? "" : folder + ".") + stem + "." + stem;
+        var (folder, stem) = Split(relativePath);
+        return projectName + "." + folder + stem + "." + stem;
+    }
+
+    /// <summary>"Sub\Log\Add.cs" -> ("Sub.Log.", "Add"). ReSharper's relative paths use '\' on every OS.</summary>
+    static (string Folder, string Stem) Split(string relativePath)
+    {
+        var parts = relativePath.Replace('\\', '/').Split('/');
+        var file = parts[parts.Length - 1];
+        var dot = file.LastIndexOf('.');
+        return (string.Concat(parts.Take(parts.Length - 1).Select(p => p + ".")), dot < 0 ? file : file.Substring(0, dot));
     }
 
     public static string SnapshotPath(string testFile) => Path.ChangeExtension(testFile, ".t.cs");

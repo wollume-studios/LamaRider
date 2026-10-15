@@ -172,12 +172,7 @@ class LamaRiderUiTest {
         val debugger = service(XDebuggerManager::class, singleProject())
         caretAt("MetalamaSample.AspectTests/Log/Add.cs", "Add(")
         editorAction("LamaRider.DebugAspectTest")
-        val first = runCatching { waitFor("debug session started", timeout = 5.minutes) { debugger.getCurrentSession() != null } }
-        if (first.isFailure) {
-            println("LAMARIDER-DEBUG: first launch started no session; launching again with the test discovered")
-            editorAction("LamaRider.DebugAspectTest")
-            waitFor("debug session started (second launch)", timeout = 5.minutes) { debugger.getCurrentSession() != null }
-        }
+        waitFor("debug session started", timeout = 10.minutes) { debugger.getCurrentSession() != null }
         try {
             waitFor("stopped at the breakpoint in the aspect", timeout = 5.minutes) { debugger.getCurrentSession()?.isPaused() == true }
         } finally {

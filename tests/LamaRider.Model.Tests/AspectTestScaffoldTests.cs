@@ -142,13 +142,21 @@ public class AspectTestScaffoldTests
         Assert.Equal(Path.Combine(project, "Log", "Add.t.cs"), AspectTestScaffold.SnapshotPath(test));
     }
 
+    // Rider's ids as seen on Linux and Windows: class = project + folder path + file name, method = file name.
+    // ReSharper's relative paths use '\' on every OS.
     [Theory]
-    // Metalama's xUnit framework: class = folder path + file name, method = file name.
-    [InlineData("LogTest", "LogTests.LogTest.LogTest", "LogTests/LogTest.cs", true)]
-    [InlineData("LogTest", "LogTests.LogTest.LogTest", @"LogTests\LogTest.cs", true)]
-    [InlineData("LogTest", "Other.LogTest.LogTest", "LogTests/LogTest.cs", false)] // same file name, other folder
-    [InlineData("LogTest", "LogTest.LogTest", "LogTest.cs", true)]
-    [InlineData("Add", "Log.Add.Add", "Log/LogTest.cs", false)]
+    [InlineData("Add", "MetalamaSample.AspectTests.Log.Add.Add", "Log/Add.cs", true)]
+    [InlineData("Add", "MetalamaSample.AspectTests.Log.Add.Add", @"Log\Add.cs", true)]
+    [InlineData("Add", "MetalamaSample.AspectTests.Log.Add", @"Log\Add.cs", false)] // the class
+    [InlineData("Add", "MetalamaSample.AspectTests.Other.Add.Add", @"Log\Add.cs", false)] // same file name, other folder
+    [InlineData("Add", "MetalamaSample.AspectTests.Add.Add", "Add.cs", true)]
     public void Rider_test_element_is_found_for_a_test_file(string shortName, string testId, string relativePath, bool expected) =>
         Assert.Equal(expected, AspectTestScaffold.IsTestFor(shortName, testId, relativePath));
+
+    [Theory]
+    [InlineData(@"Log\Add.cs", "MetalamaSample.AspectTests.Log.Add.Add")]
+    [InlineData("Sub/Log/Add.cs", "MetalamaSample.AspectTests.Sub.Log.Add.Add")]
+    [InlineData("Add.cs", "MetalamaSample.AspectTests.Add.Add")]
+    public void Test_id_is_predicted_before_Rider_discovers_the_test(string relativePath, string expected) =>
+        Assert.Equal(expected, AspectTestScaffold.TestId("MetalamaSample.AspectTests", relativePath));
 }
