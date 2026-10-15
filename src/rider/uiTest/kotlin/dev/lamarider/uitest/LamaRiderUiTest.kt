@@ -10,6 +10,7 @@ import com.intellij.driver.sdk.openToolWindow
 import com.intellij.driver.sdk.selectedTextEditor
 import com.intellij.driver.sdk.singleProject
 import com.intellij.driver.sdk.ui.components.UiComponent
+import com.intellij.driver.sdk.ui.components.common.codeEditor
 import com.intellij.driver.sdk.ui.components.common.ideFrame
 import com.intellij.driver.sdk.waitFor
 import com.intellij.driver.sdk.waitForIndicators
@@ -80,7 +81,8 @@ class LamaRiderUiTest {
         openToolWindow("LamaRider")
         ideFrame { waitForText("aspects listed (first refresh done)", "Log") }
         caretAt("MetalamaSample/Calculator.cs", "Add(")
-        invokeAction("LamaRider.ShowTransformedCode")
+        // An editor action: its data context (editor, file) comes from the editor component.
+        ideFrame { invokeAction("LamaRider.ShowTransformedCode", component = codeEditor().component) }
         // The popup is its own window: search all of them.
         waitFor("transformed Add in the popup", timeout = 1.minutes) { ui.x(xQuery { contains(byVisibleText("Entering Add")) }).present() }
     }
