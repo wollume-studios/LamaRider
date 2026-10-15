@@ -282,12 +282,12 @@ interface LocalFileSystem {
     fun refreshAndFindFileByPath(path: String): VirtualFile?
 }
 
-@Remote("com.intellij.xdebugger.XDebuggerManager")
+@Remote("com.intellij.xdebugger.XDebuggerManager", plugin = "com.intellij/intellij.platform.debugger")
 interface XDebuggerManager {
     fun getCurrentSession(): XDebugSession?
 }
 
-@Remote("com.intellij.xdebugger.XDebugSession")
+@Remote("com.intellij.xdebugger.XDebugSession", plugin = "com.intellij/intellij.platform.debugger")
 interface XDebugSession {
     fun isPaused(): Boolean
     fun stop()
