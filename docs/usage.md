@@ -92,15 +92,19 @@ Above every declaration an aspect touches, Code Vision says which aspects:
 | Code Vision | Meaning |
 |---|---|
 | `transformed code` | Only aspects added by attributes, which you see in the code anyway. Click for the transformed code. |
-| `Log` | Aspects not visible in the code (added by a fabric, inherited, added or required by another aspect, ...). At most two are named. |
-| `3 aspects` | More than two aspects not visible in the code (the count includes all aspects on the declaration). |
+| `Log` | One entry per aspect not visible in the code (added by a fabric, inherited, added or required by another aspect, ...), e.g. `Log` and `NonNegative` side by side. At most two are named. |
+| `3 aspects` | More than two aspects not visible in the code, in one entry (the count includes all aspects on the declaration). |
 | `applied to 2 targets` | On an aspect class: how many targets it has in the solution. |
 
 Aspects on a parameter that an attribute adds count for the member (the attribute is in the code). Aspects on a
-parameter from a fabric, inheritance etc. get an **inlay hint** right after the parameter name, e.g. `a NonNegative`.
-Hover any of these for the full list: one line per aspect with where it comes from (attribute, added by a fabric,
-inherited from a base declaration, added by another aspect, required by another aspect, added from the IDE) and its
-documentation summary.
+parameter from a fabric, inheritance etc. get an **inlay hint** each, right after the parameter name, e.g.
+`a NonNegative`.
+
+**Hover** an entry or hint for its tooltip. A named aspect's tooltip first says where it comes from: *Added by fabric
+MetalamaSample.Fabric* (the fabric's full type name), *Inherited from ...*, *Added by aspect ...* or *Required by aspect
+...* (the aspect instance it comes from), *Added by an attribute*, *Added from the IDE*. Then the aspect's documentation
+summary, wrapped to about 70 characters. The tooltips of `N aspects` and `transformed code` list each aspect that way,
+with its name.
 
 ![Code Vision and parameter hints](screenshots/code-vision.png)
 
@@ -124,6 +128,9 @@ aspects open their SourceLink or decompiled source), *Show it in the LamaRider w
 Limitations:
 
 - Code Vision is per line, so aspects on parameters are hints after the parameter, not Code Vision entries.
+- Rider shows one Code Vision entry per provider and declaration. LamaRider has three providers (*Metalama aspects*,
+  *Metalama aspects (second aspect)*, *Metalama aspect targets*, also in *Settings › Editor › Inlay Hints › Code
+  Vision*), so a declaration shows at most two named aspects, and more collapse into `N aspects`.
 - The counts come from the last refresh: a freshly added `[Log]` shows up after the save has been analyzed.
 
 ## Transformed code

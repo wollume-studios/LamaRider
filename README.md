@@ -11,7 +11,7 @@ Metalama tooling for JetBrains Rider — the Rider counterpart of the Visual Stu
 | Feature | What you get |
 |---|---|
 | **LamaRider tool window** | Right side bar (llama icon): every aspect class of the solution and its packages, filtered by name and grouped by project/package, by namespace or not at all; documentation and *Go to source* (also for library aspects: sources or decompiled); the targets of the selected aspect as Project › Namespace › Type › Member with transformations and diagnostics. *Track Caret* shows the aspects affecting the code at the caret instead. Refreshes on its own after saves, builds and package changes. |
-| **Code Vision** | Above every declaration an aspect touches: `transformed code` for aspects you see as attributes, the names of the others (`Log`), `N aspects` for more than two; `applied to N targets` on aspect classes. The tooltip lists each aspect with its origin (attribute, added by a fabric, inherited, ...) and documentation. Aspects a fabric or inheritance puts on a parameter get an inlay hint after the parameter. A click on `transformed code` opens the transformed code; on aspect names, a menu with the transformed code, Metalama Diff and the aspects grouped by member, parameter and return value. Clicking an aspect goes to its source, shows it in the LamaRider window, or asks (*Settings › Tools › LamaRider*). |
+| **Code Vision** | Above every declaration an aspect touches: one entry per aspect added by a fabric, inheritance etc. (`Log`, `NonNegative`), `N aspects` for more than two, `transformed code` when all its aspects are attributes you see anyway; `applied to N targets` on aspect classes. The tooltip says where the aspect comes from (the fabric's full name, or the aspect it is inherited from, added or required by) and gives its documentation. Aspects a fabric or inheritance puts on a parameter get an inlay hint per aspect after the parameter. A click on `transformed code` opens the transformed code; on aspect names, a menu with the transformed code, Metalama Diff and the aspects grouped by member, parameter and return value. Clicking an aspect goes to its source, shows it in the LamaRider window, or asks (*Settings › Tools › LamaRider*). |
 | **Transformed code** | *Show Transformed Code* (Code Vision, editor menu): the declaration after all aspects in a popup, highlighted, with a toggle to diff it with the source, *Whole File in Metalama Diff*, and links to the aspects that changed it. *Metalama Diff* (editor / Solution Explorer menu, `Ctrl+K, 0` in the Visual Studio keymap): the whole file, source vs transformed. |
 | **T# highlighting** | Compile-time code in templates is tinted, `meta.*` and compile-time variables stand out. Colors: *Settings › Editor › Color Scheme › Metalama T#*. |
 | **Metalama errors** | Errors such as LAMA0037 are underlined from LamaRider's own analysis seconds after a save, also while Rider's own Metalama analysis waits for a build (LAMA0118). Errors without a location (e.g. an exception in a fabric) show in an info bar on C# editors and on your aspect classes. Alt+Enter: LAMA documentation, *Build project to resume Metalama analysis*; optional build on save. |
@@ -36,8 +36,9 @@ tool window bar.
 
 ![Code Vision and parameter hints](docs/screenshots/code-vision.png)
 
-Code Vision on the sample: `transformed code` on the declarations with aspect attributes, `Log` on a method a fabric
-targets, and `NonNegative` hints after its parameters (hover them for the origin and documentation). Shown on any C# file
+Code Vision on the sample: `transformed code` on the declarations with aspect attributes, one entry each for `Log` and
+`NonNegative` (its return value) on a method a fabric targets, and `NonNegative` hints after its parameters (hover them
+for the fabric's name and the aspect's documentation). Shown on any C# file
 once LamaRider has analyzed it.
 
 ![Code Vision popup](docs/screenshots/code-vision-popup.png)

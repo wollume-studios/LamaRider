@@ -14,10 +14,11 @@ refreshes on its own after saves, builds and package changes.</p>
 
 <h3>Code Vision and transformed code</h3>
 <ul>
-  <li>Above every declaration an aspect touches: <b>transformed code</b> for aspects you see as attributes, the names of
-    the others, <b>N aspects</b> for more than two; <b>applied to N targets</b> above aspect classes. The tooltip gives
-    each aspect's origin (attribute, fabric, inherited, ...) and documentation. Aspects a fabric puts on a parameter get
-    an inlay hint.</li>
+  <li>Above every declaration an aspect touches: one entry per aspect added by a fabric, inheritance etc.,
+    <b>N aspects</b> for more than two, <b>transformed code</b> when all are attributes you see anyway; <b>applied to N
+    targets</b> above aspect classes. The tooltip says where the aspect comes from (the fabric's name, or the aspect it
+    is inherited from, added or required by) and gives its documentation. Aspects a fabric puts on a parameter get an
+    inlay hint each.</li>
   <li>A click shows the aspects grouped by member, parameter and return value. Clicking an aspect goes to its source
     (also SourceLink or decompiled), shows it in the LamaRider window, or asks: your choice in the settings.</li>
   <li><b>Show Transformed Code</b> (also a click on <b>transformed code</b>): the transformed code of one declaration in a
