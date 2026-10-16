@@ -10,32 +10,85 @@ Metalama tooling for JetBrains Rider — the Rider counterpart of the Visual Stu
 
 | Feature | What you get |
 |---|---|
-| **LamaRider tool window** | Right side bar (llama icon): aspect classes grouped by project and package (or, with *Track Caret*, only those affecting the code at the caret); select one to see its documentation and its targets as Project › Namespace › Type › Member with kind icons, transformations and diagnostics. Double-click a transformation for its transformed code. *Go to source* also works for library aspects (Rider opens sources or decompiles). Refreshes on its own when code, projects or packages change. Toolbar: *Debug with LamaDebug*, settings; gear menu: all LamaRider toggles. |
-| **Code Vision** | `N aspects` above every declaration an aspect touches (attribute, fabric, inheritance, child aspect; aspects on parameters count for their method); `applied to N targets` above aspect classes. Click for *Show Transformed Code* (popup), *Metalama Diff*, *Show in LamaRider*, *Go to aspect*. |
+| **LamaRider tool window** | Right side bar (llama icon): every aspect class of the solution and its packages, filtered by name and grouped by project/package, by namespace or not at all; documentation and *Go to source* (also for library aspects: sources or decompiled); the targets of the selected aspect as Project › Namespace › Type › Member with transformations and diagnostics. *Track Caret* shows the aspects affecting the code at the caret instead. Refreshes on its own after saves, builds and package changes. |
+| **Code Vision** | Above every declaration an aspect touches: `transformed code` for aspects you see as attributes, the names of the others (`Log`), `N aspects` for more than two; `applied to N targets` on aspect classes. The tooltip lists each aspect with its origin (attribute, added by a fabric, inherited, ...) and documentation. Aspects a fabric or inheritance puts on a parameter get an inlay hint after the parameter. A click on `transformed code` opens the transformed code; on aspect names, a menu with the transformed code, Metalama Diff and the aspects grouped by member, parameter and return value. Clicking an aspect goes to its source, shows it in the LamaRider window, or asks (*Settings › Tools › LamaRider*). |
+| **Transformed code** | *Show Transformed Code* (Code Vision, editor menu): the declaration after all aspects in a popup, highlighted, with a toggle to diff it with the source, *Whole File in Metalama Diff*, and links to the aspects that changed it. *Metalama Diff* (editor / Solution Explorer menu, `Ctrl+K, 0` in the Visual Studio keymap): the whole file, source vs transformed. |
 | **T# highlighting** | Compile-time code in templates is tinted, `meta.*` and compile-time variables stand out. Colors: *Settings › Editor › Color Scheme › Metalama T#*. |
-| **Metalama Diff** | Right-click a `.cs` file (editor or Solution Explorer) › *Metalama Diff*: source vs transformed code. `Ctrl+K, 0` in the Visual Studio keymap. |
-| **Show Transformed Code** | Editor context menu / Find Action: the transformed code of the declaration at the caret in a popup, with the aspects that changed it. |
-| **Show Metalama Aspects** | Editor context menu / Find Action: the Code Vision popup for the declaration at the caret (keyboard access). |
-| **Rider setup for aspect tests** | When a solution references `Metalama.Testing.AspectTesting` and xUnit discovery is still *Metadata* (Metalama's docs: aspect tests need *Test Runner* discovery), a notification offers to fix it — team-shared (`.sln.DotSettings`), personal, or global. It also stops the orphaned-processes prompt for diff tools that failing aspect tests open. Also on demand: *Settings › Tools › LamaRider*. Rider 2026.3 already defaults to Test Runner, so usually nothing is needed. |
-| **Aspect tests** | Alt+Enter on an aspect class, or editor menu *Create Metalama Aspect Test*: a test file with a target already using the aspect, in the aspect test project next to the aspect's project (`<Project>.AspectTests`, created and added to the solution when missing; existing aspect test projects are offered too). Run it once, then *Accept Metalama Test Output* (Alt+Enter or editor menu in the test file) saves the output as its `.t.cs` snapshot. Test files have a run icon in the gutter and *Run / Debug Metalama Aspect Test* in the editor and Solution Explorer menus. Debugging stops at breakpoints in your aspects, templates and fabrics: LamaRider mirrors them into the code Metalama actually compiles. Test inputs show their aspects in the LamaRider window, Code Vision and Track Caret. |
-| **Metalama errors** | An info bar on C# editors when Metalama reports errors (go to error, LAMA documentation, build). Errors without a location, such as LAMA0042 aspect ordering, are underlined on your aspect classes. Alt+Enter in aspect/template code: *Build project to resume Metalama analysis* (LAMA0118); *Settings › Tools › LamaRider* can build on save (off by default). |
-| **Debug transformed code** | *Debug with LamaDebug* (LamaRider tool window): selects Metalama's `LamaDebug` configuration, adding it to the `.sln`/`.slnx` first if needed (copied from Debug; projects without Metalama stay Debug), and starts debugging. Step into aspect code or set breakpoints in *Open Transformed File* (`obj/LamaDebug/…/metalama`). Alternatively *Settings › Tools › LamaRider › Debug transformed code in every build configuration* (`Directory.Build.props`). |
+| **Metalama errors** | Errors such as LAMA0037 are underlined from LamaRider's own analysis seconds after a save, also while Rider's own Metalama analysis waits for a build (LAMA0118). Errors without a location (e.g. an exception in a fabric) show in an info bar on C# editors and on your aspect classes. Alt+Enter: LAMA documentation, *Build project to resume Metalama analysis*; optional build on save. |
+| **Debug transformed code** | *Debug with LamaDebug* (tool window): selects Metalama's `LamaDebug` configuration, adding it to the `.sln`/`.slnx` first if needed, and starts debugging the transformed code. Or debug transformed code in every configuration (*Settings › Tools › LamaRider*), with or without formatting it (LAMA0066). |
+| **Aspect tests** | Alt+Enter on an aspect class › *Create Metalama aspect test*: a prefilled test in the aspect test project next to the aspect's project, created when missing. Run / debug it from the gutter icon or the context menus, then *Accept Metalama Test Output* saves the `.t.cs` snapshot. Breakpoints in your aspects, templates and fabrics stop while debugging. Rider's Test Runner discovery, which aspect tests need, is set up for you. |
 
-PostSharp classic (MSIL) projects are not supported.
+PostSharp classic (MSIL) projects are not supported. **How to use each feature, step by step, and its limitations:
+[docs/usage.md](docs/usage.md).**
+
+## Screenshots
 
 ![LamaRider tool window](docs/screenshots/lamarider-window.png)
 
-| Transformed code popup | Metalama errors |
-|---|---|
-| ![Show Transformed Code](docs/screenshots/transformed-code-popup.png) | ![Metalama error info bar](docs/screenshots/error-banner.png) |
+The LamaRider tool window (right) with the `Log` aspect selected: *Go to source*, its documentation, and its targets in
+the solution and in the aspect test project, with the transformations it makes. Open it from the llama icon in the right
+tool window bar.
 
-| T# highlighting | Metalama Diff |
-|---|---|
-| ![T# highlighting](docs/screenshots/tsharp-highlighting.png) | ![Metalama Diff](docs/screenshots/metalama-diff.png) |
+![Track Caret](docs/screenshots/track-caret.png)
 
-| Settings › Tools › LamaRider | Debugging transformed code |
-|---|---|
-| ![LamaRider settings](docs/screenshots/settings.png) | ![Debugging transformed code](docs/screenshots/debug-transformed-code.png) |
+*Track Caret* (locate icon in the LamaRider toolbar): the targets tree follows the caret and lists every aspect on
+`Multiply`, its parameters and its class.
+
+![Code Vision and parameter hints](docs/screenshots/code-vision.png)
+
+Code Vision on the sample: `transformed code` on the declarations with aspect attributes, `Log` on a method a fabric
+targets, and `NonNegative` hints after its parameters (hover them for the origin and documentation). Shown on any C# file
+once LamaRider has analyzed it.
+
+![Code Vision popup](docs/screenshots/code-vision-popup.png)
+
+Click an aspect name in Code Vision (or *Show Metalama Aspects* in the editor menu): the transformed code, Metalama Diff
+and the aspects grouped by member and parameter, with their origin. Clicking an aspect goes to its source by default.
+
+![Transformed code popup](docs/screenshots/transformed-code-popup.png)
+
+*Show Transformed Code* (a click on `transformed code`, or the editor menu): `Add` after the `Log` aspect. The toolbar
+switches to a diff with the source or opens the whole file in Metalama Diff; the links at the bottom lead to the aspects.
+
+![Metalama Diff](docs/screenshots/metalama-diff.png)
+
+*Metalama Diff* (right-click a `.cs` file in the editor or Solution Explorer): the source next to the whole transformed
+file.
+
+![T# highlighting](docs/screenshots/tsharp-highlighting.png)
+
+T# highlighting in an aspect: compile-time code (`meta.Target.Method.Name`, `meta.Proceed()`, the compile-time variable
+`name`) stands out from the code the template generates. Colors in *Settings › Editor › Color Scheme › Metalama T#*.
+
+![Metalama error info bar](docs/screenshots/error-banner.png)
+
+A Metalama error without a location (here an exception in a fabric, LAMA0041): an info bar on every C# editor with the
+LAMA documentation and a build, and the error underlined on the aspect classes.
+
+![Debugging transformed code](docs/screenshots/debug-transformed-code.png)
+
+Stepping into `Multiply` lands in its transformed code (the `Log` aspect's `Console.WriteLine` calls are real lines
+there). Use *Debug with LamaDebug* in the LamaRider tool window, or turn on *Debug transformed code in every build
+configuration* in the settings and debug as usual.
+
+![New aspect test](docs/screenshots/create-aspect-test.png)
+
+A new aspect test from Alt+Enter on `LogAttribute` › *Create Metalama aspect test*: `LogTests/LogTest.cs` in the aspect
+test project, with a target that already uses `[Log]`.
+
+![Aspect test](docs/screenshots/aspect-test.png)
+
+An aspect test file: the gutter icon runs or debugs it, and Code Vision shows what the aspect does to the test input.
+
+![Debugging an aspect test](docs/screenshots/debug-aspect-test.png)
+
+*Debug Metalama Aspect Test*: stopped at a breakpoint set in `LogAttribute.cs`. The debugger shows Metalama's compiled
+copy of the aspect; the info bar opens your file at the same line.
+
+![LamaRider settings](docs/screenshots/settings.png)
+
+*Settings › Tools › LamaRider* (or the settings icon in the LamaRider tool window): what clicking an aspect does, build on
+save, debugging transformed code, formatting it, and whether Rider is set up for aspect tests.
 
 ## Requirements
 
@@ -51,8 +104,9 @@ The worker uses Metalama's `Metalama.Framework.Workspaces` introspection API and
 writes `model.json` plus the transformed files to `%LOCALAPPDATA%\LamaRider\out\`. It is built from source on first
 use against your Metalama version (cached in `%LOCALAPPDATA%\LamaRider\worker\`), so the first refresh takes a minute.
 
-Data refreshes on solution load, after every build, and via the Refresh button in the LamaRider tool window. Between
-refreshes, results reflect the last build. Worker output is logged to `%LOCALAPPDATA%\LamaRider\logs\last-run.log`.
+Data refreshes on solution load, about a second after code, project or package files change, after every build, and via
+the Refresh button in the LamaRider tool window. Between refreshes, results reflect the last one. Worker output is logged
+to `%LOCALAPPDATA%\LamaRider\logs\last-run.log`.
 
 ## Build and install
 
@@ -94,6 +148,25 @@ dotnet test LamaRider.sln
 ```bash
 ./gradlew unitTest
 ```
+
+UI tests in a real Rider (Rider from `LAMARIDER_RIDER`; on Linux under `xvfb-run -a -s "-screen 0 1920x1080x24"`):
+
+```bash
+./gradlew uiTest
+```
+
+### Screenshots
+
+The images in `docs/screenshots` are taken by `ScreenshotsUiTest` on the sample solution (Linux, Xvfb), which the
+normal `uiTest` run leaves out (all but `tsharp-color-settings.png`, which is taken by hand):
+
+```bash
+xvfb-run -a -s "-screen 0 1920x1080x24" ./gradlew uiTest -PuiTestScreenshots
+cp build/screenshots/*.png docs/screenshots/
+```
+
+Keep the file names (README, docs/usage.md and the plugin description use them) and a short caption under every
+screenshot in this README: what you see and how to get there.
 
 ## Plugin description
 
