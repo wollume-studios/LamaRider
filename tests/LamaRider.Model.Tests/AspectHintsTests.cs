@@ -19,10 +19,10 @@ public class AspectHintsTests
     }
 
     [Fact]
-    public void Aspects_added_elsewhere_are_named_with_their_origin()
+    public void Aspects_added_elsewhere_are_named_their_origin_is_in_the_tooltip()
     {
-        Assert.Equal("GreaterThan1 (fabric)", AspectHints.Text([On(Add, "GreaterThan1", "Fabric")], Name));
-        Assert.Equal("Audit (inherited), Trace (fabric)",
+        Assert.Equal("GreaterThan1", AspectHints.Text([On(Add, "GreaterThan1", "Fabric")], Name));
+        Assert.Equal("Audit, Trace",
             AspectHints.Text([On(Add, "Log", "Attribute"), On(Add, "Audit", "Inherited"), On(Add, "Trace", "Fabric")], Name));
     }
 
@@ -37,7 +37,7 @@ public class AspectHintsTests
     public void The_same_aspect_twice_is_named_once()
     {
         // e.g. a fabric adding the aspect to a member and Metalama reporting it per target framework
-        Assert.Equal("GreaterThan1 (fabric)", AspectHints.Text([On(Add, "GreaterThan1", "Fabric"), On(Add, "GreaterThan1", "Fabric")], Name));
+        Assert.Equal("GreaterThan1", AspectHints.Text([On(Add, "GreaterThan1", "Fabric"), On(Add, "GreaterThan1", "Fabric")], Name));
     }
 
     [Fact]
@@ -53,5 +53,18 @@ public class AspectHintsTests
         Assert.Equal(["T:GreaterThan1"], AspectHints.ForParameter(all, Add, 0).Select(i => i.AspectClass));
         Assert.Empty(AspectHints.ForParameter(all, Add, 1)); // [Positive] is visible on the parameter
         Assert.Empty(AspectHints.ForParameter(all, Add, 2));
+    }
+
+    [Fact]
+    public void Tooltip_says_where_each_aspect_comes_from_and_what_it_does()
+    {
+        var tooltip = AspectHints.Tooltip(
+            [On(Add, "GreaterThan1", "Fabric"), On(Add, "Log", "Attribute"), On(Add, "Audit", "ChildAspect")],
+            Name, id => id == "T:Log" ? "Writes a line when the method starts." : null);
+        Assert.Equal(
+            "GreaterThan1 — added by a fabric\n" +
+            "Log — attribute: Writes a line when the method starts.\n" +
+            "Audit — added by another aspect",
+            tooltip);
     }
 }

@@ -69,7 +69,7 @@ public sealed class AspectCodeVisionStage(AspectModelHost host, AspectCodeInsigh
         }
 
         string Tooltip(IEnumerable<AspectInstanceInfo> instances) =>
-            string.Join(", ", instances.Select(i => $"{model.AspectName(i.AspectClass)} ({AspectHints.Origin(i.AppliedVia)})").Distinct());
+            AspectHints.Tooltip(instances, model.AspectName, id => model.AspectClasses.FirstOrDefault(c => c.Id == id)?.Summary);
 
         AspectParameterHint? ParameterHint(IDeclaredElement element, DocumentRange nameRange)
         {

@@ -12,7 +12,8 @@ public static class AspectHints
 
     /// <summary>
     /// Aspects added by an attribute are visible in the code, so they are not named; aspects added by fabrics,
-    /// inheritance etc. are, with their origin. Only attribute aspects: "transformed code" (the click shows it).
+    /// inheritance etc. are (their origin is in the <see cref="Tooltip"/>). Only attribute aspects: "transformed code"
+    /// (the click shows it).
     /// </summary>
     public static string Text(IReadOnlyCollection<AspectInstanceInfo> instances, Func<string, string> aspectName)
     {
@@ -21,8 +22,28 @@ public static class AspectHints
             .ToList();
         if (named.Count == 0) return "transformed code";
         if (named.Count > MaxNamed) return $"{instances.Select(i => i.AspectClass).Distinct().Count()} aspects";
-        return string.Join(", ", named.Select(i => $"{aspectName(i.AspectClass)} ({Origin(i.AppliedVia)})"));
+        return string.Join(", ", named.Select(i => aspectName(i.AspectClass)));
     }
+
+    /// <summary>One line per aspect: name, where it comes from and its documentation summary.</summary>
+    public static string Tooltip(IEnumerable<AspectInstanceInfo> instances, Func<string, string> aspectName, Func<string, string?> summary) =>
+        string.Join("\n", instances.GroupBy(i => (i.AspectClass, i.AppliedVia)).Select(g =>
+        {
+            var line = $"{aspectName(g.Key.AspectClass)} — {OriginDescription(g.Key.AppliedVia)}";
+            return summary(g.Key.AspectClass) is { Length: > 0 } doc ? $"{line}: {doc}" : line;
+        }));
+
+    /// <summary>Metalama's AspectPredecessorKind in words.</summary>
+    public static string OriginDescription(string appliedVia) => appliedVia switch
+    {
+        "Attribute" => "attribute",
+        "Fabric" => "added by a fabric",
+        "Inherited" => "inherited from a base declaration",
+        "ChildAspect" => "added by another aspect",
+        "RequiredAspect" => "required by another aspect",
+        "Interactive" => "added from the IDE",
+        _ => "origin unknown",
+    };
 
     /// <summary>"Fabric" -> "fabric", "ChildAspect" -> "child aspect".</summary>
     public static string Origin(string appliedVia) => appliedVia switch

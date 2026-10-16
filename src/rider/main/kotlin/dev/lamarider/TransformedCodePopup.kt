@@ -27,6 +27,10 @@ import com.intellij.openapi.vfs.LocalFileSystem
 import com.intellij.util.ui.JBUI
 import dev.lamarider.diff.MetalamaDiff
 import java.awt.BorderLayout
+import java.awt.FlowLayout
+import com.intellij.ui.components.ActionLink
+import com.intellij.ui.components.JBLabel
+import com.intellij.openapi.project.DumbAwareAction
 import java.awt.CardLayout
 import java.awt.Dimension
 import java.io.File
@@ -80,6 +84,7 @@ object TransformedCodePopup {
             root.preferredSize = Dimension(if (diff) width * 2 else width, height + if (diff) 40 else 0)
             popup?.pack(true, true)
         }
+        val actions = DefaultActionGroup()
         if (source != null) {
             val diff = DiffManager.getInstance().createRequestPanel(project, disposable, null)
             diff.setRequest(SimpleDiffRequest(null, factory.create(project, source, fileType), factory.create(project, transformed, fileType), "Source", "Transformed"))
@@ -92,17 +97,35 @@ object TransformedCodePopup {
                     showView(state)
                 }
             }
-            val toolbar = ActionManager.getInstance().createActionToolbar("LamaRider.TransformedCodePopup", DefaultActionGroup(toggle), true)
-            toolbar.targetComponent = root
-            root.add(toolbar.component, BorderLayout.NORTH)
+            actions.add(toggle)
         }
+        actions.add(object : DumbAwareAction("Whole File in Metalama Diff", "The whole transformed file next to its source", AllIcons.Actions.ListFiles) {
+            override fun actionPerformed(e: AnActionEvent) {
+                popup?.cancel()
+                MetalamaDiff.open(project, sourceFile, declaration.sourceStart ?: 0)
+            }
+        })
+        val toolbar = ActionManager.getInstance().createActionToolbar("LamaRider.TransformedCodePopup", actions, true)
+        toolbar.targetComponent = root
+        root.add(toolbar.component, BorderLayout.NORTH)
         showView(source != null && PropertiesComponent.getInstance().getBoolean(SHOW_DIFF))
 
-        val aspects = model.instancesOn(target).mapNotNull { i -> model.aspectClass(i.aspectClass)?.name ?: i.aspectClass.substringAfterLast('.') }.distinct()
+        // The aspects that changed it, as links (what a click does: Settings › Tools › LamaRider).
+        val aspects = model.instancesOn(target).map { it.aspectClass }.distinct()
+        if (aspects.isNotEmpty()) {
+            val links = JPanel(FlowLayout(FlowLayout.LEFT, 8, 2)).apply { border = JBUI.Borders.empty(2, 4) }
+            links.add(JBLabel("Aspects:"))
+            for (id in aspects) {
+                links.add(ActionLink(model.aspectClass(id)?.name ?: id.substringAfterLast('.')) {
+                    popup?.cancel()
+                    AspectClick.run(project, id)
+                }.apply { toolTipText = model.aspectClass(id)?.summary })
+            }
+            root.add(links, BorderLayout.SOUTH)
+        }
         popup = JBPopupFactory.getInstance()
             .createComponentPopupBuilder(root, viewer.contentComponent)
             .setTitle("Transformed: ${target.substringAfter(':').substringBefore('(').substringAfterLast('.')}")
-            .setAdText(if (aspects.isEmpty()) "All aspects applied" else "Aspects: ${aspects.joinToString(", ")}")
             .setResizable(true)
             .setMovable(true)
             .setRequestFocus(true)
