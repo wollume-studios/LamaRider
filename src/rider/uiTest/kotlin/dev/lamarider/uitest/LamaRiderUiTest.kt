@@ -181,6 +181,8 @@ class LamaRiderUiTest {
         waitFor("debug session started", timeout = 10.minutes) { debugger.getCurrentSession() != null }
         try {
             waitFor("stopped at the breakpoint in the aspect", timeout = 5.minutes) { debugger.getCurrentSession()?.isPaused() == true }
+            // The debugger shows Metalama's compiled copy; the banner leads back to LogAttribute.cs.
+            ideFrame { waitForText("compiled copy banner", "Metalama's compiled copy of LogAttribute.cs") }
         } finally {
             debugger.getCurrentSession()?.stop()
         }

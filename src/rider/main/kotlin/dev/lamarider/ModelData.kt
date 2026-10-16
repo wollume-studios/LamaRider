@@ -31,7 +31,11 @@ data class AspectInstanceInfo(
     val memberName: String get() = targetName.removePrefix(targetType.substringAfterLast('.') + ".").replace("/", " › ")
 }
 
-data class TransformationInfo(val aspectClass: String, val target: String, val kind: String, val description: String, val location: SourceLocation?)
+/** [instanceTarget]: target of the aspect instance that made it (null in older models); a parameter contract transforms its method. */
+data class TransformationInfo(
+    val aspectClass: String, val target: String, val kind: String, val description: String, val location: SourceLocation?,
+    val instanceTarget: String? = null,
+)
 
 data class DiagnosticInfo(val id: String, val severity: String, val message: String, val target: String?, val file: String?, val line: Int?)
 
@@ -59,7 +63,10 @@ data class ModelData(
     /** A contract on a parameter (";Parameter=0" / ";ReturnParameter") transforms its method. */
     fun transformationsOf(instance: AspectInstanceInfo) =
         transformations.filter {
-            it.aspectClass == instance.aspectClass && (it.target == instance.target || it.target == instance.target.substringBefore(';'))
+            it.aspectClass == instance.aspectClass && when (val by = it.instanceTarget) {
+                null -> it.target == instance.target || it.target == instance.target.substringBefore(';')
+                else -> by == instance.target // two parameters' contracts both transform the method
+            }
         }
     fun diagnosticsOn(target: String) = diagnostics.filter { it.target == target }
     fun aspectClass(id: String) = aspectClasses.firstOrNull { it.id == id }

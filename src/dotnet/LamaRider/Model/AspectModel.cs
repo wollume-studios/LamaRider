@@ -130,6 +130,14 @@ public sealed class AspectModel
         return inFile.Where(i => i.Location!.End == declarationEnd && i.Location.Start <= nameOffset).ToList();
     }
 
+    /// <summary>Instances on a member, its parameters and return value, by the member's doc id.</summary>
+    public IReadOnlyList<AspectInstanceInfo> InstancesOf(string memberDocId) =>
+        _byTarget.TryGetValue(memberDocId, out var instances) ? instances : Array.Empty<AspectInstanceInfo>();
+
+    /// <summary>Display name of an aspect class ("GreaterThan1"), its id's last segment when unknown.</summary>
+    public string AspectName(string aspectClassId) =>
+        AspectClasses.FirstOrDefault(c => c.Id == aspectClassId)?.Name ?? aspectClassId.Substring(aspectClassId.LastIndexOf('.') + 1);
+
     /// <summary>"" or " · N Metalama errors" for the status line; the frontend shows the details in a notification.</summary>
     public string ErrorSummary
     {

@@ -79,7 +79,8 @@ public static class Extractor
                 DocId(t.TargetDeclaration),
                 t.TransformationKind.ToString(),
                 t.Description.ToString(),
-                Locate(t.TargetDeclaration)))
+                Locate(t.TargetDeclaration),
+                DocId(t.Advice.AspectInstance.TargetDeclaration)))
             .Distinct()
             .ToList();
 

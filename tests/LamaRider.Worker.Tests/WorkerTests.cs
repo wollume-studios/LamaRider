@@ -101,6 +101,15 @@ public sealed class WorkerTests : IAsyncLifetime
     }
 
     [Fact]
+    public void Transformations_name_the_aspect_instance_that_made_them()
+    {
+        // A parameter contract changes its method: the instance target tells which parameter's contract it is.
+        var url = _output.Transformations.Single(t => t.AspectClass == "T:Metalama.Patterns.Contracts.UrlAttribute");
+        Assert.Equal("M:MetalamaSample.Links.Open(System.String)", url.Target);
+        Assert.Equal("M:MetalamaSample.Links.Open(System.String);Parameter=0", url.InstanceTarget);
+    }
+
+    [Fact]
     public void Classifies_template_code()
     {
         var file = _output.TemplateClassifications.Single(f => f.File.EndsWith("LogAttribute.cs"));

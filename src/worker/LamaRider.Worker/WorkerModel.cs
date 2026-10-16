@@ -24,7 +24,8 @@ public sealed record AspectInstanceInfo(
     string AspectClass, string Target, string TargetName, string TargetType, string TargetKind,
     string Project, string AppliedVia, SourceLocation? Location);
 
-public sealed record TransformationInfo(string AspectClass, string Target, string Kind, string Description, SourceLocation? Location);
+/// <param name="InstanceTarget">Target of the aspect instance that made it: a parameter contract transforms its method.</param>
+public sealed record TransformationInfo(string AspectClass, string Target, string Kind, string Description, SourceLocation? Location, string? InstanceTarget = null);
 
 public sealed record DiagnosticInfo(string Id, string Severity, string Message, string? Target, string? File, int? Line, string? Project = null);
 
