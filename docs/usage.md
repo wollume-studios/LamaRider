@@ -15,7 +15,7 @@ Step by step for every feature, and what it cannot do. For an overview with scre
 
 ## Before you start
 
-- Rider 2026.3 (build 263, EAP6 or later), a .NET SDK 8.0 or newer on `PATH`.
+- Rider 2026.2 or 2026.3 (not 2026.1), a .NET SDK 8.0 or newer on `PATH`.
 - The solution references `Metalama.Framework` 2026.x and has been restored once (`obj/project.assets.json` exists).
   The Metalama version is read from there; with several versions in one solution, LamaRider uses one of them for all
   projects (and logs a warning).
@@ -320,7 +320,7 @@ Rider 2026.3 already defaults to Test Runner discovery, so usually nothing is ne
 
 ## Known limitations
 
-- Rider 2026.3 and Metalama 2026.x only. PostSharp classic (MSIL) projects are not supported.
+- Rider 2026.2 and 2026.3 (2026.1 lacks an API LamaRider uses) and Metalama 2026.x only. PostSharp classic (MSIL) projects are not supported.
 - All analysis runs out of process through Metalama Workspaces: a refresh takes seconds, the first one about a minute,
   and projects must be restorable and loadable by MSBuild.
 - With several Metalama versions in one solution, one version is used for all projects.

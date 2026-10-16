@@ -93,7 +93,8 @@ save, debugging transformed code, formatting it, and whether Rider is set up for
 
 ## Requirements
 
-- Rider 2026.3 (build 263+, EAP6 or later).
+- Rider 2026.2 or 2026.3 (one plugin build for both: built against 2026.2.3, since-build 262). Rider 2026.1 is not
+  supported: it lacks an API LamaRider uses (`ISolution.ToDataContext2`).
 - .NET SDK on `PATH` (8.0 or newer).
 - Solutions referencing `Metalama.Framework` 2026.x, restored at least once (`obj/project.assets.json` must exist).
 - No Metalama license needed: everything runs on the open-source Metalama framework.
@@ -116,6 +117,14 @@ to `%LOCALAPPDATA%\LamaRider\logs\last-run.log`.
 ```
 
 Install `build/distributions/LamaRider-<version>.zip` via *Settings › Plugins › ⚙ › Install Plugin from Disk…*.
+
+The Rider to build against is set by three Gradle properties in `gradle.properties`: `ProductVersion` (Rider, frontend),
+`SdkVersion` (`JetBrains.Rider.SDK`, backend) and `SinceBuild` (first build the plugin installs in). The default
+(2026.2.3, 2026.2.3.1, 262) also runs in 2026.3. To build against 2026.3 instead:
+
+```bash
+./gradlew buildPlugin -PProductVersion=2026.3-EAP6-SNAPSHOT -PSdkVersion=2026.3.0-eap06 -PSinceBuild=263
+```
 
 ### Automatic updates from a local plugin repository
 
@@ -154,6 +163,14 @@ UI tests in a real Rider (Rider from `LAMARIDER_RIDER`; on Linux under `xvfb-run
 
 ```bash
 ./gradlew uiTest
+```
+
+The UI test framework (Starter/Driver) is pinned to 2026.3, whatever `ProductVersion` builds the plugin. It needs
+JetBrains' coroutines library, which UI tests take from the Rider under test (`LAMARIDER_RIDER`). Rider 2026.2 does not
+ship the version Starter needs, so testing against 2026.2 needs a 2026.3 Rider's jar via `-PuiTestCoroutinesJar`:
+
+```bash
+LAMARIDER_RIDER=<Rider 2026.2> xvfb-run -a -s "-screen 0 1920x1080x24" ./gradlew uiTest   -PuiTestCoroutinesJar=<Rider 2026.3>/lib/intellij.libraries.kotlinx.coroutines.core.jar
 ```
 
 ### Screenshots

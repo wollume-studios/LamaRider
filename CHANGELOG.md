@@ -1,6 +1,7 @@
 # Changelog
 
 ## Unreleased
+- Runs in Rider 2026.2 and 2026.3 (one build, built against 2026.2.3, since-build 262); UI tests pass in both. Rider 2026.1 is not supported (it lacks `ISolution.ToDataContext2`).
 - Code Vision shows one entry per aspect added by a fabric, inheritance etc. (Rider shows one entry per provider, so there are three: *Metalama aspects*, *Metalama aspects (second aspect)*, *Metalama aspect targets*); more than two still collapse to "N aspects". Parameter inlay hints are one per aspect too.
 - Hint tooltips start with where the aspect comes from, naming the fabric (full type name) or the aspect instance it is inherited from, added or required by, then its documentation summary, wrapped to about 70 characters. "N aspects" and "transformed code" list each aspect with its name.
 - The "transformed code" hint always opens the transformed code directly.
