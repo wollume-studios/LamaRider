@@ -9,13 +9,9 @@ import com.intellij.openapi.ui.popup.ListSeparator
 import com.intellij.openapi.ui.popup.PopupStep
 import com.intellij.openapi.ui.popup.util.BaseListPopupStep
 import com.intellij.openapi.wm.IdeFocusManager
-import com.intellij.openapi.wm.ToolWindowManager
 import com.intellij.ui.awt.RelativePoint
 import java.awt.MouseInfo
 import dev.lamarider.diff.MetalamaDiff
-import dev.lamarider.explorer.AspectExplorerPanel
-import dev.lamarider.explorer.AspectExplorerToolWindowFactory
-import dev.lamarider.explorer.Navigation
 
 /**
  * What a Code Vision click on a declaration offers: its transformed code, then its aspects grouped by what they decorate
@@ -30,13 +26,18 @@ object AspectPopup {
         val member = AspectModelIds.owner(docId)
         val groups = model.aspectsByTarget(docId)
         if (model.aspectClass(docId) != null && groups.isEmpty()) {
-            showInExplorer(project, docId)
+            AspectClick.showInLamaRider(project, docId)
             return@invokeLater
         }
 
+        val location = model.instancesOn(member).firstNotNullOfOrNull { it.location }
+        // Only attribute aspects ("transformed code" hint): the transformed code right away; it links the aspects.
+        if (location != null && groups.isNotEmpty() && groups.all { g -> g.entries.all { it.viaAttribute } } &&
+            TransformedCodePopup.show(project, location.file, member, caretAt = location.start)) return@invokeLater
+
         val items = mutableListOf<Item>()
         val pointer = if (atMouse) MouseInfo.getPointerInfo()?.location else null
-        model.instancesOn(member).firstNotNullOfOrNull { it.location }?.let { loc ->
+        location?.let { loc ->
             if (model.transformedDeclaration(loc.file, member) != null) {
                 items += Item("Show Transformed Code") { TransformedCodePopup.show(project, loc.file, member, caretAt = loc.start); Unit }
             }
@@ -45,17 +46,15 @@ object AspectPopup {
         for (group in groups) {
             group.entries.forEachIndexed { i, entry ->
                 val separator = if (i == 0) group.caption else null
-                val showInExplorer = { showInExplorer(project, entry.instance.aspectClass) }
-                val goTo = model.aspectClass(entry.instance.aspectClass)?.location
-                // Attribute aspects: Ctrl+click on the attribute already goes to the class.
-                items += if (entry.viaAttribute || goTo == null) Item(entry.label, separator, run = showInExplorer)
-                else Item(entry.label, separator, sub = listOf(
-                    Item("Show in LamaRider", run = showInExplorer),
-                    Item("Go to ${entry.name}") { Navigation.open(project, goTo) },
-                ))
+                val id = entry.instance.aspectClass
+                items += when (AspectClickAction.current) {
+                    AspectClickAction.SOURCE -> Item(entry.label, separator) { AspectClick.goToSource(project, id) }
+                    AspectClickAction.LAMARIDER -> Item(entry.label, separator) { AspectClick.showInLamaRider(project, id) }
+                    AspectClickAction.ASK -> Item(entry.label, separator, sub = AspectClick.choices(project, id).map { (label, run) -> Item(label, run = run) })
+                }
             }
         }
-        if (model.aspectClass(docId) != null) items += Item("Show targets in LamaRider", "Aspect class") { showInExplorer(project, docId) }
+        if (model.aspectClass(docId) != null) items += Item("Show targets in LamaRider", "Aspect class") { AspectClick.showInLamaRider(project, docId) }
         if (items.isEmpty()) return@invokeLater
         val editor = FileEditorManager.getInstance(project).selectedTextEditor ?: return@invokeLater
 
@@ -71,12 +70,6 @@ object AspectPopup {
             if (value.sub.isNotEmpty()) return step(project, null, value.sub)
             // After focus returns to the editor: a popup opened earlier is deactivated (and cancelled) by that.
             return doFinalStep { IdeFocusManager.getInstance(project).doWhenFocusSettlesDown { value.run?.invoke() } }
-        }
-    }
-
-    private fun showInExplorer(project: Project, aspectClassId: String) {
-        ToolWindowManager.getInstance(project).getToolWindow(AspectExplorerToolWindowFactory.ID)?.activate {
-            AspectExplorerPanel.current?.select(aspectClassId)
         }
     }
 }
