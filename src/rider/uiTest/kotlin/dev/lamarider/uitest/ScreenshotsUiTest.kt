@@ -3,7 +3,6 @@ package dev.lamarider.uitest
 import com.intellij.driver.client.Driver
 import com.intellij.driver.client.Remote
 import com.intellij.driver.model.OnDispatcher
-import com.intellij.driver.sdk.Project
 import com.intellij.driver.sdk.invokeAction
 import com.intellij.driver.sdk.openToolWindow
 import com.intellij.driver.sdk.singleProject
@@ -16,6 +15,7 @@ import com.intellij.driver.sdk.ui.remote.Component
 import com.intellij.driver.sdk.ui.ui
 import com.intellij.driver.sdk.ui.xQuery
 import com.intellij.driver.sdk.waitFor
+import com.intellij.ide.starter.ide.IDETestContext
 import org.junit.jupiter.api.Tag
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.fail
@@ -25,7 +25,6 @@ import java.awt.Toolkit
 import java.nio.file.Files
 import java.nio.file.Path
 import javax.imageio.ImageIO
-import kotlin.concurrent.thread
 import kotlin.io.path.writeText
 import kotlin.time.Duration.Companion.minutes
 import kotlin.time.Duration.Companion.seconds
@@ -38,6 +37,11 @@ import kotlin.time.Duration.Companion.seconds
 @Tag("screenshots")
 class ScreenshotsUiTest : UiTestBase() {
     private val out = Path.of(System.getProperty("lamarider.screenshots", "build/screenshots"))
+
+    override fun configure(context: IDETestContext) {
+        // On Linux, Rider picks Wayland when a desktop session runs: its windows would not be on the Xvfb screen we capture.
+        if (!System.getProperty("os.name").startsWith("Windows")) context.applyVMOptionsPatch { addSystemProperty("awt.toolkit.name", "XToolkit") }
+    }
 
     @Test
     fun `tool window, Code Vision, popups, T#, diff and settings`() = withRider("shots", prepare = { dir ->
@@ -103,8 +107,17 @@ class ScreenshotsUiTest : UiTestBase() {
         editorAction("LamaRider.MetalamaDiff")
         shot("metalama-diff", windowOf(popup("Transformed (read-only)")))
 
-        settingsShot("settings", "LamaRider", "Aspect Tests")
-        settingsShot("tsharp-color-settings", "Metalama T#", "Metalama T#")
+        // Not blocking: the dialog is modal.
+        invokeAction("LamaRider.Settings", now = false)
+        val settings = windowOf(popup("Aspect Tests"))
+        shot("settings", settings)
+        val tree = ui.x(xQuery { byTitle("Settings") }).xx(JTreeUiComponent::class.java) { or(byClass("MyTree"), byClass("Tree")) }.list()
+            .first { it.hasSubtext("Editor") }
+        tree.expandPath("Editor", "Color Scheme", fullMatch = true)
+        tree.clickPath("Editor", "Color Scheme", "Metalama T#", fullMatch = true)
+        Thread.sleep(3000)
+        shot("tsharp-color-settings", settings)
+        ui.x(xQuery { byTitle("Settings") }).x(xQuery { byText("Cancel") }).click()
     }
 
     @Test
@@ -227,19 +240,6 @@ class ScreenshotsUiTest : UiTestBase() {
         Thread.sleep(500)
     }
 
-    /** Settings at [page] once [text] shows; closed with Cancel. */
-    private fun Driver.settingsShot(name: String, page: String, text: String) {
-        // Modal: the call returns when the dialog closes.
-        thread(isDaemon = true) {
-            runCatching { withContext<Unit>(OnDispatcher.EDT) { utility(ShowSettingsUtil::class).getInstance().showSettingsDialog(singleProject(), page) } }
-        }
-        val inDialog = popup(text)
-        Thread.sleep(2000)
-        shot(name, windowOf(inDialog))
-        ui.x(xQuery { byTitle("Settings") }).x(xQuery { byText("Cancel") }).click()
-        waitFor("settings closed", timeout = 30.seconds) { !ui.x(xQuery { byTitle("Settings") }).present() }
-    }
-
     private fun Driver.breakpoint(relativePath: String, line: Int) {
         check(line >= 0) { "No breakpoint line in $relativePath" }
         val file = file(relativePath)
@@ -286,10 +286,4 @@ interface PopupUtil {
 @Remote("com.intellij.openapi.ui.popup.JBPopup")
 interface JBPopup {
     fun cancel()
-}
-
-@Remote("com.intellij.openapi.options.ShowSettingsUtil")
-interface ShowSettingsUtil {
-    fun getInstance(): ShowSettingsUtil
-    fun showSettingsDialog(project: Project?, nameToSelect: String)
 }

@@ -104,12 +104,16 @@ abstract class UiTestBase {
         PluginConfigurator(context).installPluginFromDir(Path.of(System.getProperty("lamarider.plugin")))
         // Fresh temp copy of the sample each test: without this, Rider asks to trust it (a dialog on the user's screen).
         context.applyVMOptionsPatch { addSystemProperty("idea.trust.all.projects", true) }
+        configure(context)
         // A cold Rider start (first run, busy machine) alone can take ~10 minutes.
         context.runIdeWithDriver(runTimeout = 45.minutes).useDriverAndCloseIde {
             waitForIndicators(30.minutes)
             test()
         }
     }
+
+    /** Extra setup of the test IDE before it starts. */
+    protected open fun configure(context: IDETestContext) {}
 
     private fun rider(): IdeInfo {
         val path = System.getProperty("lamarider.rider")?.let(Path::of)
