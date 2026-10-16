@@ -205,6 +205,7 @@ public sealed class AspectModelHost
     void EditSource(string name, EditorPosition position, Action<AspectModel, IDeclaration, string> edit) =>
         _solution.Locks.ExecuteOrQueueReadLockEx(_lifetime, name, () =>
         {
+            using var _ = CompilationContextCookie.GetExplicitUniversalContextIfNotSet();
             _solution.GetPsiServices().Files.CommitAllDocuments();
             var sourceFile = SourceFile(position.File);
             if (Model is { } model && sourceFile?.GetDominantPsiFile<CSharpLanguage>() is { } psiFile &&

@@ -112,6 +112,7 @@ public sealed class WorkerTests : IAsyncLifetime
         Assert.Contains("Entering Add", add);
         Assert.DoesNotContain("[Log]", add);
         Assert.DoesNotContain("ExcludeAspect", add); // only the attribute added it
+        Assert.DoesNotContain("\r", add); // IDE documents are LF
 
         var open = Standalone(_output, "Links.cs", "M:MetalamaSample.Links.Open(System.String)");
         Assert.Contains("Open(string address)", open);

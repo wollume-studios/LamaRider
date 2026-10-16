@@ -228,7 +228,7 @@ public static class Extractor
             .SelectMany(list => list.Attributes.All(aspectAttributes.Contains) ? [list] : list.Attributes.Where(aspectAttributes.Contains).Cast<Microsoft.CodeAnalysis.SyntaxNode>())
             .ToList();
         var code = (remove.Count == 0 ? node : Microsoft.CodeAnalysis.SyntaxNodeExtensions.RemoveNodes(node, remove, Microsoft.CodeAnalysis.SyntaxRemoveOptions.KeepNoTrivia)!)
-            .ToString().TrimStart();
+            .ToString().TrimStart().Replace("\r\n", "\n"); // LF like the model's offsets (IDE documents are LF)
 
         var excluded = applied.Where(i => i.AppliedVia != "Attribute").Select(i => i.AspectClass).Distinct()
             .Select(id => Microsoft.CodeAnalysis.DocumentationCommentId.GetFirstSymbolForDeclarationId(id, model.Compilation)?.ToMinimalDisplayString(model, node.SpanStart))
