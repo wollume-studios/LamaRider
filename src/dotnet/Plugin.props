@@ -2,8 +2,8 @@
 
   <PropertyGroup>
     <!-- See https://www.nuget.org/packages/JetBrains.Rider.SDK -->
-    <!-- Keep in sync with ProductVersion in gradle.properties -->
-    <SdkVersion>2026.3.0-eap06</SdkVersion>
+    <!-- Gradle passes SdkVersion from gradle.properties; this default is for builds outside Gradle (IDE, dotnet test). -->
+    <SdkVersion Condition="'$(SdkVersion)' == ''">2026.3.0-eap06</SdkVersion>
 
     <Title>LamaRider</Title>
     <Description>Metalama tooling for Rider</Description>

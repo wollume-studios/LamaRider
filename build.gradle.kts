@@ -14,6 +14,8 @@ plugins {
 val DotnetSolution: String by project
 val BuildConfiguration: String by project
 val ProductVersion: String by project
+val SdkVersion: String by project
+val SinceBuild: String by project
 val DotnetPluginId: String by project
 val RiderPluginId: String by project
 
@@ -118,7 +120,7 @@ val compileDotNet by tasks.registering {
     doLast {
         providers.exec {
             executable("dotnet")
-            args("msbuild", DotnetSolution, "/p:Configuration=${BuildConfiguration}", "/p:HostFullIdentifier=", "/t:Restore;Rebuild", "/v:minimal")
+            args("msbuild", DotnetSolution, "/p:Configuration=${BuildConfiguration}", "/p:HostFullIdentifier=", "/p:SdkVersion=$SdkVersion", "/t:Restore;Rebuild", "/v:minimal")
             workingDir(rootDir)
         }.result.get()
     }
@@ -170,7 +172,7 @@ val publishLocal by tasks.registering {
             |<?xml version="1.0" encoding="UTF-8"?>
             |<plugins>
             |  <plugin id="$pluginId" url="${target.toPath().toUri()}" version="$pluginVersion">
-            |    <idea-version since-build="263"/>
+            |    <idea-version since-build="$SinceBuild"/>
             |    <name>LamaRider</name>
             |    <vendor>LamaRider</vendor>
             |    <description>Metalama tooling for Rider: Aspect Explorer, Code Vision, T# highlighting, Metalama Diff.</description>
@@ -225,7 +227,7 @@ tasks.runIde {
 }
 
 tasks.patchPluginXml {
-    sinceBuild.set("263")
+    sinceBuild.set(SinceBuild)
     untilBuild.set(provider { null })
 
     // docs/plugin-description.html; images need public URLs (Marketplace, Settings › Plugins), e.g.
