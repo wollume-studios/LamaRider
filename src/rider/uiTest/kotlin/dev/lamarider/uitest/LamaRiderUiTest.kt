@@ -155,11 +155,12 @@ class LamaRiderUiTest : UiTestBase() {
         try {
             waitFor("stopped at the breakpoint in the aspect", timeout = 5.minutes) { debugger.getCurrentSession()?.isPaused() == true }
             // The debugger shows Metalama's compiled copy; the banner leads back to LogAttribute.cs.
-            ideFrame {
-                waitForText("compiled copy banner", "Metalama's compiled copy of LogAttribute.cs")
-                // Offered only while Metalama does not format compile-time code.
-                assertTrue(hasSubtext("Make it readable") != readable, "'Make it readable' offered: ${!readable}")
+            // By component text: the banner is wider than the test's 1024-pixel window, its text may be scrolled out of view.
+            waitFor("compiled copy banner", timeout = 5.minutes) {
+                ui.x(xQuery { contains(byText("Metalama's compiled copy of LogAttribute.cs")) }).present()
             }
+            // Offered only while Metalama does not format compile-time code.
+            assertTrue(ui.x(xQuery { byText("Make it readable") }).present() != readable, "'Make it readable' offered: ${!readable}")
         } finally {
             debugger.getCurrentSession()?.stop()
         }
