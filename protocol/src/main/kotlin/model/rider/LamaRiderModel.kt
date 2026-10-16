@@ -26,8 +26,11 @@ object LamaRiderModel : Ext(SolutionModel.Solution) {
         signal("setDebugTransformedCode", bool)
         // backend -> frontend: Metalama formats transformed code when debugging it (MetalamaFormatOutput not false)
         property("formatTransformedCode", true)
+        // backend -> frontend: MetalamaFormatCompileTimeCode in our Directory.Build.props group
+        property("formatCompileTimeCode", false)
         // frontend -> backend: write MetalamaFormatOutput=false (or remove it) in the solution's Directory.Build.props
         signal("setFormatTransformedCode", bool)
+        signal("setFormatCompileTimeCode", bool)
         // backend -> frontend: solution has aspect tests but Rider is not configured for them (ask the user)
         signal("testSettingsSuggested", void)
         // frontend -> backend: apply the aspect-test settings; payload is the scope: Shared | Personal | Global

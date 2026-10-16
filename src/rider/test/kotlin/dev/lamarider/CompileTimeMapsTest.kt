@@ -88,6 +88,15 @@ class CompileTimeMapsTest {
     }
 
     @Test
+    fun `a source line without code follows the statement above it in the copy`() {
+        val copy = CompileTimeMaps.Copy(File("x.cs"), "src.cs", mapOf(10 to 17, 12 to 19, 15 to 30))
+        assertEquals(19, copy.copyLine(12))
+        assertEquals(19, copy.copyLine(13)) // a blank line or comment after line 12
+        assertEquals(17, copy.copyLine(11))
+        assertNull(copy.copyLine(5))
+    }
+
+    @Test
     fun `a corrupt map is ignored`() {
         val source = File(dir, "App/Aspect.cs").apply { parentFile.mkdirs(); writeText("x"); setLastModified(1) }
         File(dir, "Metalama/CompileTime/App/x/2026.1.30/A.map").apply { parentFile.mkdirs(); writeBytes(byteArrayOf(1, 2, 3)) }

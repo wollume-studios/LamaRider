@@ -118,7 +118,22 @@ class LamaRiderUiTest : UiTestBase() {
     }
 
     @Test
-    fun `debugging an aspect test stops at a breakpoint in the aspect`() = withRider("debugaspect") {
+    fun `debugging an aspect test stops at a breakpoint in the aspect`() = debugAspectTest("debugaspect", readable = false)
+
+    @Test
+    fun `debugging stops in readable compile-time code`() = debugAspectTest("debugreadable", readable = true)
+
+    /** [readable]: the solution asks Metalama to format compile-time code (Settings › Readable aspect code while debugging). */
+    private fun debugAspectTest(name: String, readable: Boolean) = withRider(name, prepare = { dir ->
+        if (readable) Files.writeString(dir.resolve("Directory.Build.props"),
+            """
+            <Project>
+              <PropertyGroup Label="LamaRider">
+                <MetalamaFormatCompileTimeCode>true</MetalamaFormatCompileTimeCode>
+              </PropertyGroup>
+            </Project>
+            """.trimIndent() + "\n")
+    }) {
         openToolWindow("LamaRider")
         ideFrame { waitForText("aspects listed (first refresh done)", "Log") }
         // A template line that runs while the test runner weaves the test input (compile time).
@@ -140,7 +155,11 @@ class LamaRiderUiTest : UiTestBase() {
         try {
             waitFor("stopped at the breakpoint in the aspect", timeout = 5.minutes) { debugger.getCurrentSession()?.isPaused() == true }
             // The debugger shows Metalama's compiled copy; the banner leads back to LogAttribute.cs.
-            ideFrame { waitForText("compiled copy banner", "Metalama's compiled copy of LogAttribute.cs") }
+            ideFrame {
+                waitForText("compiled copy banner", "Metalama's compiled copy of LogAttribute.cs")
+                // Offered only while Metalama does not format compile-time code.
+                assertTrue(hasSubtext("Make it readable") != readable, "'Make it readable' offered: ${!readable}")
+            }
         } finally {
             debugger.getCurrentSession()?.stop()
         }

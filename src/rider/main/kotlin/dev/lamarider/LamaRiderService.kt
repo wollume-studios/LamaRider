@@ -41,6 +41,13 @@ class LamaRiderService(val project: Project) {
     val formatTransformedCode: Boolean
         get() = rd?.formatTransformedCode?.value ?: true
 
+    val formatCompileTimeCode: Boolean
+        get() = rd?.formatCompileTimeCode?.value ?: false
+
+    fun setFormatCompileTimeCode(format: Boolean) {
+        rd?.setFormatCompileTimeCode?.fire(format)
+    }
+
     fun setFormatTransformedCode(format: Boolean) {
         rd?.setFormatTransformedCode?.fire(format)
     }

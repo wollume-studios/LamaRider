@@ -69,6 +69,15 @@ class LamaRiderConfigurable(private val project: Project) : BoundConfigurable("L
                     )
                     .bindSelected({ service.formatTransformedCode }, { if (it != service.formatTransformedCode) service.setFormatTransformedCode(it) })
             }
+            row {
+                checkBox("Readable aspect code while debugging")
+                    .comment(
+                        "When the debugger stops in an aspect, template or fabric, it shows Metalama's compiled copy of that code. " +
+                            "On: Metalama formats it (no <code>global::</code>, normal indentation); builds of aspect projects get slower. " +
+                            "Writes <code>MetalamaFormatCompileTimeCode=true</code> to Directory.Build.props; rebuild the aspect project after changing it.",
+                    )
+                    .bindSelected({ service.formatCompileTimeCode }, { if (it != service.formatCompileTimeCode) service.setFormatCompileTimeCode(it) })
+            }
         }
         group("Aspect Tests") {
             row { text("", maxLineLength = MAX_LINE_LENGTH_WORD_WRAP).applyToComponent { testStatus = this } }

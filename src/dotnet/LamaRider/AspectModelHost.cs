@@ -70,8 +70,10 @@ public sealed class AspectModelHost
             var props = DebugTransformedCodeProps.Read(ReadProps());
             RdModel.DebugTransformedCode.Value = props.DebugTransformedCode;
             RdModel.FormatTransformedCode.Value = props.FormatOutput;
+            RdModel.FormatCompileTimeCode.Value = props.FormatCompileTimeCode;
             RdModel.SetDebugTransformedCode.Advise(lifetime, enable => WriteProps(o => o with { DebugTransformedCode = enable }));
             RdModel.SetFormatTransformedCode.Advise(lifetime, format => WriteProps(o => o with { FormatOutput = format }));
+            RdModel.SetFormatCompileTimeCode.Advise(lifetime, format => WriteProps(o => o with { FormatCompileTimeCode = format }));
             RdModel.ApplyTestSettings.Advise(lifetime, ApplyTestSettings);
             RdModel.RefreshTestSettingsStatus.Advise(lifetime, _ => UpdateTestSettingsStatus());
             RdModel.NavigateToClass.Advise(lifetime, NavigateToClass);
@@ -112,12 +114,14 @@ public sealed class AspectModelHost
             else if (updated != current) File.WriteAllText(PropsPath, updated);
             RdModel.DebugTransformedCode.Value = options.DebugTransformedCode;
             RdModel.FormatTransformedCode.Value = options.FormatOutput;
+            RdModel.FormatCompileTimeCode.Value = options.FormatCompileTimeCode;
         }
         catch (Exception e) when (e is IOException or UnauthorizedAccessException or InvalidDataException)
         {
             var actual = DebugTransformedCodeProps.Read(ReadProps());
             RdModel.DebugTransformedCode.Value = actual.DebugTransformedCode;
             RdModel.FormatTransformedCode.Value = actual.FormatOutput;
+            RdModel.FormatCompileTimeCode.Value = actual.FormatCompileTimeCode;
             RdModel.Failed.Fire($"Cannot update {PropsPath}: {e.Message}");
         }
     }

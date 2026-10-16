@@ -59,4 +59,15 @@ public class DebugTransformedCodePropsTests
     [Fact]
     public void Defaults_remove_the_group() =>
         Assert.Null(DebugTransformedCodeProps.Write(DebugTransformedCodeProps.Enable(null), new DebugTransformedCodeProps.Options(false, true)));
+
+    [Fact]
+    public void Readable_compile_time_code_is_written_on_its_own()
+    {
+        // Metalama formats its compiled copy of aspects, templates and fabrics: what the debugger shows when stopping there.
+        var text = DebugTransformedCodeProps.Write(null, new DebugTransformedCodeProps.Options(false, FormatCompileTimeCode: true))!;
+        Assert.Contains("<MetalamaFormatCompileTimeCode>true</MetalamaFormatCompileTimeCode>", text);
+        Assert.DoesNotContain("MetalamaDebugTransformedCode", text);
+        Assert.Equal(new DebugTransformedCodeProps.Options(false, FormatCompileTimeCode: true), DebugTransformedCodeProps.Read(text));
+        Assert.Null(DebugTransformedCodeProps.Write(text, new DebugTransformedCodeProps.Options(false)));
+    }
 }
