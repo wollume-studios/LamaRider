@@ -123,7 +123,11 @@ public static class AspectTests
         var project = file?.GetProject();
         var csproj = project?.ProjectFileLocation.FullPath;
         if (file == null || project == null || !File.Exists(csproj) || !AspectTestScaffold.IsAspectTestProject(File.ReadAllText(csproj)))
+        {
+            JetBrains.Util.Logging.Logger.GetLogger(typeof(AspectTests)).Warn(
+                $"LamaRider: run aspect test refused: file {file?.Location}, project {project?.Name}, project file '{csproj}'");
             return "This file is not in a Metalama aspect test project.";
+        }
 
         // Discovery from metadata does not see aspect tests (they are found by running Metalama's test framework).
         var settings = solution.GetComponent<MetalamaTestSettings>();

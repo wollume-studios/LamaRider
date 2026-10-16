@@ -26,6 +26,8 @@ data class AspectGroup(val name: String, val isProject: Boolean, val classes: Li
 data class AspectInstanceInfo(
     val aspectClass: String, val target: String, val targetName: String, val targetType: String,
     val targetKind: String, val project: String, val appliedVia: String, val location: SourceLocation?,
+    /** The fabric (full name) or aspect instance that added it; null for attributes and older models. */
+    val appliedBy: String? = null,
 ) {
     /** "Add(int, int)" rather than "Calculator.Add(int, int)" (the type is shown above it); parameters as "Open(string) › address". */
     val memberName: String get() = targetName.removePrefix(targetType.substringAfterLast('.') + ".").replace("/", " › ")

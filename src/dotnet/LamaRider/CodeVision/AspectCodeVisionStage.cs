@@ -20,23 +20,26 @@ namespace LamaRider.CodeVision;
 /// classes; parameters get an inlay hint of their own.
 /// </summary>
 [DaemonStage(HighlightingTypes = new[] { typeof(CodeInsightsHighlighting), typeof(AspectParameterHint) })]
-public sealed class AspectCodeVisionStage(AspectModelHost host, AspectCodeInsightsProvider provider) : IDaemonStage
+public sealed class AspectCodeVisionStage(AspectModelHost host, AspectCodeInsightsProvider first, SecondAspectCodeInsightsProvider second,
+    AspectTargetsCodeInsightsProvider targets) : IDaemonStage
 {
     public IEnumerable<IDaemonStageProcess> CreateProcess(IDaemonProcess process, IContextBoundSettingsStore settings, DaemonProcessKind processKind)
     {
         if (processKind != DaemonProcessKind.VISIBLE_DOCUMENT || host.Model is not { } model) return Array.Empty<IDaemonStageProcess>();
         if (process.SourceFile.GetDominantPsiFile<CSharpLanguage>() is not ICSharpFile file) return Array.Empty<IDaemonStageProcess>();
-        return new[] { new Process(process, file, model, provider) };
+        return new[] { new Process(process, file, model, [first, second], targets) };
     }
 
-    sealed class Process(IDaemonProcess daemonProcess, ICSharpFile file, AspectModel model, AspectCodeInsightsProvider provider) : IDaemonStageProcess
+    sealed class Process(IDaemonProcess daemonProcess, ICSharpFile file, AspectModel model, AspectCodeInsightsProviderBase[] aspectSlots,
+        AspectCodeInsightsProviderBase targetsProvider) : IDaemonStageProcess
     {
+        readonly List<HighlightingInfo> result = new();
+
         public IDaemonProcess DaemonProcess => daemonProcess;
 
         public void Execute(Action<DaemonStageResult> committer)
         {
             var path = daemonProcess.SourceFile.GetLocation().FullPath;
-            var result = new List<HighlightingInfo>();
             foreach (var declaration in file.Descendants<IDeclaration>())
             {
                 if (daemonProcess.InterruptFlag) throw new OperationCanceledException();
@@ -45,40 +48,50 @@ public sealed class AspectCodeVisionStage(AspectModelHost host, AspectCodeInsigh
                 if (!nameRange.IsValid()) continue;
                 if (declaration is IParameterDeclaration)
                 {
-                    if (ParameterHint(element, nameRange) is { } hint) result.Add(new HighlightingInfo(hint.CalculateRange(), hint));
+                    foreach (var hint in ParameterHints(element, nameRange)) result.Add(new HighlightingInfo(hint.CalculateRange(), hint));
                     continue;
                 }
 
                 var docId = DocId(element);
                 var all = model.InstancesFor(docId, path, nameRange.StartOffset.Offset, declaration.GetDocumentRange().EndOffset.Offset);
                 var instances = docId != null && model.InstancesOf(docId).Count > 0 ? AspectHints.ForMember(all, docId) : all;
-                var targets = docId != null && model.IsAspectClass(docId) ? model.TargetCountOf(docId) : 0;
-                if (instances.Count == 0 && targets == 0) continue;
-
-                var parts = new List<string>();
-                if (instances.Count > 0) parts.Add(AspectHints.Text(instances.ToList(), model.AspectName));
-                if (targets > 0) parts.Add(targets == 1 ? "applied to 1 target" : $"applied to {targets} targets");
-                var text = string.Join(" · ", parts);
-                var tooltip = instances.Count > 0 ? Tooltip(instances) : "Metalama aspect class";
-
-                var highlighting = new CodeInsightsHighlighting(nameRange, text, tooltip, text, provider, element, null);
-                provider.Remember(highlighting, AspectModel.ClickTarget(docId ?? "", instances));
-                result.Add(new HighlightingInfo(nameRange, highlighting));
+                var clickTarget = AspectModel.ClickTarget(docId ?? "", instances);
+                if (instances.Count > 0)
+                {
+                    // One Code Vision entry per aspect (or one "transformed code" / "N aspects").
+                    var hints = AspectHints.Hints(instances.ToList(), model.AspectName, Summary);
+                    for (var i = 0; i < hints.Count && i < aspectSlots.Length; i++)
+                        Add(aspectSlots[i], nameRange, element, hints[i].Text, hints[i].ToolTip,
+                            hints[i].TransformedCode ? TransformedCodeClick + clickTarget : clickTarget);
+                }
+                if (docId != null && model.IsAspectClass(docId) && model.TargetCountOf(docId) is var count and > 0)
+                    Add(targetsProvider, nameRange, element, count == 1 ? "applied to 1 target" : $"applied to {count} targets", "Metalama aspect class", docId);
             }
             committer(new DaemonStageResult(result));
         }
 
-        string Tooltip(IEnumerable<AspectInstanceInfo> instances) =>
-            AspectHints.Tooltip(instances, model.AspectName, id => model.AspectClasses.FirstOrDefault(c => c.Id == id)?.Summary);
+        /// <summary>Click target prefix: open the transformed code right away (frontend, LamaRiderService).</summary>
+        public const string TransformedCodeClick = "transformed|";
 
-        AspectParameterHint? ParameterHint(IDeclaredElement element, DocumentRange nameRange)
+        string? Summary(string aspectClassId) => model.AspectClasses.FirstOrDefault(c => c.Id == aspectClassId)?.Summary;
+
+        void Add(AspectCodeInsightsProviderBase provider, DocumentRange nameRange, IDeclaredElement element, string text, string tooltip, string clickTarget)
         {
-            if (element is not IParameter { ContainingParametersOwner: ITypeMember owner } parameter) return null;
-            if (DocId(owner) is not { } ownerId) return null;
+            var highlighting = new CodeInsightsHighlighting(nameRange, text, tooltip, text, provider, element, null);
+            provider.Remember(highlighting, clickTarget);
+            result.Add(new HighlightingInfo(nameRange, highlighting));
+        }
+
+        /// <summary>One inlay hint per aspect on the parameter (not attribute ones: the attribute is right there).</summary>
+        IEnumerable<AspectParameterHint> ParameterHints(IDeclaredElement element, DocumentRange nameRange)
+        {
+            if (element is not IParameter { ContainingParametersOwner: ITypeMember owner } parameter) return [];
+            if (DocId(owner) is not { } ownerId) return [];
             var instances = AspectHints.ForParameter(model.InstancesOf(ownerId), ownerId, owner is IParametersOwner p ? p.Parameters.IndexOf(parameter) : -1);
-            if (instances.Count == 0) return null;
-            return new AspectParameterHint(new DocumentRange(nameRange.EndOffset), AspectHints.Text(instances.ToList(), model.AspectName),
-                Tooltip(instances), instances[0].Target);
+            if (instances.Count == 0) return [];
+            return AspectHints.Hints(instances.ToList(), model.AspectName, Summary)
+                .Select(hint => new AspectParameterHint(new DocumentRange(nameRange.EndOffset), hint.Text, hint.ToolTip, instances[0].Target))
+                .ToList();
         }
 
         static string? DocId(IDeclaredElement element) => element switch

@@ -7,18 +7,20 @@ using JetBrains.Rider.Model;
 
 namespace LamaRider.CodeVision;
 
-[SolutionComponent(Instantiation.DemandAnyThreadSafe)]
-public sealed class AspectCodeInsightsProvider(AspectModelHost host) : ICodeInsightsProvider
+/// <summary>
+/// Rider shows one Code Vision entry per provider and declaration, so each aspect hint has a provider of its own:
+/// <see cref="AspectCodeInsightsProvider"/> and <see cref="SecondAspectCodeInsightsProvider"/> (one aspect each, see
+/// AspectHints.MaxNamed), <see cref="AspectTargetsCodeInsightsProvider"/> for "applied to N targets" on aspect classes.
+/// </summary>
+public abstract class AspectCodeInsightsProviderBase(AspectModelHost host) : ICodeInsightsProvider
 {
-    public const string Id = "LamaRider.Aspects";
-
     // Highlighting -> worker target id, for the click handler (the span fallback has no element doc id).
     readonly ConditionalWeakTable<CodeInsightsHighlighting, string> _targets = new();
 
-    public string ProviderId => Id;
-    public string DisplayName => "Metalama aspects";
+    public abstract string ProviderId { get; }
+    public abstract string DisplayName { get; }
     public CodeVisionAnchorKind DefaultAnchor => CodeVisionAnchorKind.Top;
-    public ICollection<CodeVisionRelativeOrdering> RelativeOrderings => new CodeVisionRelativeOrdering[] { new CodeVisionRelativeOrderingLast() };
+    public abstract ICollection<CodeVisionRelativeOrdering> RelativeOrderings { get; }
     public bool IsAvailableIn(ISolution solution) => true;
 
     public void Remember(CodeInsightsHighlighting highlighting, string target) => _targets.Add(highlighting, target);
@@ -29,4 +31,31 @@ public sealed class AspectCodeInsightsProvider(AspectModelHost host) : ICodeInsi
     }
 
     public void OnExtraActionClick(CodeInsightHighlightInfo highlightInfo, string actionId, ISolution solution) { }
+}
+
+[SolutionComponent(Instantiation.DemandAnyThreadSafe)]
+public sealed class AspectCodeInsightsProvider(AspectModelHost host) : AspectCodeInsightsProviderBase(host)
+{
+    public const string Id = "LamaRider.Aspects";
+    public override string ProviderId => Id;
+    public override string DisplayName => "Metalama aspects";
+    public override ICollection<CodeVisionRelativeOrdering> RelativeOrderings => new CodeVisionRelativeOrdering[] { new CodeVisionRelativeOrderingLast() };
+}
+
+[SolutionComponent(Instantiation.DemandAnyThreadSafe)]
+public sealed class SecondAspectCodeInsightsProvider(AspectModelHost host) : AspectCodeInsightsProviderBase(host)
+{
+    public const string Id = "LamaRider.Aspects.Second";
+    public override string ProviderId => Id;
+    public override string DisplayName => "Metalama aspects (second aspect)";
+    public override ICollection<CodeVisionRelativeOrdering> RelativeOrderings => new CodeVisionRelativeOrdering[] { new CodeVisionRelativeOrderingAfter(AspectCodeInsightsProvider.Id) };
+}
+
+[SolutionComponent(Instantiation.DemandAnyThreadSafe)]
+public sealed class AspectTargetsCodeInsightsProvider(AspectModelHost host) : AspectCodeInsightsProviderBase(host)
+{
+    public const string Id = "LamaRider.AspectTargets";
+    public override string ProviderId => Id;
+    public override string DisplayName => "Metalama aspect targets";
+    public override ICollection<CodeVisionRelativeOrdering> RelativeOrderings => new CodeVisionRelativeOrdering[] { new CodeVisionRelativeOrderingAfter(SecondAspectCodeInsightsProvider.Id) };
 }

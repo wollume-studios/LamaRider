@@ -20,9 +20,10 @@ public sealed record SourceLocation(string File, int Start, int End);
 public sealed record AspectClassInfo(
     string Id, string Name, string Project, bool IsLibrary, SourceLocation? Location, string Package, string? Summary, string? DocUrl);
 
+/// <param name="AppliedBy">What added it: the fabric's full name, or "Aspect on target" for child/required aspects; null for attributes.</param>
 public sealed record AspectInstanceInfo(
     string AspectClass, string Target, string TargetName, string TargetType, string TargetKind,
-    string Project, string AppliedVia, SourceLocation? Location);
+    string Project, string AppliedVia, SourceLocation? Location, string? AppliedBy = null);
 
 /// <param name="InstanceTarget">Target of the aspect instance that made it: a parameter contract transforms its method.</param>
 public sealed record TransformationInfo(string AspectClass, string Target, string Kind, string Description, SourceLocation? Location, string? InstanceTarget = null);

@@ -65,6 +65,8 @@ class ScreenshotsUiTest : UiTestBase() {
                         .Where(m => m.Name == nameof(Calculator.Multiply));
                     multiply.AddAspect<LogAttribute>();
                     multiply.SelectMany(m => m.Parameters).AddAspect<NonNegativeAttribute>();
+                    // A second fabric aspect on the method itself: one Code Vision entry per aspect.
+                    multiply.Select(m => m.ReturnParameter).AddAspect<NonNegativeAttribute>();
                 }
             }
             """.trimIndent() + "\n")
