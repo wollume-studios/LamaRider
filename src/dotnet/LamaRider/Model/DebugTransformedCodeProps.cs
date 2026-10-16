@@ -15,7 +15,8 @@ public static class DebugTransformedCodeProps
 
     /// <param name="DebugTransformedCode">Debug Metalama-transformed code in every configuration.</param>
     /// <param name="FormatOutput">False: Metalama does not format transformed code when debugging it (faster builds, no LAMA0066).</param>
-    public sealed record Options(bool DebugTransformedCode, bool FormatOutput = true);
+    /// <param name="FormatCompileTimeCode">Format Metalama's compiled copy of aspects, templates and fabrics (what the debugger shows there).</param>
+    public sealed record Options(bool DebugTransformedCode, bool FormatOutput = true, bool FormatCompileTimeCode = false);
 
     static readonly Regex OurGroup = new("[ \\t]*<PropertyGroup Label=\"LamaRider\">.*?</PropertyGroup>\\r?\\n?", RegexOptions.Singleline | RegexOptions.Compiled);
     static readonly Regex EmptyProject = new(@"^\s*<Project>\s*</Project>\s*$", RegexOptions.Compiled);
@@ -30,7 +31,7 @@ public static class DebugTransformedCodeProps
                 ? v.Groups[1].Value.Equals("true", StringComparison.OrdinalIgnoreCase)
                 : null;
         // Older versions wrote the group with MetalamaDebugTransformedCode only.
-        return new Options(Value("MetalamaDebugTransformedCode") ?? false, Value("MetalamaFormatOutput") ?? true);
+        return new Options(Value("MetalamaDebugTransformedCode") ?? false, Value("MetalamaFormatOutput") ?? true, Value("MetalamaFormatCompileTimeCode") ?? false);
     }
 
     /// <summary>New content, or null when the file would hold nothing but an empty project (delete it).</summary>
@@ -53,7 +54,7 @@ public static class DebugTransformedCodeProps
 
     static string? Group(Options options)
     {
-        if (!options.DebugTransformedCode && options.FormatOutput) return null;
+        if (!options.DebugTransformedCode && options.FormatOutput && !options.FormatCompileTimeCode) return null;
         var sb = new StringBuilder("  <PropertyGroup Label=\"LamaRider\">\n");
         sb.Append("    <!-- Added by LamaRider (Settings > Tools > LamaRider) -->\n");
         if (options.DebugTransformedCode)
@@ -62,6 +63,9 @@ public static class DebugTransformedCodeProps
         if (!options.FormatOutput)
             sb.Append("    <!-- Don't format transformed code: faster builds (LAMA0066), less readable transformed files -->\n")
               .Append("    <MetalamaFormatOutput>false</MetalamaFormatOutput>\n");
+        if (options.FormatCompileTimeCode)
+            sb.Append("    <!-- Readable compile-time code (aspects, templates, fabrics) when debugging into it; slower builds -->\n")
+              .Append("    <MetalamaFormatCompileTimeCode>true</MetalamaFormatCompileTimeCode>\n");
         return sb.Append("  </PropertyGroup>\n").ToString();
     }
 }

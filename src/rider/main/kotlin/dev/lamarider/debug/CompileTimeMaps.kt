@@ -18,6 +18,9 @@ object CompileTimeMaps {
         /** 0-based line in [file] for a 0-based source line, if that line has code there. */
         fun line(sourceLine: Int): Int? = lines[sourceLine]
 
+        /** 0-based line in [file] for any 0-based source line: that of the last mapped source line at or before it. */
+        fun copyLine(sourceLine: Int): Int? = lines.entries.filter { it.key <= sourceLine }.maxByOrNull { it.key }?.value
+
         /** 0-based source line of a 0-based line in [file]: the last mapped statement at or before it. */
         fun sourceLine(copyLine: Int): Int? = lines.entries.filter { it.value <= copyLine }.maxByOrNull { it.value }?.key
     }

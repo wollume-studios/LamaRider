@@ -86,8 +86,12 @@ public sealed class WorkerRunner(string workerSourceDir, string cacheRoot) : IDi
             foreach (var file in Directory.GetFiles(workerSourceDir, "*", SearchOption.TopDirectoryOnly))
                 File.Copy(file, Path.Combine(srcDir, Path.GetFileName(file)));
 
-            Exec($"build \"{Path.Combine(srcDir, "LamaRider.Worker.csproj")}\" -c Release -p:MetalamaVersion={metalamaVersion} -o \"{tmpBinDir}\"", srcDir, ct);
-            if (!File.Exists(Path.Combine(tmpBinDir, "LamaRider.Worker.dll"))) throw new WorkerException($"Worker build failed. See {LogPath}");
+            var build = $"build \"{Path.Combine(srcDir, "LamaRider.Worker.csproj")}\" -c Release -p:MetalamaVersion={metalamaVersion} -o \"{tmpBinDir}\"";
+            var output = Exec(build, srcDir, ct);
+            // A successful build without the dll: seen right after a plugin update (other builds running); once more.
+            if (!File.Exists(Path.Combine(tmpBinDir, "LamaRider.Worker.dll"))) output = Exec(build, srcDir, ct);
+            if (!File.Exists(Path.Combine(tmpBinDir, "LamaRider.Worker.dll")))
+                throw new WorkerException($"Worker build produced no LamaRider.Worker.dll. Last output: {output}. See {LogPath}");
             try { Directory.Move(tmpBinDir, binDir); }
             catch (IOException) when (File.Exists(dll)) { /* another instance won the race */ }
             return dll;
@@ -193,7 +197,8 @@ public sealed class WorkerRunner(string workerSourceDir, string cacheRoot) : IDi
 
     public void Dispose() => StopServer();
 
-    void Exec(string arguments, string workingDir, CancellationToken ct)
+    /// <returns>The last lines of the output, for error messages.</returns>
+    string Exec(string arguments, string workingDir, CancellationToken ct)
     {
         var psi = new ProcessStartInfo("dotnet", arguments)
         {
@@ -205,11 +210,17 @@ public sealed class WorkerRunner(string workerSourceDir, string cacheRoot) : IDi
         };
         var stderr = new StringBuilder();
         var buildErrors = new StringBuilder(); // dotnet build / NuGet report errors on stdout
+        var lastLines = new Queue<string>();
         using var process = new Process { StartInfo = psi };
         process.OutputDataReceived += (_, e) =>
         {
             if (e.Data == null) return;
             Log(e.Data);
+            lock (lastLines)
+            {
+                if (e.Data.Trim().Length > 0) lastLines.Enqueue(e.Data.Trim());
+                if (lastLines.Count > 3) lastLines.Dequeue();
+            }
             if (e.Data.Contains(": error ")) lock (buildErrors) buildErrors.AppendLine(e.Data.Trim());
         };
         process.ErrorDataReceived += (_, e) =>
@@ -241,6 +252,7 @@ public sealed class WorkerRunner(string workerSourceDir, string cacheRoot) : IDi
             var message = FirstLines(buildErrors.Length > 0 ? buildErrors.ToString() : stderr.ToString());
             throw new WorkerException(message.Length > 0 ? message : $"dotnet exited with {process.ExitCode}. See {LogPath}");
         }
+        lock (lastLines) return string.Join(" | ", lastLines);
     }
 
     static void Kill(Process process)
