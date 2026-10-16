@@ -107,9 +107,14 @@ class LamaRiderUiTest : UiTestBase() {
         waitFor("project and test created", timeout = 2.minutes) { Files.exists(test) }
         assertTrue(Files.readString(test).contains("[Id]\npublic partial class IdTarget"), Files.readString(test))
         assertTrue(Files.readString(solutionDir.resolve("MetalamaSample.sln")).contains("MetalamaSample.AspectTests.csproj"), "added to the solution")
-        dotnet("test", solutionDir.resolve("MetalamaSample.AspectTests").toString()) // first run writes the output
+        // First run writes the output. LamaRider builds the new project in the background right after creating it,
+        // which can collide with this run: try again.
         val output = solutionDir.resolve("MetalamaSample.AspectTests/obj/transformed")
-        waitFor("test ran", timeout = 10.seconds) { Files.exists(output) }
+        for (attempt in 1..3) {
+            dotnet("test", solutionDir.resolve("MetalamaSample.AspectTests").toString())
+            if (Files.exists(output)) break
+        }
+        assertTrue(Files.exists(output), "dotnet test wrote no output")
     }
 
     @Test

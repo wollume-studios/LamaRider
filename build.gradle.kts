@@ -206,11 +206,14 @@ dependencies {
     uiTestImplementation("org.junit.jupiter:junit-jupiter:5.13.4")
     uiTestImplementation("org.junit.platform:junit-platform-launcher:1.13.4")
     uiTestImplementation("org.kodein.di:kodein-di-jvm:7.20.2")
-    // Starter needs runBlockingK from JetBrains' coroutines fork: take the one this Rider ships, or with an older
-    // ProductVersion the one of a 2026.3 Rider (-PuiTestCoroutinesJar=<rider>/lib/intellij.libraries.kotlinx.coroutines.core.jar).
+    // Starter (pinned to 2026.3) needs runBlockingK from JetBrains' coroutines fork, which Rider 2026.3 ships and 2026.2
+    // does not: take it from the Rider under test (LAMARIDER_RIDER, else the default install), or name one
+    // (-PuiTestCoroutinesJar=<2026.3 rider>/lib/intellij.libraries.kotlinx.coroutines.core.jar) when testing 2026.2.
     "uiTestCompileOnly"("org.jetbrains.kotlinx:kotlinx-coroutines-core-jvm:1.10.1")
-    val coroutinesJar = providers.gradleProperty("uiTestCoroutinesJar")
-    "uiTestRuntimeOnly"(if (coroutinesJar.isPresent) files(coroutinesJar.get()) else files(configurations.named("intellijPlatformClasspath").map { platform ->
+    val coroutinesJar = providers.gradleProperty("uiTestCoroutinesJar").orNull
+        ?: listOfNotNull(System.getenv("LAMARIDER_RIDER"), System.getenv("LOCALAPPDATA")?.let { "$it/Programs/Rider" })
+            .map { file("$it/lib/intellij.libraries.kotlinx.coroutines.core.jar") }.firstOrNull { it.isFile }?.path
+    "uiTestRuntimeOnly"(if (coroutinesJar != null) files(coroutinesJar) else files(configurations.named("intellijPlatformClasspath").map { platform ->
         platform.filter { it.name == "intellij.libraries.kotlinx.coroutines.core.jar" }
     }))
 }
