@@ -55,6 +55,10 @@ object LamaRiderModel : Ext(SolutionModel.Solution) {
         // frontend -> backend (editor menu): aspect test for the aspect class at the position / accept the test output
         signal("createAspectTest", EditorPosition)
         signal("acceptAspectTestOutput", string)
+        // frontend -> backend (editor menu twins of the Alt+Enter actions): for the declaration whose name is at the position,
+        // write the aspects fabrics etc. add as attributes / replace its source with its transformed code
+        signal("addAspectsAsAttributes", EditorPosition)
+        signal("replaceWithTransformedCode", EditorPosition)
         // frontend -> backend: run (debug=false) or debug the Metalama aspect test of a file in Rider's unit test runner
         signal("runAspectTest", structdef("RunAspectTest") {
             field("file", string)

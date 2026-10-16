@@ -69,6 +69,14 @@ class LamaRiderService(val project: Project) {
         rd?.createAspectTest?.fire(position)
     }
 
+    fun addAspectsAsAttributes(position: com.jetbrains.rd.ide.model.EditorPosition) {
+        rd?.addAspectsAsAttributes?.fire(position)
+    }
+
+    fun replaceWithTransformedCode(position: com.jetbrains.rd.ide.model.EditorPosition) {
+        rd?.replaceWithTransformedCode?.fire(position)
+    }
+
     fun runAspectTest(run: com.jetbrains.rd.ide.model.RunAspectTest) {
         rd?.runAspectTest?.fire(run)
     }

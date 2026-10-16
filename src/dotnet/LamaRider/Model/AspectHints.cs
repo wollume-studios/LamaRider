@@ -59,7 +59,8 @@ public static class AspectHints
         _ => "Origin unknown",
     };
 
-    static string Lower(string sentence) => sentence.Length == 0 ? sentence : char.ToLowerInvariant(sentence[0]) + sentence.Substring(1);
+    /// <summary>Sentence case to mid-sentence: "Added by fabric X" to "added by fabric X".</summary>
+    public static string Lower(string sentence) => sentence.Length == 0 ? sentence : char.ToLowerInvariant(sentence[0]) + sentence.Substring(1);
 
     /// <summary>Word wrap so tooltips stay narrow.</summary>
     static string Wrap(string text)

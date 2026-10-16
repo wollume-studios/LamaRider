@@ -96,6 +96,9 @@ abstract class UiTestBase {
         }
     }
 
+    protected fun Driver.editorText(): String =
+        withReadAction(OnDispatcher.EDT) { selectedTextEditor()?.getDocument()?.getText() ?: "" }
+
     /** [prepare] changes the sample copy before Rider opens it. */
     protected fun withRider(name: String, prepare: (Path) -> Unit = {}, test: Driver.() -> Unit) {
         solutionDir = sampleCopy()

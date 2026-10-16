@@ -43,6 +43,33 @@ class LamaRiderUiTest : UiTestBase() {
     }
 
     @Test
+    fun `an aspect a fabric adds is written as an attribute`() = withRider("asattribute") {
+        openToolWindow("LamaRider")
+        ideFrame { waitForText("aspects listed (first refresh done)", "Log") }
+        caretAt("MetalamaSample/Calculator.cs", "Multiply(")
+        editorAction("LamaRider.AddAspectsAsAttributes")
+        waitFor("[Log] added to Multiply", timeout = 1.minutes) { editorText().contains("[Log]\n    public int Multiply(") }
+    }
+
+    @Test
+    fun `declarations are replaced with their transformed code`() = withRider("replace") {
+        openToolWindow("LamaRider")
+        ideFrame { waitForText("aspects listed (first refresh done)", "Log") }
+        // Fabric-added aspect: excluded so the fabric doesn't add it again.
+        caretAt("MetalamaSample/Calculator.cs", "Multiply(")
+        editorAction("LamaRider.ReplaceWithTransformedCode")
+        waitFor("Multiply replaced", timeout = 1.minutes) { editorText().contains("Entering Multiply") }
+        assertTrue(editorText().contains("ExcludeAspect(typeof(LogAttribute))]\n    public int Multiply("), editorText())
+        // Attribute aspect: the attribute goes.
+        caretAt("MetalamaSample/Calculator.cs", "Add(")
+        editorAction("LamaRider.ReplaceWithTransformedCode")
+        waitFor("Add replaced", timeout = 1.minutes) { editorText().contains("Entering Add") }
+        assertTrue(!editorText().contains("[Log]"), editorText())
+        ideFrame { invokeAction("SaveAll", component = codeEditor().component) }
+        assertTrue(dotnet("build", solutionDir.resolve("MetalamaSample/MetalamaSample.csproj").toString()) == 0, "replaced code builds")
+    }
+
+    @Test
     fun `a new file is picked up without a manual refresh`() = withRider("autorefresh") {
         openToolWindow("LamaRider")
         ideFrame { waitForText("aspects listed (first refresh done)", "Log") }
