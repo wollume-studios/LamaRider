@@ -206,9 +206,11 @@ dependencies {
     uiTestImplementation("org.junit.jupiter:junit-jupiter:5.13.4")
     uiTestImplementation("org.junit.platform:junit-platform-launcher:1.13.4")
     uiTestImplementation("org.kodein.di:kodein-di-jvm:7.20.2")
-    // Starter needs runBlockingK from JetBrains' coroutines fork: take the one this Rider ships.
+    // Starter needs runBlockingK from JetBrains' coroutines fork: take the one this Rider ships, or with an older
+    // ProductVersion the one of a 2026.3 Rider (-PuiTestCoroutinesJar=<rider>/lib/intellij.libraries.kotlinx.coroutines.core.jar).
     "uiTestCompileOnly"("org.jetbrains.kotlinx:kotlinx-coroutines-core-jvm:1.10.1")
-    "uiTestRuntimeOnly"(files(configurations.named("intellijPlatformClasspath").map { platform ->
+    val coroutinesJar = providers.gradleProperty("uiTestCoroutinesJar")
+    "uiTestRuntimeOnly"(if (coroutinesJar.isPresent) files(coroutinesJar.get()) else files(configurations.named("intellijPlatformClasspath").map { platform ->
         platform.filter { it.name == "intellij.libraries.kotlinx.coroutines.core.jar" }
     }))
 }
