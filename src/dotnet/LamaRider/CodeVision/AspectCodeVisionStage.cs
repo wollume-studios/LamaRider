@@ -20,16 +20,18 @@ namespace LamaRider.CodeVision;
 /// classes; parameters get an inlay hint of their own.
 /// </summary>
 [DaemonStage(HighlightingTypes = new[] { typeof(CodeInsightsHighlighting), typeof(AspectParameterHint) })]
-public sealed class AspectCodeVisionStage(AspectModelHost host, AspectCodeInsightsProvider provider) : IDaemonStage
+public sealed class AspectCodeVisionStage(AspectModelHost host, AspectCodeInsightsProvider first, SecondAspectCodeInsightsProvider second,
+    AspectTargetsCodeInsightsProvider targets) : IDaemonStage
 {
     public IEnumerable<IDaemonStageProcess> CreateProcess(IDaemonProcess process, IContextBoundSettingsStore settings, DaemonProcessKind processKind)
     {
         if (processKind != DaemonProcessKind.VISIBLE_DOCUMENT || host.Model is not { } model) return Array.Empty<IDaemonStageProcess>();
         if (process.SourceFile.GetDominantPsiFile<CSharpLanguage>() is not ICSharpFile file) return Array.Empty<IDaemonStageProcess>();
-        return new[] { new Process(process, file, model, provider) };
+        return new[] { new Process(process, file, model, [first, second], targets) };
     }
 
-    sealed class Process(IDaemonProcess daemonProcess, ICSharpFile file, AspectModel model, AspectCodeInsightsProvider provider) : IDaemonStageProcess
+    sealed class Process(IDaemonProcess daemonProcess, ICSharpFile file, AspectModel model, AspectCodeInsightsProviderBase[] aspectSlots,
+        AspectCodeInsightsProviderBase targetsProvider) : IDaemonStageProcess
     {
         readonly List<HighlightingInfo> result = new();
 
@@ -57,11 +59,13 @@ public sealed class AspectCodeVisionStage(AspectModelHost host, AspectCodeInsigh
                 if (instances.Count > 0)
                 {
                     // One Code Vision entry per aspect (or one "transformed code" / "N aspects").
-                    foreach (var hint in AspectHints.Hints(instances.ToList(), model.AspectName, Summary))
-                        Add(nameRange, element, hint.Text, hint.ToolTip, hint.TransformedCode ? TransformedCodeClick + clickTarget : clickTarget);
+                    var hints = AspectHints.Hints(instances.ToList(), model.AspectName, Summary);
+                    for (var i = 0; i < hints.Count && i < aspectSlots.Length; i++)
+                        Add(aspectSlots[i], nameRange, element, hints[i].Text, hints[i].ToolTip,
+                            hints[i].TransformedCode ? TransformedCodeClick + clickTarget : clickTarget);
                 }
-                if (docId != null && model.IsAspectClass(docId) && model.TargetCountOf(docId) is var targets and > 0)
-                    Add(nameRange, element, targets == 1 ? "applied to 1 target" : $"applied to {targets} targets", "Metalama aspect class", docId);
+                if (docId != null && model.IsAspectClass(docId) && model.TargetCountOf(docId) is var count and > 0)
+                    Add(targetsProvider, nameRange, element, count == 1 ? "applied to 1 target" : $"applied to {count} targets", "Metalama aspect class", docId);
             }
             committer(new DaemonStageResult(result));
         }
@@ -71,7 +75,7 @@ public sealed class AspectCodeVisionStage(AspectModelHost host, AspectCodeInsigh
 
         string? Summary(string aspectClassId) => model.AspectClasses.FirstOrDefault(c => c.Id == aspectClassId)?.Summary;
 
-        void Add(DocumentRange nameRange, IDeclaredElement element, string text, string tooltip, string clickTarget)
+        void Add(AspectCodeInsightsProviderBase provider, DocumentRange nameRange, IDeclaredElement element, string text, string tooltip, string clickTarget)
         {
             var highlighting = new CodeInsightsHighlighting(nameRange, text, tooltip, text, provider, element, null);
             provider.Remember(highlighting, clickTarget);
