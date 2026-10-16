@@ -203,18 +203,15 @@ public sealed class AspectModelHost
 
     /// <summary>The editor menu twins of the Alt+Enter actions on the declaration whose name is at the position.</summary>
     void EditSource(string name, EditorPosition position, Action<AspectModel, IDeclaration, string> edit) =>
-        _solution.Locks.ExecuteOrQueueEx(_lifetime, name, () =>
+        _solution.Locks.ExecuteOrQueueReadLockEx(_lifetime, name, () =>
         {
             _solution.GetPsiServices().Files.CommitAllDocuments();
-            using (ReadLockCookie.Create())
-            {
-                var sourceFile = SourceFile(position.File);
-                if (Model is { } model && sourceFile?.GetDominantPsiFile<CSharpLanguage>() is { } psiFile &&
-                    Actions.AspectTargets.At(psiFile, new DocumentOffset(sourceFile.Document, position.Offset)) is var (declaration, target))
-                    edit(model, declaration, target);
-                else
-                    RdModel.Info.Fire("Place the caret on the name of a declaration with Metalama aspects.");
-            }
+            var sourceFile = SourceFile(position.File);
+            if (Model is { } model && sourceFile?.GetDominantPsiFile<CSharpLanguage>() is { } psiFile &&
+                Actions.AspectTargets.At(psiFile, new DocumentOffset(sourceFile.Document, position.Offset)) is var (declaration, target))
+                edit(model, declaration, target);
+            else
+                RdModel.Info.Fire("Place the caret on the name of a declaration with Metalama aspects.");
         });
 
     void AddAspectsAsAttributes(AspectModel model, IDeclaration declaration, string target)
