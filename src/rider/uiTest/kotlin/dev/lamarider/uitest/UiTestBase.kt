@@ -161,5 +161,6 @@ interface XDebuggerManager {
 @Remote("com.intellij.xdebugger.XDebugSession", plugin = "com.intellij/intellij.platform.debugger")
 interface XDebugSession {
     fun isPaused(): Boolean
+    fun stepInto()
     fun stop()
 }

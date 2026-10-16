@@ -3,6 +3,7 @@ package dev.lamarider.uitest
 import com.intellij.driver.client.Driver
 import com.intellij.driver.client.Remote
 import com.intellij.driver.model.OnDispatcher
+import com.intellij.driver.sdk.expireNotifications
 import com.intellij.driver.sdk.invokeAction
 import com.intellij.driver.sdk.openToolWindow
 import com.intellij.driver.sdk.singleProject
@@ -63,7 +64,7 @@ class ScreenshotsUiTest : UiTestBase() {
                         .SelectMany(t => t.Methods)
                         .Where(m => m.Name == nameof(Calculator.Multiply));
                     multiply.AddAspect<LogAttribute>();
-                    multiply.SelectMany(m => m.Parameters).AddAspect<PositiveAttribute>();
+                    multiply.SelectMany(m => m.Parameters).AddAspect<NonNegativeAttribute>();
                 }
             }
             """.trimIndent() + "\n")
@@ -97,13 +98,14 @@ class ScreenshotsUiTest : UiTestBase() {
         invokeAction("LamaRider.TrackCaret")
         try {
             caretAt("MetalamaSample/Calculator.cs", "Multiply(")
-            ideFrame { waitForText("aspects at the caret", "Positive") }
+            ideFrame { waitForText("aspects at the caret", "NonNegative") }
             shot("track-caret", frame())
         } finally {
             invokeAction("LamaRider.TrackCaret")
         }
 
         caretAt("MetalamaSample/Calculator.cs", "Multiply(")
+        invokeAction("HideAllWindows") // the diff gets the frame's width
         editorAction("LamaRider.MetalamaDiff")
         shot("metalama-diff", windowOf(popup("Transformed (read-only)")))
 
@@ -111,12 +113,14 @@ class ScreenshotsUiTest : UiTestBase() {
         invokeAction("LamaRider.Settings", now = false)
         val settings = windowOf(popup("Aspect Tests"))
         shot("settings", settings)
-        val tree = ui.x(xQuery { byTitle("Settings") }).xx(JTreeUiComponent::class.java) { or(byClass("MyTree"), byClass("Tree")) }.list()
-            .first { it.hasSubtext("Editor") }
-        tree.expandPath("Editor", "Color Scheme", fullMatch = true)
-        tree.clickPath("Editor", "Color Scheme", "Metalama T#", fullMatch = true)
-        Thread.sleep(3000)
-        shot("tsharp-color-settings", settings)
+        ui.x(xQuery { byTitle("Settings") }).x(xQuery { byText("Cancel") }).click()
+        waitFor("settings closed", timeout = 30.seconds) { !ui.x(xQuery { byTitle("Settings") }).present() }
+
+        // Rider's Jump to Colors and Fonts on T# code opens the Metalama T# page.
+        caretAt("MetalamaSample/LogAttribute.cs", "meta.Proceed")
+        Thread.sleep(5000)
+        ideFrame { invokeAction("JumpToColorsAndFonts", now = false, component = codeEditor().component) }
+        shot("tsharp-color-settings", windowOf(popup("Metalama T#")))
         ui.x(xQuery { byTitle("Settings") }).x(xQuery { byText("Cancel") }).click()
     }
 
@@ -191,13 +195,14 @@ class ScreenshotsUiTest : UiTestBase() {
         layout()
         openToolWindow("LamaRider")
         ideFrame { waitForText("aspects listed (first refresh done)", "Log") }
-        val transformed = Files.walk(solutionDir.resolve("MetalamaSample/obj")).use { paths ->
-            paths.filter { it.fileName.toString() == "Calculator.cs" && it.parent.fileName.toString() == "metalama" }.findFirst().orElse(null)
-        } ?: fail("No transformed Calculator.cs")
-        val relative = solutionDir.relativize(transformed).toString()
-        breakpoint(relative, Files.readAllLines(transformed).indexOfFirst { it.contains("Entering Multiply") })
-        caretAt(relative, "Multiply(")
+        // Stop in Program.cs, then step into Multiply: the debugger continues in its transformed code.
+        breakpoint("MetalamaSample/Program.cs", 0)
+        caretAt("MetalamaSample/Program.cs", "Multiply")
         debugUntilPaused { invokeAction("Debug", now = false) }
+        val debugger = service(XDebuggerManager::class, singleProject())
+        withContext<Unit>(OnDispatcher.EDT) { debugger.getCurrentSession()?.stepInto() }
+        waitFor("stepped into Multiply", timeout = 1.minutes) { debugger.getCurrentSession()?.isPaused() == true }
+        Thread.sleep(3000)
         shot("debug-transformed-code", frame())
     }
 
@@ -254,7 +259,8 @@ class ScreenshotsUiTest : UiTestBase() {
         Thread.sleep(3000) // variables, frames, the editor at the breakpoint
     }
 
-    private fun shot(name: String, area: Rectangle) {
+    private fun Driver.shot(name: String, area: Rectangle) {
+        expireNotifications(singleProject()) // balloons ("Cannot update plugin", ...) would cover the tool windows
         Thread.sleep(1000)
         val rect = area.intersection(Rectangle(Toolkit.getDefaultToolkit().screenSize))
         Files.createDirectories(out)

@@ -97,7 +97,7 @@ Above every declaration an aspect touches, Code Vision says which aspects:
 | `applied to 2 targets` | On an aspect class: how many targets it has in the solution. |
 
 Aspects on a parameter that an attribute adds count for the member (the attribute is in the code). Aspects on a
-parameter from a fabric, inheritance etc. get an **inlay hint** right after the parameter name, e.g. `a Positive (fabric)`.
+parameter from a fabric, inheritance etc. get an **inlay hint** right after the parameter name, e.g. `a NonNegative (fabric)`.
 Hover any of these for the full list.
 
 ![Code Vision and parameter hints](screenshots/code-vision.png)
