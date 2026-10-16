@@ -62,6 +62,8 @@ class LamaRiderUiTest {
                         testName: String, message: String, details: String, linkToLogs: String?,
                         kind: TeamCityReporter.SyntheticTestKind, isIgnored: Boolean, metadata: List<TeamCityReporter.TestMetadata>,
                     ) {
+                        // Rider's own debugger data-flow hints assert on files outside the solution (Metalama's compiled copy).
+                        if ("DFASupportCSharp" in details) return
                         fail { "$testName fails: $message.\n$details" }
                     }
                 }
@@ -181,6 +183,8 @@ class LamaRiderUiTest {
         waitFor("debug session started", timeout = 10.minutes) { debugger.getCurrentSession() != null }
         try {
             waitFor("stopped at the breakpoint in the aspect", timeout = 5.minutes) { debugger.getCurrentSession()?.isPaused() == true }
+            // The debugger shows Metalama's compiled copy; the banner leads back to LogAttribute.cs.
+            ideFrame { waitForText("compiled copy banner", "Metalama's compiled copy of LogAttribute.cs") }
         } finally {
             debugger.getCurrentSession()?.stop()
         }
@@ -226,8 +230,9 @@ class LamaRiderUiTest {
         val path = solutionDir.resolve(relativePath).toString().replace('\\', '/')
         // VFS refresh of a new file off the EDT (on it, it needs the write-intent lock); editor work on the EDT.
         val file = utility(LocalFileSystem::class).getInstance().refreshAndFindFileByPath(path) ?: fail("No file $path")
-        withContext<Unit>(OnDispatcher.EDT) {
-            openEditor(file, singleProject())
+        withContext<Unit>(OnDispatcher.EDT) { openEditor(file, singleProject()) }
+        // Moving the caret makes Rider sync the editor, which reads the PSI: needs a read action (2026.3 asserts it).
+        withReadAction<Unit>(OnDispatcher.EDT) {
             val editor = selectedTextEditor() ?: fail("No editor for $relativePath")
             val offset = editor.getDocument().getText().indexOf(marker)
             assertTrue(offset >= 0, "'$marker' not in $relativePath")

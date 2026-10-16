@@ -17,6 +17,25 @@ object CompileTimeMaps {
     class Copy(val file: File, val source: String, internal val lines: Map<Int, Int>) {
         /** 0-based line in [file] for a 0-based source line, if that line has code there. */
         fun line(sourceLine: Int): Int? = lines[sourceLine]
+
+        /** 0-based source line of a 0-based line in [file]: the last mapped statement at or before it. */
+        fun sourceLine(copyLine: Int): Int? = lines.entries.filter { it.value <= copyLine }.maxByOrNull { it.value }?.key
+    }
+
+    /**
+     * [file] as a compiled copy under the Metalama temp directory [root] (a build's, with its .map next to it, or a test
+     * run's, mapped through the identical build copy); null for any other file.
+     */
+    fun copyFor(file: File, root: File): Copy? {
+        val path = file.absoluteFile.path
+        val cache = File(root, "CompileTime")
+        return when {
+            path.startsWith(cache.absoluteFile.path + File.separator) ->
+                read(File(file.parentFile, file.nameWithoutExtension + ".map"))?.takeIf { it.file.absoluteFile == file.absoluteFile }
+            path.startsWith(File(root, "Tests").absoluteFile.path + File.separator) ->
+                mapOf(file, byName(cache)) { File(it).isFile }
+            else -> null
+        }
     }
 
     /** Metalama's temporary directory: METALAMA_TEMP, else %TEMP%\Metalama on Windows, ~/.local/share/Metalama/Temp elsewhere. */

@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using JetBrains.Application.Settings;
+using JetBrains.DocumentModel;
 using JetBrains.ReSharper.Daemon.CodeInsights;
 using JetBrains.ReSharper.Feature.Services.Daemon;
 using JetBrains.ReSharper.Psi;
@@ -14,8 +15,11 @@ using LamaRider.Model;
 
 namespace LamaRider.CodeVision;
 
-/// <summary>"N aspects" on aspect targets and "applied to N targets" on aspect classes.</summary>
-[DaemonStage(HighlightingTypes = new[] { typeof(CodeInsightsHighlighting) })]
+/// <summary>
+/// Code Vision on aspect targets (aspect names, see <see cref="AspectHints"/>) and "applied to N targets" on aspect
+/// classes; parameters get an inlay hint of their own.
+/// </summary>
+[DaemonStage(HighlightingTypes = new[] { typeof(CodeInsightsHighlighting), typeof(AspectParameterHint) })]
 public sealed class AspectCodeVisionStage(AspectModelHost host, AspectCodeInsightsProvider provider) : IDaemonStage
 {
     public IEnumerable<IDaemonStageProcess> CreateProcess(IDaemonProcess process, IContextBoundSettingsStore settings, DaemonProcessKind processKind)
@@ -36,22 +40,26 @@ public sealed class AspectCodeVisionStage(AspectModelHost host, AspectCodeInsigh
             foreach (var declaration in file.Descendants<IDeclaration>())
             {
                 if (daemonProcess.InterruptFlag) throw new OperationCanceledException();
-                if (declaration is IParameterDeclaration || declaration.DeclaredElement is not { } element) continue; // parameters: on their method
+                if (declaration.DeclaredElement is not { } element) continue;
                 var nameRange = declaration.GetNameDocumentRange();
                 if (!nameRange.IsValid()) continue;
+                if (declaration is IParameterDeclaration)
+                {
+                    if (ParameterHint(element, nameRange) is { } hint) result.Add(new HighlightingInfo(hint.CalculateRange(), hint));
+                    continue;
+                }
 
                 var docId = DocId(element);
-                var instances = model.InstancesFor(docId, path, nameRange.StartOffset.Offset, declaration.GetDocumentRange().EndOffset.Offset);
+                var all = model.InstancesFor(docId, path, nameRange.StartOffset.Offset, declaration.GetDocumentRange().EndOffset.Offset);
+                var instances = docId != null && model.InstancesOf(docId).Count > 0 ? AspectHints.ForMember(all, docId) : all;
                 var targets = docId != null && model.IsAspectClass(docId) ? model.TargetCountOf(docId) : 0;
                 if (instances.Count == 0 && targets == 0) continue;
 
                 var parts = new List<string>();
-                if (instances.Count > 0) parts.Add(instances.Count == 1 ? "1 aspect" : $"{instances.Count} aspects");
+                if (instances.Count > 0) parts.Add(AspectHints.Text(instances.ToList(), model.AspectName));
                 if (targets > 0) parts.Add(targets == 1 ? "applied to 1 target" : $"applied to {targets} targets");
                 var text = string.Join(" · ", parts);
-                var tooltip = instances.Count > 0
-                    ? string.Join(", ", instances.Select(i => $"{Short(i.AspectClass)} ({i.AppliedVia})"))
-                    : "Metalama aspect class";
+                var tooltip = instances.Count > 0 ? Tooltip(instances) : "Metalama aspect class";
 
                 var highlighting = new CodeInsightsHighlighting(nameRange, text, tooltip, text, provider, element, null);
                 provider.Remember(highlighting, AspectModel.ClickTarget(docId ?? "", instances));
@@ -60,7 +68,18 @@ public sealed class AspectCodeVisionStage(AspectModelHost host, AspectCodeInsigh
             committer(new DaemonStageResult(result));
         }
 
-        static string Short(string classId) => classId.Substring(classId.LastIndexOf('.') + 1);
+        string Tooltip(IEnumerable<AspectInstanceInfo> instances) =>
+            string.Join(", ", instances.Select(i => $"{model.AspectName(i.AspectClass)} ({AspectHints.Origin(i.AppliedVia)})").Distinct());
+
+        AspectParameterHint? ParameterHint(IDeclaredElement element, DocumentRange nameRange)
+        {
+            if (element is not IParameter { ContainingParametersOwner: ITypeMember owner } parameter) return null;
+            if (DocId(owner) is not { } ownerId) return null;
+            var instances = AspectHints.ForParameter(model.InstancesOf(ownerId), ownerId, owner is IParametersOwner p ? p.Parameters.IndexOf(parameter) : -1);
+            if (instances.Count == 0) return null;
+            return new AspectParameterHint(new DocumentRange(nameRange.EndOffset), AspectHints.Text(instances.ToList(), model.AspectName),
+                Tooltip(instances), instances[0].Target);
+        }
 
         static string? DocId(IDeclaredElement element) => element switch
         {

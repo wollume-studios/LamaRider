@@ -70,6 +70,24 @@ class CompileTimeMapsTest {
     }
 
     @Test
+    fun `a line of a compiled copy leads back to its source line`() {
+        val source = File(dir, "App/Aspect.cs").apply { parentFile.mkdirs(); writeText("x"); setLastModified(1) }
+        val built = compiled("h1", source, listOf(10 to 17, 11 to 18, 12 to 19), 3_000_000).apply { writeText("compiled code") }
+        val run = File(dir, "Metalama/Tests/guid/CompileTime/App/.netcoreapp8.0/h1/${built.name}").apply { parentFile.mkdirs(); writeText("compiled code") }
+        val root = File(dir, "Metalama")
+
+        // The build's own copy has its map next to it; a test run's copy borrows the identical build copy's map.
+        for (copy in listOf(built, run)) {
+            val mapped = CompileTimeMaps.copyFor(copy, root)!!
+            assertEquals(source.path, mapped.source)
+            assertEquals(12, mapped.sourceLine(19))
+            assertEquals(12, mapped.sourceLine(21)) // generated lines after a statement belong to it
+            assertNull(mapped.sourceLine(3)) // before any mapped code
+        }
+        assertNull(CompileTimeMaps.copyFor(source, root)) // not a compiled copy
+    }
+
+    @Test
     fun `a corrupt map is ignored`() {
         val source = File(dir, "App/Aspect.cs").apply { parentFile.mkdirs(); writeText("x"); setLastModified(1) }
         File(dir, "Metalama/CompileTime/App/x/2026.1.30/A.map").apply { parentFile.mkdirs(); writeBytes(byteArrayOf(1, 2, 3)) }

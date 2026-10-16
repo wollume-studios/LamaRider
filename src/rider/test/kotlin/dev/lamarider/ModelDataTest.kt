@@ -75,6 +75,18 @@ class ModelDataGroupingTest {
     }
 
     @Test
+    fun `contracts on two parameters of one method each show their own transformation`() {
+        val add = "M:Test2.Add(System.Int32,System.Int32)"
+        val a = AspectInstanceInfo("T:GreaterThan1", "$add;Parameter=0", "Test2.Add(int, int)/a", "Test2", "Parameter", "P", "Fabric", null)
+        val b = a.copy(target = "$add;Parameter=1", targetName = "Test2.Add(int, int)/b")
+        val forA = TransformationInfo("T:GreaterThan1", add, "InsertStatement", "Add contract to parameter 'a'", null, a.target)
+        val forB = TransformationInfo("T:GreaterThan1", add, "InsertStatement", "Add contract to parameter 'b'", null, b.target)
+        val model = ModelData(instances = listOf(a, b), transformations = listOf(forB, forA))
+        assertEquals(listOf(forA), model.transformationsOf(a))
+        assertEquals(listOf(forB), model.transformationsOf(b))
+    }
+
+    @Test
     fun `aspects on a method include those on its parameters`() {
         fun on(target: String, cls: String) = AspectInstanceInfo(cls, target, target, "Test", "Method", "P", "Attribute", null)
         val model = ModelData(instances = listOf(on("M:T.M(System.String)", "T:Class1"), on("M:T.M(System.String);Parameter=0", "T:Url"), on("M:T.Other", "T:Log")))
