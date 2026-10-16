@@ -210,9 +210,18 @@ public sealed class AspectModelHost
                 RdModel.Info.Fire("No Metalama test output for this file: run the aspect test first.");
         });
 
-    IPsiSourceFile? SourceFile(string path) =>
-        _solution.FindProjectItemsByLocation(VirtualFileSystemPath.Parse(path, InteractionContext.SolutionContext))
-            .OfType<IProjectFile>().FirstOrDefault()?.ToSourceFiles().FirstOrDefault();
+    /// <summary>
+    /// The file a frontend path names ("D:/x/y.cs" on Windows). A file can also be in Rider's Miscellaneous Files
+    /// project, which has no project file: the one in a real project wins.
+    /// </summary>
+    IPsiSourceFile? SourceFile(string path)
+    {
+        var location = VirtualFileSystemPath.Parse(Path.GetFullPath(path), InteractionContext.SolutionContext);
+        var files = _solution.FindProjectItemsByLocation(location).OfType<IProjectFile>().ToList();
+        var file = files.FirstOrDefault(f => f.GetProject()?.ProjectFileLocation is { IsEmpty: false } csproj && csproj.ExistsFile) ?? files.FirstOrDefault();
+        if (file == null) Logger.Warn($"LamaRider: {path} is in no project");
+        return file?.ToSourceFiles().FirstOrDefault();
+    }
 
     void AddLamaDebugConfiguration() =>
         _solution.Locks.ExecuteOrQueueReadLockEx(_lifetime, "LamaRider.AddLamaDebug", () =>

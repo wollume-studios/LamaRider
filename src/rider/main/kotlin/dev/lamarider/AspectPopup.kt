@@ -20,6 +20,19 @@ import dev.lamarider.diff.MetalamaDiff
 object AspectPopup {
     private class Item(val label: String, val separator: String? = null, val sub: List<Item> = emptyList(), val run: (() -> Unit)? = null)
 
+    /** Backend click target prefix of the "transformed code" hint (AspectCodeVisionStage.TransformedCodeClick). */
+    private const val TRANSFORMED_CODE = "transformed|"
+
+    /** A Code Vision / inlay hint click: the "transformed code" hint opens the transformed code, others this menu. */
+    fun onHintClicked(project: Project, clickTarget: String) {
+        if (!clickTarget.startsWith(TRANSFORMED_CODE)) return show(project, clickTarget, atMouse = true)
+        val member = clickTarget.removePrefix(TRANSFORMED_CODE)
+        ApplicationManager.getApplication().invokeLater {
+            val location = project.service<LamaRiderService>().model?.instancesOn(member)?.firstNotNullOfOrNull { it.location }
+            if (location == null || !TransformedCodePopup.show(project, location.file, member, caretAt = location.start)) show(project, member, atMouse = true)
+        }
+    }
+
     /** [atMouse]: opened from a Code Vision click (pointer is on the hint); otherwise anchored at the caret. */
     fun show(project: Project, docId: String, atMouse: Boolean = false) = ApplicationManager.getApplication().invokeLater {
         val model = project.service<LamaRiderService>().model ?: return@invokeLater

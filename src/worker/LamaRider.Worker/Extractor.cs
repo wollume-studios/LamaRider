@@ -69,7 +69,8 @@ public static class Extractor
                 i.TargetDeclaration.DeclarationKind.ToString(),
                 i.TargetDeclaration.Compilation.Project.Name ?? "",
                 i.Predecessors.IsDefaultOrEmpty ? "Unknown" : i.Predecessors[0].Kind.ToString(),
-                Locate(i.TargetDeclaration)))
+                Locate(i.TargetDeclaration),
+                i.Predecessors.IsDefaultOrEmpty ? null : AppliedBy(i.Predecessors[0].Instance)))
             .Distinct() // records: collapses the same instance reported once per target framework
             .ToList();
 
@@ -106,6 +107,14 @@ public static class Extractor
         try { return diagnostic.Declaration; }
         catch (ArgumentException) { return null; }
     }
+
+    /// <summary>The fabric (full name) or aspect instance ("LogAttribute on Calculator.Add(int, int)") that added an aspect.</summary>
+    static string? AppliedBy(IIntrospectionAspectPredecessor? predecessor) => predecessor switch
+    {
+        IIntrospectionFabric fabric => fabric.FullName,
+        IIntrospectionAspectInstance aspect => $"{aspect.AspectClass.ShortName} on {aspect.TargetDeclaration.ToDisplayString()}",
+        _ => null,
+    };
 
     /// <summary>
     /// C# XML documentation ID (what ReSharper's XMLDocUtil produces). Metalama's serializable id appends

@@ -36,6 +36,8 @@ public sealed class AspectInstanceInfo
     public string TargetKind = "";
     public string Project = "";
     public string AppliedVia = "";
+    /// <summary>The fabric or aspect instance that added it (null for attributes and older worker output).</summary>
+    public string? AppliedBy;
     public SourceLocation? Location;
 
     internal string Key => $"{AspectClass}|{Target}|{AppliedVia}";

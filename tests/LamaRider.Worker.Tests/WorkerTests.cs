@@ -30,6 +30,14 @@ public sealed class WorkerTests : IAsyncLifetime
     }
 
     [Fact]
+    public void Instances_name_the_fabric_that_added_them()
+    {
+        var log = _output.Instances.Where(i => i.AspectClass == "T:MetalamaSample.LogAttribute").ToList();
+        Assert.Equal("MetalamaSample.Fabric", log.Single(i => i.Target == Multiply).AppliedBy);
+        Assert.Null(log.Single(i => i.Target == Add).AppliedBy); // the attribute is in the code
+    }
+
+    [Fact]
     public void Aspect_class_is_located_in_source()
     {
         var log = _output.AspectClasses.Single(c => c.Id == "T:MetalamaSample.LogAttribute");
