@@ -25,7 +25,9 @@ LamaRider does not take its data from Rider's code model. A separate process, **
 with Metalama's own introspection API (`Metalama.Framework.Workspaces`) and writes what it finds (aspects, targets,
 transformations, diagnostics, transformed code) for the IDE to show. On first use the worker is built from source for
 your Metalama version (cached in `%LOCALAPPDATA%\LamaRider\worker`, `~/.local/share/LamaRider/worker` on Linux), so the
-first refresh takes about a minute. Later refreshes take seconds; the worker stays loaded between them.
+first refresh takes about a minute. Later refreshes take seconds; the worker stays loaded between them. A worker build
+that succeeds without producing `LamaRider.Worker.dll` (seen right after a plugin update, while other builds run) is
+retried once; if it still fails, the error message ends with the build's last output lines.
 
 A refresh starts on its own:
 
@@ -272,20 +274,33 @@ no longer greys them out as unused.
 The debugger does not run your aspect source files: Metalama compiles a rewritten copy of the compile-time code (in its
 temp folder), and that copy is where the debugger stops. When a debug session starts, LamaRider mirrors your enabled
 breakpoints in compile-time code to the matching lines of that copy and removes them when the session ends. The copy
-opens with an info bar *Metalama's compiled copy of LogAttribute.cs* and *Open LogAttribute.cs at this line* to get
-back to your file.
+opens with an info bar *Metalama's compiled copy of LogAttribute.cs: the code the debugger runs* and these links:
+
+- *Show LogAttribute.cs side by side*: your file opens in the right split, with carets synced both ways: moving the
+  caret in either editor moves the other one to the matching line.
+- *Open LogAttribute.cs at this line*: back to your file, at the line matching the caret.
+- *Make it readable* (only while the setting below is off): turns on *Readable aspect code while debugging*. Rebuild the
+  aspect project, then debug again.
 
 ![Debugging an aspect test](screenshots/debug-aspect-test.png)
+
+**Readable aspect code while debugging** (*Settings › Tools › LamaRider › Debugging*, off by default): Metalama's
+compiled copy is hard to read by default (`global::` everywhere, its own indentation). On writes
+`MetalamaFormatCompileTimeCode=true` to the `LamaRider` property group of the solution's `Directory.Build.props`, and
+Metalama formats the copy of your aspects, templates and fabrics: no `global::`, normal indentation. Builds of aspect
+projects get slower. Rebuild the aspect project after changing the setting. Breakpoint mirroring works the same with
+the formatted copy (covered by the UI test *debugging stops in readable compile-time code*).
 
 Limitations:
 
 - Breakpoints added or changed during a session are mirrored at the next session.
 - Mirroring reads Metalama's internal line map format (Metalama 2026.1) and watches for the test run's copy by polling.
   If Metalama changes the format or the copy is missed, the breakpoint simply doesn't stop, as without LamaRider.
-- The debugger shows the compiled copy as Metalama wrote it (not reformatted, so its lines match the debugger), not your
-  source file. The map has the lines with statements: a breakpoint on any other line is not mirrored.
-- Rider's own debugger data-flow hints can log an internal error on that file (it is not part of the solution); it is
-  harmless.
+- The debugger shows the compiled copy as Metalama wrote it, not your source file. LamaRider never edits or reformats
+  it (the debugger maps it by line); for a readable copy, turn on *Readable aspect code while debugging* so Metalama
+  formats it. The map has the lines with statements: a breakpoint on any other line is not mirrored.
+- Rider analyses the compiled copy as a loose file outside the solution, so it shows unresolved-symbol errors there;
+  ignore them. Rider's own debugger data-flow hints can log an internal error on that file; it is harmless.
 - `Metalama.Testing.AspectTesting` turns Metalama off in test projects (`MetalamaEnabled=False`). To show their aspects,
   LamaRider loads the aspect test projects a second time with Metalama on, which adds to the refresh time.
 
@@ -315,6 +330,7 @@ Rider 2026.2 and 2026.3 test runs). The first *Run / Debug Metalama Aspect Test*
 | Build the project after aspect or template code is saved | off | Builds the saved file's project so Metalama's design-time analysis resumes (LAMA0118). For all solutions. |
 | Debug transformed code in every build configuration | off | `MetalamaDebugTransformedCode` in the solution's `Directory.Build.props`. |
 | Format transformed code | on | Off: `MetalamaFormatOutput=false` in `Directory.Build.props` (faster builds, no LAMA0066). |
+| Readable aspect code while debugging | off | On: `MetalamaFormatCompileTimeCode=true` in `Directory.Build.props`; Metalama formats its compiled copy of aspects, templates and fabrics (slower aspect project builds). Rebuild the aspect project after changing it. See [Debug an aspect test](#debug-an-aspect-test). |
 | Aspect Tests | | Status of the Rider settings aspect tests need, and *Configure Rider for Metalama Tests…*. |
 
 ![LamaRider settings](screenshots/settings.png)
@@ -326,6 +342,6 @@ Rider 2026.2 and 2026.3 test runs). The first *Run / Debug Metalama Aspect Test*
   and projects must be restorable and loadable by MSBuild.
 - With several Metalama versions in one solution, one version is used for all projects.
 - File paths are compared case-insensitively, also on Linux.
-- Debugging aspects relies on Metalama's internal compiled-copy map format (2026.1); see
-  [Debug an aspect test](#debug-an-aspect-test).
+- Debugging aspects relies on Metalama's internal compiled-copy map format (2026.1), and the compiled copy shows
+  unresolved-symbol errors in Rider (it is analysed as a loose file); see [Debug an aspect test](#debug-an-aspect-test).
 - Only the solution-level `Directory.Build.props` is written by the debugging settings.

@@ -16,7 +16,7 @@ Metalama tooling for JetBrains Rider — the Rider counterpart of the Visual Stu
 | **T# highlighting** | Compile-time code in templates is tinted, `meta.*` and compile-time variables stand out. Colors: *Settings › Editor › Color Scheme › Metalama T#*. |
 | **Metalama errors** | Errors such as LAMA0037 are underlined from LamaRider's own analysis seconds after a save, also while Rider's own Metalama analysis waits for a build (LAMA0118). Errors without a location (e.g. an exception in a fabric) show in an info bar on C# editors and on your aspect classes. Alt+Enter: LAMA documentation, *Build project to resume Metalama analysis*; optional build on save. |
 | **Debug transformed code** | *Debug with LamaDebug* (tool window): selects Metalama's `LamaDebug` configuration, adding it to the `.sln`/`.slnx` first if needed, and starts debugging the transformed code. Or debug transformed code in every configuration (*Settings › Tools › LamaRider*), with or without formatting it (LAMA0066). |
-| **Aspect tests** | Alt+Enter on an aspect class › *Create Metalama aspect test*: a prefilled test in the aspect test project next to the aspect's project, created when missing. Run / debug it from the gutter icon or the context menus, then *Accept Metalama Test Output* saves the `.t.cs` snapshot. Breakpoints in your aspects, templates and fabrics stop while debugging. Rider's Test Runner discovery, which aspect tests need, is set up for you. |
+| **Aspect tests** | Alt+Enter on an aspect class › *Create Metalama aspect test*: a prefilled test in the aspect test project next to the aspect's project, created when missing. Run / debug it from the gutter icon or the context menus, then *Accept Metalama Test Output* saves the `.t.cs` snapshot. Breakpoints in your aspects, templates and fabrics stop while debugging; the debugger's copy of that code opens with your source side by side (carets synced), readable on request (*Readable aspect code while debugging*). Rider's Test Runner discovery, which aspect tests need, is set up for you. |
 
 PostSharp classic (MSIL) projects are not supported. **How to use each feature, step by step, and its limitations:
 [docs/usage.md](docs/usage.md).**
@@ -84,12 +84,15 @@ An aspect test file: the gutter icon runs or debugs it, and Code Vision shows wh
 ![Debugging an aspect test](docs/screenshots/debug-aspect-test.png)
 
 *Debug Metalama Aspect Test*: stopped at a breakpoint set in `LogAttribute.cs`. The debugger shows Metalama's compiled
-copy of the aspect; the info bar opens your file at the same line.
+copy of the aspect; the info bar shows your file side by side (carets synced both ways) or opens it at the same line.
+*Readable aspect code while debugging* (settings, or *Make it readable* in the info bar) has Metalama format that copy:
+no `global::`, normal indentation, slower builds of aspect projects.
 
 ![LamaRider settings](docs/screenshots/settings.png)
 
 *Settings › Tools › LamaRider* (or the settings icon in the LamaRider tool window): what clicking an aspect does, build on
-save, debugging transformed code, formatting it, and whether Rider is set up for aspect tests.
+save, debugging transformed code, formatting it, readable aspect code while debugging, and whether Rider is set up for
+aspect tests.
 
 ## Requirements
 
