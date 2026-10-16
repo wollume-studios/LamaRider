@@ -59,7 +59,7 @@ public sealed class AspectCodeVisionStage(AspectModelHost host, AspectCodeInsigh
                 if (instances.Count > 0)
                 {
                     // One Code Vision entry per aspect (or one "transformed code" / "N aspects").
-                    var hints = AspectHints.Hints(instances.ToList(), model.AspectName, Summary);
+                    var hints = AspectHints.Hints(instances.ToList(), model.AspectName, Summary, OffersCodeFixes);
                     for (var i = 0; i < hints.Count && i < aspectSlots.Length; i++)
                         Add(aspectSlots[i], nameRange, element, hints[i].Text, hints[i].ToolTip,
                             hints[i].TransformedCode ? TransformedCodeClick + clickTarget : clickTarget);
@@ -74,6 +74,7 @@ public sealed class AspectCodeVisionStage(AspectModelHost host, AspectCodeInsigh
         public const string TransformedCodeClick = "transformed|";
 
         string? Summary(string aspectClassId) => model.AspectClasses.FirstOrDefault(c => c.Id == aspectClassId)?.Summary;
+        bool OffersCodeFixes(string aspectClassId) => model.AspectClasses.FirstOrDefault(c => c.Id == aspectClassId)?.OffersCodeFixes == true;
 
         void Add(AspectCodeInsightsProviderBase provider, DocumentRange nameRange, IDeclaredElement element, string text, string tooltip, string clickTarget)
         {
@@ -89,7 +90,7 @@ public sealed class AspectCodeVisionStage(AspectModelHost host, AspectCodeInsigh
             if (DocId(owner) is not { } ownerId) return [];
             var instances = AspectHints.ForParameter(model.InstancesOf(ownerId), ownerId, owner is IParametersOwner p ? p.Parameters.IndexOf(parameter) : -1);
             if (instances.Count == 0) return [];
-            return AspectHints.Hints(instances.ToList(), model.AspectName, Summary)
+            return AspectHints.Hints(instances.ToList(), model.AspectName, Summary, OffersCodeFixes)
                 .Select(hint => new AspectParameterHint(new DocumentRange(nameRange.EndOffset), hint.Text, hint.ToolTip, instances[0].Target))
                 .ToList();
         }

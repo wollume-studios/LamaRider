@@ -25,6 +25,8 @@ public sealed class AspectClassInfo
     public string Package = "";
     public string? Summary;
     public string? DocUrl;
+    /// <summary>Its assembly references Metalama.Extensions.CodeFixes: it may offer code fixes (they need a Metalama Professional license).</summary>
+    public bool OffersCodeFixes;
 }
 
 public sealed class AspectInstanceInfo
@@ -39,8 +41,23 @@ public sealed class AspectInstanceInfo
     /// <summary>The fabric or aspect instance that added it (null for attributes and older worker output).</summary>
     public string? AppliedBy;
     public SourceLocation? Location;
+    /// <summary>Not added by an attribute: how to write it as one with the same settings (null: it can't be).</summary>
+    public AttributeSetup? Attribute;
 
     internal string Key => $"{AspectClass}|{Target}|{AppliedVia}";
+}
+
+/// <summary>C# (fully qualified with global::) for an aspect's attribute arguments.</summary>
+public sealed class AttributeSetup
+{
+    public List<string> Arguments = new();
+    public List<NamedArgument> Named = new();
+}
+
+public sealed class NamedArgument
+{
+    public string Name = "";
+    public string Value = "";
 }
 
 public sealed class TransformationInfo
@@ -50,6 +67,8 @@ public sealed class TransformationInfo
     public string Kind = "";
     public string Description = "";
     public SourceLocation? Location;
+    /// <summary>Target of the aspect instance that made it (null in older worker output).</summary>
+    public string? InstanceTarget;
 }
 
 public sealed class DiagnosticInfo
@@ -81,6 +100,16 @@ public sealed class TransformedFileInfo
 {
     public string File = "";
     public string TransformedPath = "";
+    public List<TransformedDeclaration> Declarations = new();
+}
+
+/// <summary>A type or member of a transformed file (LF offsets); Standalone: its transformed code to replace the source with.</summary>
+public sealed class TransformedDeclaration
+{
+    public string Target = "";
+    public int? SourceStart;
+    public int? SourceEnd;
+    public string? Standalone;
 }
 
 public sealed class AspectModel
@@ -135,6 +164,14 @@ public sealed class AspectModel
     /// <summary>Instances on a member, its parameters and return value, by the member's doc id.</summary>
     public IReadOnlyList<AspectInstanceInfo> InstancesOf(string memberDocId) =>
         _byTarget.TryGetValue(memberDocId, out var instances) ? instances : Array.Empty<AspectInstanceInfo>();
+
+    /// <summary>The transformed code of a declaration in <paramref name="file"/>, when it can replace the source.</summary>
+    public TransformedDeclaration? StandaloneOf(string file, string docId)
+    {
+        var normalized = Normalize(file);
+        return TransformedFiles.Where(f => Normalize(f.File) == normalized).SelectMany(f => f.Declarations)
+            .FirstOrDefault(d => d.Target == docId && d.Standalone != null && d.SourceStart != null && d.SourceEnd != null);
+    }
 
     /// <summary>Display name of an aspect class ("GreaterThan1"), its id's last segment when unknown.</summary>
     public string AspectName(string aspectClassId) =>

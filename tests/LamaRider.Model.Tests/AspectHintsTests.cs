@@ -49,6 +49,14 @@ public class AspectHintsTests
     }
 
     [Fact]
+    public void The_tooltip_says_when_an_aspect_may_offer_code_fixes()
+    {
+        // Metalama.Extensions.CodeFixes is a Premium component: its code fixes need a Metalama Professional license.
+        var hint = AspectHints.Hints([On(Add, "Audit", "Fabric", "App.Fabric")], Name, NoDocs, id => id == "T:Audit").Single();
+        Assert.Equal("Added by fabric App.Fabric\nMay offer code fixes (Alt+Enter); they need a Metalama Professional license.", hint.ToolTip);
+    }
+
+    [Fact]
     public void A_collapsed_or_attribute_tooltip_names_each_aspect()
     {
         var hint = AspectHints.Hints([On(Add, "Log", "Attribute"), On(Add, "Cache", "Attribute")], Name,

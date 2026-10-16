@@ -54,7 +54,10 @@ public static class Extractor
                     Summary: Documentation.Summary(symbol?.GetDocumentationCommentXml()),
                     DocUrl: isLibrary && c.FullName.StartsWith("Metalama.", StringComparison.Ordinal)
                         ? "https://doc.metalama.net/api/" + c.FullName.ToLowerInvariant().Replace('.', '-')
-                        : null);
+                        : null,
+                    OffersCodeFixes: symbol?.ContainingAssembly.Modules.Any(m => m.ReferencedAssemblies.Any(a => a.Name == "Metalama.Extensions.CodeFixes")) == true
+                        || type != null && type.Compilation.Project is { } p && workspace.Projects.Any(wp => wp.Name == p.Name &&
+                            wp.RoslynCompilation.ReferencedAssemblyNames.Any(a => a.Name == "Metalama.Extensions.CodeFixes")));
             })
             .OrderBy(c => c.Name)
             .ToList();
@@ -70,7 +73,8 @@ public static class Extractor
                 i.TargetDeclaration.Compilation.Project.Name ?? "",
                 i.Predecessors.IsDefaultOrEmpty ? "Unknown" : i.Predecessors[0].Kind.ToString(),
                 Locate(i.TargetDeclaration),
-                i.Predecessors.IsDefaultOrEmpty ? null : AppliedBy(i.Predecessors[0].Instance)))
+                i.Predecessors.IsDefaultOrEmpty ? null : AppliedBy(i.Predecessors[0].Instance),
+                IsAttribute(i) ? null : AttributeArguments.Of(i.Aspect)))
             .Distinct() // records: collapses the same instance reported once per target framework
             .ToList();
 
@@ -95,7 +99,7 @@ public static class Extractor
         return new WorkerOutput(
             Schema, workspace.MetalamaVersion, classes, instances, transformations, diagnostics,
             TemplateClassifier.Classify(workspace, offsets),
-            WriteTransformedFiles(workspace, outDir, offsets));
+            WriteTransformedFiles(workspace, outDir, offsets, instances));
     }
 
     /// <summary>
@@ -107,6 +111,9 @@ public static class Extractor
         try { return diagnostic.Declaration; }
         catch (ArgumentException) { return null; }
     }
+
+    static bool IsAttribute(IIntrospectionAspectInstance instance) =>
+        !instance.Predecessors.IsDefaultOrEmpty && instance.Predecessors[0].Kind.ToString() == "Attribute";
 
     /// <summary>The fabric (full name) or aspect instance ("LogAttribute on Calculator.Add(int, int)") that added an aspect.</summary>
     static string? AppliedBy(IIntrospectionAspectPredecessor? predecessor) => predecessor switch
@@ -131,7 +138,7 @@ public static class Extractor
         return suffix < 0 ? id.Substring(0, tilde) : id.Substring(0, tilde) + id.Substring(suffix);
     }
 
-    static List<TransformedFileInfo> WriteTransformedFiles(Workspace workspace, string outDir, Offsets offsets)
+    static List<TransformedFileInfo> WriteTransformedFiles(Workspace workspace, string outDir, Offsets offsets, List<AspectInstanceInfo> instances)
     {
         // Source compilation per file: the popup's diff shows a declaration's source next to its transformed code.
         var sources = new Dictionary<string, Microsoft.CodeAnalysis.Compilation>(StringComparer.OrdinalIgnoreCase);
@@ -154,7 +161,7 @@ public static class Extractor
                 if (original == null || text == original) continue; // untouched by aspects
                 var target = Path.Combine(dir, $"{result.Count}_{Path.GetFileName(tree.FilePath)}");
                 File.WriteAllText(target, text);
-                result.Add(new TransformedFileInfo(tree.FilePath, target, Declarations(formatted, tree, text, sources.GetValueOrDefault(tree.FilePath), offsets)));
+                result.Add(new TransformedFileInfo(tree.FilePath, target, Declarations(formatted, tree, text, sources.GetValueOrDefault(tree.FilePath), offsets, instances)));
             }
         }
         return result;
@@ -168,7 +175,8 @@ public static class Extractor
 
     /// <summary>Types and members of a transformed file with their LF offsets: the IDE shows one declaration's transformed code.</summary>
     static List<TransformedDeclaration> Declarations(
-        Microsoft.CodeAnalysis.Compilation compilation, SyntaxTree tree, string text, Microsoft.CodeAnalysis.Compilation? source, Offsets offsets)
+        Microsoft.CodeAnalysis.Compilation compilation, SyntaxTree tree, string text, Microsoft.CodeAnalysis.Compilation? source, Offsets offsets,
+        List<AspectInstanceInfo> instances)
     {
         // CR count before each position: offsets are LF-normalized like the rest of the model.
         var crBefore = new int[text.Length + 1];
@@ -188,9 +196,50 @@ public static class Extractor
                     .FirstOrDefault(r => string.Equals(r.SyntaxTree.FilePath, tree.FilePath, StringComparison.OrdinalIgnoreCase))?.Span;
             result.Add(new TransformedDeclaration(id, node.Span.Start - crBefore[node.Span.Start], node.Span.End - crBefore[node.Span.End],
                 sourceSpan == null ? null : offsets.FromPosition(tree.FilePath, sourceSpan.Value.Start),
-                sourceSpan == null ? null : offsets.FromPosition(tree.FilePath, sourceSpan.Value.End)));
+                sourceSpan == null ? null : offsets.FromPosition(tree.FilePath, sourceSpan.Value.End),
+                sourceSpan == null ? null : Standalone(node, model, instances)));
         }
         return result;
+    }
+
+    /// <summary>
+    /// A declaration's transformed code that can replace its source (like <c>metalama divorce</c>, for one declaration):
+    /// without aspect attributes, and with [ExcludeAspect] for aspects a fabric, inheritance or another aspect would add again.
+    /// Null when no aspect is on it or inside it.
+    /// </summary>
+    static string? Standalone(MemberDeclarationSyntax node, Microsoft.CodeAnalysis.SemanticModel model, List<AspectInstanceInfo> instances)
+    {
+        var inside = node.DescendantNodesAndSelf()
+            .Select(n => (n switch
+            {
+                MemberDeclarationSyntax m => model.GetDeclaredSymbol(m),
+                VariableDeclaratorSyntax v => model.GetDeclaredSymbol(v),
+                _ => null,
+            })?.GetDocumentationCommentId())
+            .OfType<string>().ToHashSet();
+        var applied = instances.Where(i => inside.Contains(NormalizeId(i.Target).Split(';')[0])).ToList();
+        if (applied.Count == 0) return null;
+
+        var aspectAttributes = node.DescendantNodes().OfType<AttributeSyntax>()
+            .Where(a => model.GetTypeInfo(a).Type?.AllInterfaces.Any(t => t.ToDisplayString() == "Metalama.Framework.Aspects.IAspect") == true)
+            .ToHashSet();
+        // A list goes when all its attributes are aspects; otherwise only the aspects ("[Log, Obsolete]" keeps "[Obsolete]").
+        var remove = aspectAttributes.Select(a => (AttributeListSyntax)a.Parent!).Distinct()
+            .SelectMany(list => list.Attributes.All(aspectAttributes.Contains) ? [list] : list.Attributes.Where(aspectAttributes.Contains).Cast<Microsoft.CodeAnalysis.SyntaxNode>())
+            .ToList();
+        var code = (remove.Count == 0 ? node : Microsoft.CodeAnalysis.SyntaxNodeExtensions.RemoveNodes(node, remove, Microsoft.CodeAnalysis.SyntaxRemoveOptions.KeepNoTrivia)!)
+            .ToString().TrimStart();
+
+        var excluded = applied.Where(i => i.AppliedVia != "Attribute").Select(i => i.AspectClass).Distinct()
+            .Select(id => Microsoft.CodeAnalysis.DocumentationCommentId.GetFirstSymbolForDeclarationId(id, model.Compilation)?.ToMinimalDisplayString(model, node.SpanStart))
+            .OfType<string>().ToList();
+        if (excluded.Count == 0) return code;
+        var exclude = model.Compilation.GetTypeByMetadataName("Metalama.Framework.Aspects.ExcludeAspectAttribute")?.ToMinimalDisplayString(model, node.SpanStart);
+        if (exclude == null) return code;
+        if (exclude.EndsWith("Attribute")) exclude = exclude[..^"Attribute".Length];
+        var line = node.SyntaxTree.GetText().Lines.GetLineFromPosition(node.SpanStart);
+        var indent = line.ToString()[..(node.SpanStart - line.Start)];
+        return $"[{exclude}({string.Join(", ", excluded.Select(e => $"typeof({e})"))})]\n{indent}{code}";
     }
 
     /// <summary>Metalama's own output formatter (what MetalamaFormatOutput uses): simplified names, line breaks.</summary>

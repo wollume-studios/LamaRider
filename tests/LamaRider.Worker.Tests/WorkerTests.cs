@@ -30,6 +30,15 @@ public sealed class WorkerTests : IAsyncLifetime
     }
 
     [Fact]
+    public void Fabric_aspects_say_how_to_write_them_as_attributes()
+    {
+        var log = _output.Instances.Where(i => i.AspectClass == "T:MetalamaSample.LogAttribute").ToList();
+        Assert.Equal(new AttributeSetup([], []), log.Single(i => i.Target == Multiply).Attribute); // [Log] has no settings
+        Assert.Null(log.Single(i => i.Target == Add).Attribute); // already an attribute
+        Assert.False(_output.AspectClasses.Single(c => c.Id == "T:MetalamaSample.LogAttribute").OffersCodeFixes);
+    }
+
+    [Fact]
     public void Instances_name_the_fabric_that_added_them()
     {
         var log = _output.Instances.Where(i => i.AspectClass == "T:MetalamaSample.LogAttribute").ToList();
@@ -91,6 +100,41 @@ public sealed class WorkerTests : IAsyncLifetime
         // Introduced by an aspect: no source.
         Assert.Null(calc.Declarations.Single(x => x.Target == "P:MetalamaSample.Calculator.Id").SourceStart);
     }
+
+    static string Standalone(WorkerOutput output, string file, string id) =>
+        output.TransformedFiles.Single(f => f.File.EndsWith(file)).Declarations.Single(x => x.Target == id).Standalone!;
+
+    [Fact]
+    public void Standalone_code_drops_aspect_attributes_so_the_aspect_does_not_run_twice()
+    {
+        var add = Standalone(_output, "Calculator.cs", Add);
+        Assert.StartsWith("public int Add(", add);
+        Assert.Contains("Entering Add", add);
+        Assert.DoesNotContain("[Log]", add);
+        Assert.DoesNotContain("ExcludeAspect", add); // only the attribute added it
+
+        var open = Standalone(_output, "Links.cs", "M:MetalamaSample.Links.Open(System.String)");
+        Assert.Contains("Open(string address)", open);
+        Assert.DoesNotContain("[Url]", open);
+    }
+
+    [Fact]
+    public void Standalone_code_excludes_aspects_that_fabrics_would_add_again()
+    {
+        var multiply = Standalone(_output, "Calculator.cs", Multiply);
+        Assert.StartsWith("[Metalama.Framework.Aspects.ExcludeAspect(typeof(LogAttribute))]\n    public int Multiply(", multiply);
+        Assert.Contains("Entering Multiply", multiply);
+
+        var calculator = Standalone(_output, "Calculator.cs", "T:MetalamaSample.Calculator");
+        Assert.StartsWith("[Metalama.Framework.Aspects.ExcludeAspect(typeof(LogAttribute))]\npublic partial class Calculator", calculator);
+        Assert.DoesNotContain("[Id]", calculator);
+        Assert.DoesNotContain("[Log]", calculator);
+        Assert.Contains("Guid Id", calculator);
+    }
+
+    [Fact]
+    public void Introduced_declarations_have_no_standalone_code() =>
+        Assert.Null(_output.TransformedFiles.Single(f => f.File.EndsWith("Calculator.cs")).Declarations.Single(x => x.Target == "P:MetalamaSample.Calculator.Id").Standalone);
 
     [Fact]
     public void Transformed_code_is_formatted_like_metalama_output()
