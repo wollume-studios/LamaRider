@@ -157,7 +157,7 @@ UI tests in a real Rider (Rider from `LAMARIDER_RIDER`; on Linux under `xvfb-run
 ### Screenshots
 
 The images in `docs/screenshots` are taken by `ScreenshotsUiTest` on the sample solution (Linux, Xvfb), which the
-normal `uiTest` run leaves out:
+normal `uiTest` run leaves out (all but `tsharp-color-settings.png`, which is taken by hand):
 
 ```bash
 xvfb-run -a -s "-screen 0 1920x1080x24" ./gradlew uiTest -PuiTestScreenshots
