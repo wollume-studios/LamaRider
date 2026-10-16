@@ -48,8 +48,10 @@ refreshes on its own after saves, builds and package changes.</p>
 <p>Alt+Enter on an aspect class: <b>Create Metalama aspect test</b> adds a prefilled test file to the aspect test project
 next to the aspect's project, creating the project when there is none. Run or debug the test from the gutter icon or the
 context menus, then <b>Accept Metalama Test Output</b> saves its output as the expected <code>.t.cs</code>. While
-debugging, breakpoints in your aspects, templates and fabrics stop, no <code>Debugger.Break()</code> needed. Rider's Test
-Runner discovery, which aspect tests need, is set up for you.</p>
+debugging, breakpoints in your aspects, templates and fabrics stop, no <code>Debugger.Break()</code> needed. The
+debugger's compiled copy of that code shows your source side by side with synced carets, and <b>Readable aspect code
+while debugging</b> has Metalama format it (no <code>global::</code>, normal indentation). Rider's Test Runner discovery,
+which aspect tests need, is set up for you.</p>
 <p><img src="{{screenshots}}/debug-aspect-test.png" width="800" alt="Debugging an aspect test"></p>
 
 <h3>Debugging transformed code</h3>
@@ -58,7 +60,7 @@ and starts debugging: step into aspect code or set breakpoints in the transforme
 every build configuration, with or without formatting it (LAMA0066).</p>
 
 <h3>Settings</h3>
-<p><i>Settings › Tools › LamaRider</i>: what clicking an aspect does, build after aspect changes, debug and format transformed code, and the Rider setup
+<p><i>Settings › Tools › LamaRider</i>: what clicking an aspect does, build after aspect changes, debug and format transformed code, readable aspect code while debugging, and the Rider setup
 Metalama aspect tests need (shows whether it is in place).</p>
 <p><img src="{{screenshots}}/settings.png" width="640" alt="LamaRider settings"></p>
 

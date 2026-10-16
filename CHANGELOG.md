@@ -10,7 +10,10 @@
 - Parameters get their own inlay hint for aspects not added by an attribute; the Code Vision menu groups aspects by member, parameter and return value. In the LamaRider window each parameter shows only its own transformations.
 - *Clicking an aspect* setting (Settings › Tools › LamaRider › Code Vision): go to its source (default, library aspects via SourceLink or the decompiler), show it in the LamaRider window, or ask.
 - The transformed-code popup links its aspects and opens the whole file in Metalama Diff.
-- Banner on Metalama's compiled copy of compile-time code (where the debugger stops in aspects): *Open <file> at this line*.
+- Banner on Metalama's compiled copy of compile-time code (where the debugger stops in aspects): *Show <file> side by side* (source in the right split, carets synced both ways), *Open <file> at this line*, and *Make it readable* while the setting below is off.
+- *Readable aspect code while debugging* setting (Settings › Tools › LamaRider › Debugging): writes `MetalamaFormatCompileTimeCode=true` to `Directory.Build.props`, so Metalama formats its compiled copy of aspects, templates and fabrics (no `global::`, normal indentation; slower aspect project builds; rebuild after changing it). Breakpoint mirroring keeps working.
+- A worker build that succeeds without producing the worker dll is retried once; the error message then includes the build's last output lines.
+- Known limitation: Rider analyses the compiled copy as a loose file and shows unresolved-symbol errors there; LamaRider never edits it (the debugger maps it by line).
 - Documentation: step-by-step usage guide with limitations (docs/usage.md), new screenshots with captions in the README.
 - Aspect tests run and debug from the file: the run icon in the gutter, the editor and Solution Explorer menus (*Run / Debug Metalama Aspect Test*). Rider builds and discovers the test first; Test Runner discovery, which aspect tests need, is turned on for the solution if it was off.
 - Breakpoints in aspects, templates and fabrics stop while debugging: LamaRider mirrors them into Metalama's compiled copy of that code (no more `Debugger.Break()` / `meta.DebugBreak()` needed).
