@@ -6,7 +6,10 @@ import com.intellij.openapi.util.text.StringUtil
 import com.intellij.openapi.options.BoundConfigurable
 import com.intellij.openapi.project.Project
 import com.intellij.ui.dsl.builder.MAX_LINE_LENGTH_WORD_WRAP
+import com.intellij.ui.SimpleListCellRenderer
+import com.intellij.ui.dsl.builder.bindItem
 import com.intellij.ui.dsl.builder.bindSelected
+import dev.lamarider.AspectClickAction
 import com.intellij.ui.dsl.builder.panel
 import dev.lamarider.LamaRiderService
 import dev.lamarider.actions.AutoBuildAction
@@ -39,6 +42,13 @@ class LamaRiderConfigurable(private val project: Project) : BoundConfigurable("L
                 checkBox("Build the project after aspect or template code is saved")
                     .comment("Metalama pauses its design-time analysis after compile-time code changes until the project is built (LAMA0118).")
                     .bindSelected({ AutoBuildAction.isEnabled() }, { AutoBuildAction.setEnabled(project, it) })
+            }
+        }
+        group("Code Vision") {
+            row("Clicking an aspect:") {
+                comboBox(AspectClickAction.entries, SimpleListCellRenderer.create("") { it.label })
+                    .comment("In the Code Vision menu and the transformed-code popup. Library aspects open their SourceLink or decompiled source.")
+                    .bindItem({ AspectClickAction.current }, { AspectClickAction.current = it ?: AspectClickAction.SOURCE })
             }
         }
         group("Debugging") {
