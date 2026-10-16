@@ -97,7 +97,7 @@ public static class AspectTests
                 var (code, output) = Run("dotnet", $"build \"{testCsproj}\"", testDir);
                 var created = newProject ? $"Created {testProjectName} and the test {Path.GetFileName(file)}." : $"Added the test {Path.GetFileName(file)}.";
                 OnShell(solution, () => model.Info.Fire(code == 0
-                    ? created + " Run or debug it from the Unit Tests window (debugging stops at Debugger.Break() in BuildAspect and meta.DebugBreak() in templates). The first run fails and writes the output; accept it with Alt+Enter > Accept Metalama test output."
+                    ? created + " Run or debug it from the gutter icon or the context menu (Run / Debug Metalama Aspect Test); breakpoints in your aspects, templates and fabrics stop. The first run fails and writes the output; accept it with Alt+Enter > Accept Metalama test output."
                     : created + " Building it failed, so Rider does not list the test yet: " + LastLine(output)));
             }
             catch (Exception e) when (e is IOException or UnauthorizedAccessException or InvalidOperationException or InvalidDataException)

@@ -1,6 +1,11 @@
 # Changelog
 
 ## Unreleased
+- Code Vision names aspects added by fabrics, inheritance etc.; aspects added by an attribute are not named (the hint reads "transformed code" and opens the transformed code). More than two collapse to "N aspects". The tooltip lists each aspect's origin and documentation summary.
+- Parameters get their own inlay hint for aspects not added by an attribute; the Code Vision menu groups aspects by member, parameter and return value. In the LamaRider window each parameter shows only its own transformations.
+- *Clicking an aspect* setting (Settings › Tools › LamaRider › Code Vision): go to its source (default, library aspects via SourceLink or the decompiler), show it in the LamaRider window, or ask.
+- The transformed-code popup links its aspects and opens the whole file in Metalama Diff.
+- Banner on Metalama's compiled copy of compile-time code (where the debugger stops in aspects): *Open <file> at this line*.
 - Documentation: step-by-step usage guide with limitations (docs/usage.md), new screenshots with captions in the README.
 - Aspect tests run and debug from the file: the run icon in the gutter, the editor and Solution Explorer menus (*Run / Debug Metalama Aspect Test*). Rider builds and discovers the test first; Test Runner discovery, which aspect tests need, is turned on for the solution if it was off.
 - Breakpoints in aspects, templates and fabrics stop while debugging: LamaRider mirrors them into Metalama's compiled copy of that code (no more `Debugger.Break()` / `meta.DebugBreak()` needed).
