@@ -302,7 +302,8 @@ tests open.
 - *Settings › Tools › LamaRider › Aspect Tests* shows whether the settings are in place (updated live) and has
   *Configure Rider for Metalama Tests…*.
 
-Rider 2026.3 already defaults to Test Runner discovery, so usually nothing is needed.
+Without these settings Rider discovers xUnit tests from the compiled assembly, which finds no aspect tests (seen in
+Rider 2026.2 and 2026.3 test runs). The first *Run / Debug Metalama Aspect Test* fixes that for you.
 
 ## Settings
 

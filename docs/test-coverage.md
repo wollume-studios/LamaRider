@@ -32,7 +32,7 @@ A ReSharper integration test project (`JetBrains.ReSharper.TestFramework`) would
 
 ## Known gaps
 
-- **Windows**: UI tests run only on Linux (Ubuntu VM). Windows-specific behavior (frontend↔backend paths, the
+- **Windows**: UI tests are routinely run only on Linux (Ubuntu VM); they can run on Windows but open Rider on the desktop. Windows-specific behavior (frontend↔backend paths, the
   Miscellaneous Files project, file locks) is not covered end to end. A *Run / Debug Metalama Aspect Test* failure was
   reported on Windows that the Linux UI test does not reproduce; 0.6.261016.1844 added a fix candidate (prefer the real
   project over Miscellaneous Files) and logging (`LamaRider: run aspect test refused ...`).

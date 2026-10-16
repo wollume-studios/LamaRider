@@ -20,7 +20,7 @@
 - Track Caret (Rider's locate icon) fills the targets tree with every aspect affecting the code at the caret; selecting an item shows and selects its aspect. *Show Only Aspects at Caret* filters the aspect list; *Group By*: ungrouped, project/package, namespace.
 - Metalama errors located in code (e.g. LAMA0037) are underlined from LamaRider's own analysis seconds after a save; Rider's own Metalama squiggles wait for a build after compile-time changes.
 - *Format transformed code* setting: off avoids LAMA0066 and speeds up builds when debugging transformed code.
-- UI tests in a real Rider (`./gradlew uiTest`), run on Windows and Linux.
+- UI tests in a real Rider (`./gradlew uiTest`), runnable on Windows and Linux (routinely run on Linux).
 - LamaRider window: *Track Caret* shows only the aspects affecting the code at the caret (member, its parameters, containing types).
 - No error balloon any more: located errors are Rider's squiggles, the others the editor info bar.
 - Long status and settings texts no longer overflow.
