@@ -116,18 +116,7 @@ class ScreenshotsUiTest : UiTestBase() {
         ui.x(xQuery { byTitle("Settings") }).x(xQuery { byText("Cancel") }).click()
         waitFor("settings closed", timeout = 30.seconds) { !ui.x(xQuery { byTitle("Settings") }).present() }
 
-        // Rider's Jump to Colors and Fonts on T# code opens the Metalama T# page.
-        caretAt("MetalamaSample/LogAttribute.cs", "meta.Proceed")
-        Thread.sleep(5000)
-        ideFrame { invokeAction("JumpToColorsAndFonts", now = false, component = codeEditor().component) }
-        // A chooser first: C# (the class `meta`) or Metalama T#.
-        val item = popup("Template keyword (meta)")
-        item.click()
-        item.keyboard { enter() }
-        waitFor("color settings open", timeout = 1.minutes) { ui.x(xQuery { byTitle("Settings") }).present() }
-        Thread.sleep(3000)
-        shot("tsharp-color-settings", windowOf(popup("Color Scheme")))
-        ui.x(xQuery { byTitle("Settings") }).x(xQuery { byText("Cancel") }).click()
+        // ponytail: no tsharp-color-settings.png (Jump to Colors and Fonts' chooser does not react to the driver); kept by hand.
     }
 
     @Test

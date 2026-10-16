@@ -1,6 +1,7 @@
 # Changelog
 
 ## Unreleased
+- Documentation: step-by-step usage guide with limitations (docs/usage.md), new screenshots with captions in the README.
 - Aspect tests run and debug from the file: the run icon in the gutter, the editor and Solution Explorer menus (*Run / Debug Metalama Aspect Test*). Rider builds and discovers the test first; Test Runner discovery, which aspect tests need, is turned on for the solution if it was off.
 - Breakpoints in aspects, templates and fabrics stop while debugging: LamaRider mirrors them into Metalama's compiled copy of that code (no more `Debugger.Break()` / `meta.DebugBreak()` needed).
 - Aspect test inputs show their aspects (LamaRider window, Code Vision, Track Caret, transformed code) although Metalama.Testing.AspectTesting turns Metalama off in the test project; Rider no longer greys them out as unused.
