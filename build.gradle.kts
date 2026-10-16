@@ -200,7 +200,8 @@ dependencies {
     unitTestRuntime("org.junit.platform:junit-platform-launcher:1.13.4")
 
     intellijPlatform {
-        testFramework(TestFrameworkType.Starter, configurationName = "uiTestImplementation")
+        // Pinned: the UI tests drive any Rider (LAMARIDER_RIDER) with one Starter/Driver, whatever ProductVersion builds the plugin.
+        testFramework(TestFrameworkType.Starter, version = "263.6800.24", configurationName = "uiTestImplementation")
     }
     uiTestImplementation("org.junit.jupiter:junit-jupiter:5.13.4")
     uiTestImplementation("org.junit.platform:junit-platform-launcher:1.13.4")
