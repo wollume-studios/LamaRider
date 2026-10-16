@@ -120,7 +120,11 @@ class ScreenshotsUiTest : UiTestBase() {
         caretAt("MetalamaSample/LogAttribute.cs", "meta.Proceed")
         Thread.sleep(5000)
         ideFrame { invokeAction("JumpToColorsAndFonts", now = false, component = codeEditor().component) }
-        shot("tsharp-color-settings", windowOf(popup("Metalama T#")))
+        // A chooser first: C# (the class `meta`) or Metalama T#.
+        popup("Template keyword (meta)").click()
+        waitFor("color settings open", timeout = 1.minutes) { ui.x(xQuery { byTitle("Settings") }).present() }
+        Thread.sleep(3000)
+        shot("tsharp-color-settings", windowOf(popup("Color Scheme")))
         ui.x(xQuery { byTitle("Settings") }).x(xQuery { byText("Cancel") }).click()
     }
 
@@ -200,8 +204,12 @@ class ScreenshotsUiTest : UiTestBase() {
         caretAt("MetalamaSample/Program.cs", "Multiply")
         debugUntilPaused { invokeAction("Debug", now = false) }
         val debugger = service(XDebuggerManager::class, singleProject())
-        withContext<Unit>(OnDispatcher.EDT) { debugger.getCurrentSession()?.stepInto() }
-        waitFor("stepped into Multiply", timeout = 1.minutes) { debugger.getCurrentSession()?.isPaused() == true }
+        // Program.cs creates the Calculator first: into its constructor, back out, then into Multiply.
+        for (step in listOf<XDebugSession.() -> Unit>({ stepInto() }, { stepOut() }, { stepInto() })) {
+            withContext<Unit>(OnDispatcher.EDT) { debugger.getCurrentSession()?.step() }
+            Thread.sleep(1000)
+            waitFor("stepped", timeout = 1.minutes) { debugger.getCurrentSession()?.isPaused() == true }
+        }
         Thread.sleep(3000)
         shot("debug-transformed-code", frame())
     }

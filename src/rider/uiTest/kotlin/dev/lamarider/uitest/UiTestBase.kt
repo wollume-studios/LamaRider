@@ -162,5 +162,6 @@ interface XDebuggerManager {
 interface XDebugSession {
     fun isPaused(): Boolean
     fun stepInto()
+    fun stepOut()
     fun stop()
 }
