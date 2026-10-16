@@ -164,22 +164,22 @@ val publishLocal by tasks.registering {
         val dir = file(repoDir.get()).apply { mkdirs() }
         val target = File(dir, zip.get().asFile.name)
         zip.get().asFile.copyTo(target, overwrite = true)
-        // keep the three newest builds
-        dir.listFiles { f -> f.extension == "zip" }!!.sortedByDescending { it.lastModified() }.drop(3).forEach { it.delete() }
+        // keep the three newest LamaRider builds; other plugins (e.g. C# REPL) share this repository
+        dir.listFiles { f -> f.name.startsWith("LamaRider-") && f.extension == "zip" }!!
+            .sortedByDescending { it.lastModified() }.drop(3).forEach { it.delete() }
         val xml = File(dir, "updatePlugins.xml")
-        xml.writeText(
-            """
-            |<?xml version="1.0" encoding="UTF-8"?>
-            |<plugins>
+        val entry = """
             |  <plugin id="$pluginId" url="${target.toPath().toUri()}" version="$pluginVersion">
             |    <idea-version since-build="$SinceBuild"/>
             |    <name>LamaRider</name>
             |    <vendor>LamaRider</vendor>
             |    <description>Metalama tooling for Rider: Aspect Explorer, Code Vision, T# highlighting, Metalama Diff.</description>
             |  </plugin>
-            |</plugins>
             |""".trimMargin()
-        )
+        // Replace only our own <plugin> entry, keep the others.
+        val others = if (xml.isFile) Regex("""(?s)\s*<plugin id="([^"]+)".*?</plugin>""").findAll(xml.readText())
+            .filter { it.groupValues[1] != pluginId }.joinToString("") { "\n  " + it.value.trim() } else ""
+        xml.writeText("<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<plugins>$others\n$entry</plugins>\n")
         println("LamaRider $pluginVersion published. Repository URL: ${xml.toPath().toUri()}")
     }
 }
