@@ -121,7 +121,9 @@ class ScreenshotsUiTest : UiTestBase() {
         Thread.sleep(5000)
         ideFrame { invokeAction("JumpToColorsAndFonts", now = false, component = codeEditor().component) }
         // A chooser first: C# (the class `meta`) or Metalama T#.
-        popup("Template keyword (meta)").click()
+        val item = popup("Template keyword (meta)")
+        item.click()
+        item.keyboard { enter() }
         waitFor("color settings open", timeout = 1.minutes) { ui.x(xQuery { byTitle("Settings") }).present() }
         Thread.sleep(3000)
         shot("tsharp-color-settings", windowOf(popup("Color Scheme")))

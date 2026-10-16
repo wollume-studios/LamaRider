@@ -25,8 +25,9 @@ PostSharp classic (MSIL) projects are not supported. **How to use each feature, 
 
 ![LamaRider tool window](docs/screenshots/lamarider-window.png)
 
-The LamaRider tool window (right) with the `Log` aspect selected: its documentation, and its targets with the
-transformations it makes. Open it from the llama icon in the right tool window bar.
+The LamaRider tool window (right) with the `Log` aspect selected: *Go to source*, its documentation, and its targets in
+the solution and in the aspect test project, with the transformations it makes. Open it from the llama icon in the right
+tool window bar.
 
 ![Track Caret](docs/screenshots/track-caret.png)
 
@@ -65,8 +66,9 @@ LAMA documentation and a build, and the error underlined on the aspect classes.
 
 ![Debugging transformed code](docs/screenshots/debug-transformed-code.png)
 
-Stopped at a breakpoint in the transformed code of `Multiply`: *Debug with LamaDebug* in the LamaRider tool window, or
-*Debug transformed code in every build configuration* in the settings, then debug as usual.
+Stepping into `Multiply` lands in its transformed code (the `Log` aspect's `Console.WriteLine` calls are real lines
+there). Use *Debug with LamaDebug* in the LamaRider tool window, or turn on *Debug transformed code in every build
+configuration* in the settings and debug as usual.
 
 ![New aspect test](docs/screenshots/create-aspect-test.png)
 
