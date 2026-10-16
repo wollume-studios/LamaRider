@@ -14,13 +14,15 @@ refreshes on its own after saves, builds and package changes.</p>
 
 <h3>Code Vision and transformed code</h3>
 <ul>
-  <li>Above every declaration an aspect touches: <b>transformed code</b> for aspects you see as attributes, the name and
-    origin for the others (<i>Log (fabric)</i>, <i>inherited</i>, ...), <b>N aspects</b> for more than two;
-    <b>applied to N targets</b> above aspect classes. Aspects a fabric puts on a parameter get an inlay hint.</li>
-  <li>A click shows the aspects grouped by member, parameter and return value, with <b>Show in LamaRider</b> and
-    <b>Go to</b> the aspect.</li>
-  <li><b>Show Transformed Code</b>: the transformed code of one declaration in a popup, highlighted, with a toggle to
-    diff it with the source.</li>
+  <li>Above every declaration an aspect touches: <b>transformed code</b> for aspects you see as attributes, the names of
+    the others, <b>N aspects</b> for more than two; <b>applied to N targets</b> above aspect classes. The tooltip gives
+    each aspect's origin (attribute, fabric, inherited, ...) and documentation. Aspects a fabric puts on a parameter get
+    an inlay hint.</li>
+  <li>A click shows the aspects grouped by member, parameter and return value. Clicking an aspect goes to its source
+    (also SourceLink or decompiled), shows it in the LamaRider window, or asks: your choice in the settings.</li>
+  <li><b>Show Transformed Code</b> (also a click on <b>transformed code</b>): the transformed code of one declaration in a
+    popup, highlighted, with a toggle to diff it with the source, the whole file in Metalama Diff, and links to its
+    aspects.</li>
   <li><b>Metalama Diff</b>: source and transformed code of a whole file side by side.</li>
 </ul>
 <p><img src="{{screenshots}}/code-vision-popup.png" width="640" alt="Code Vision popup"></p>
@@ -55,7 +57,7 @@ and starts debugging: step into aspect code or set breakpoints in the transforme
 every build configuration, with or without formatting it (LAMA0066).</p>
 
 <h3>Settings</h3>
-<p><i>Settings › Tools › LamaRider</i>: build after aspect changes, debug and format transformed code, and the Rider setup
+<p><i>Settings › Tools › LamaRider</i>: what clicking an aspect does, build after aspect changes, debug and format transformed code, and the Rider setup
 Metalama aspect tests need (shows whether it is in place).</p>
 <p><img src="{{screenshots}}/settings.png" width="640" alt="LamaRider settings"></p>
 

@@ -39,7 +39,7 @@ Between refreshes everything shows the state of the last one. The worker's log i
 
 ## LamaRider tool window
 
-Open it from the right tool window bar (llama icon), or with *Show in LamaRider* in a Code Vision popup.
+Open it from the right tool window bar (llama icon), or by clicking an aspect in Code Vision when *Clicking an aspect* is set to show it in the LamaRider window (see [Settings](#settings)).
 
 ![LamaRider tool window](screenshots/lamarider-window.png)
 
@@ -92,25 +92,32 @@ Above every declaration an aspect touches, Code Vision says which aspects:
 | Code Vision | Meaning |
 |---|---|
 | `transformed code` | Only aspects added by attributes, which you see in the code anyway. Click for the transformed code. |
-| `Log (fabric)` | An aspect not visible in the code, with where it comes from: `fabric`, `inherited`, `child aspect`, `required aspect`. At most two are named. |
+| `Log` | Aspects not visible in the code (added by a fabric, inherited, added or required by another aspect, ...). At most two are named. |
 | `3 aspects` | More than two aspects not visible in the code (the count includes all aspects on the declaration). |
 | `applied to 2 targets` | On an aspect class: how many targets it has in the solution. |
 
 Aspects on a parameter that an attribute adds count for the member (the attribute is in the code). Aspects on a
-parameter from a fabric, inheritance etc. get an **inlay hint** right after the parameter name, e.g. `a NonNegative (fabric)`.
-Hover any of these for the full list.
+parameter from a fabric, inheritance etc. get an **inlay hint** right after the parameter name, e.g. `a NonNegative`.
+Hover any of these for the full list: one line per aspect with where it comes from (attribute, added by a fabric,
+inherited from a base declaration, added by another aspect, required by another aspect, added from the IDE) and its
+documentation summary.
 
 ![Code Vision and parameter hints](screenshots/code-vision.png)
 
 **Click** a Code Vision entry or a parameter hint (or use *Show Metalama Aspects* in the editor context menu or Find
-Action for the declaration at the caret, without the mouse). The popup offers:
+Action for the declaration at the caret, without the mouse):
 
-1. *Show Transformed Code*: the declaration after all aspects, see [below](#transformed-code).
-2. *Metalama Diff (whole file)*.
-3. The aspects, grouped by what they decorate: the member, each parameter (*Parameter a*), the return value. An aspect
-   added by an attribute opens it in the LamaRider window; others have a submenu with *Show in LamaRider* and
-   *Go to &lt;Aspect&gt;* (the class; for attribute aspects Ctrl+click on the attribute does that).
-4. On an aspect class: *Show targets in LamaRider*.
+- `transformed code` (only attribute aspects) opens the [transformed code popup](#transformed-code) right away.
+- Otherwise a menu offers:
+  1. *Show Transformed Code*: the declaration after all aspects, see [below](#transformed-code).
+  2. *Metalama Diff (whole file)*.
+  3. The aspects, grouped by what they decorate: the member, each parameter (*Parameter a*), the return value, with
+     their origin for those not added by an attribute (`Log (fabric)`).
+  4. On an aspect class: *Show targets in LamaRider*.
+
+**Clicking an aspect** (in that menu or in the links of the transformed code popup) does what
+*Settings › Tools › LamaRider › Code Vision › Clicking an aspect* says: *Go to the aspect's source* (default; library
+aspects open their SourceLink or decompiled source), *Show it in the LamaRider window*, or *Ask* (a sub-menu with both).
 
 ![Code Vision popup](screenshots/code-vision-popup.png)
 
@@ -123,9 +130,11 @@ Limitations:
 
 **Transformed code popup.** From Code Vision (*Show Transformed Code*), the editor context menu / Find Action
 (*Show Transformed Code*, for the declaration at the caret), or a double-click on a transformation in the LamaRider
-window. The popup shows the declaration as Metalama compiles it, highlighted like the editor, with the aspects that
-changed it at the bottom. The diff icon in its toolbar switches to source and transformed code side by side (the choice
-is remembered); it is not offered for declarations an aspect introduced. The popup can be moved and resized.
+window, or a click on a `transformed code` Code Vision hint. The popup shows the declaration as Metalama compiles it,
+highlighted like the editor. Its toolbar has the diff toggle, which switches to source and transformed code side by
+side (remembered; not offered for declarations an aspect introduced), and *Whole File in Metalama Diff*. The bottom row
+links the aspects that changed it (hover for their documentation; a click does what
+[Clicking an aspect](#settings) is set to). The popup can be moved and resized.
 
 ![Transformed code popup](screenshots/transformed-code-popup.png)
 
@@ -294,6 +303,7 @@ Rider 2026.3 already defaults to Test Runner discovery, so usually nothing is ne
 
 | Setting | Default | Effect |
 |---|---|---|
+| Code Vision › Clicking an aspect | Go to the aspect's source | In the Code Vision menu and the transformed code popup: go to the aspect class (library aspects: SourceLink or decompiled), show it in the LamaRider window, or ask. For all solutions. |
 | Build the project after aspect or template code is saved | off | Builds the saved file's project so Metalama's design-time analysis resumes (LAMA0118). For all solutions. |
 | Debug transformed code in every build configuration | off | `MetalamaDebugTransformedCode` in the solution's `Directory.Build.props`. |
 | Format transformed code | on | Off: `MetalamaFormatOutput=false` in `Directory.Build.props` (faster builds, no LAMA0066). |
