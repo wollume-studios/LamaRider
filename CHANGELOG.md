@@ -1,6 +1,10 @@
 # Changelog
 
 ## Unreleased
+- Code Vision shows one entry per aspect added by a fabric, inheritance etc. (Rider shows one entry per provider, so there are three: *Metalama aspects*, *Metalama aspects (second aspect)*, *Metalama aspect targets*); more than two still collapse to "N aspects". Parameter inlay hints are one per aspect too.
+- Hint tooltips start with where the aspect comes from, naming the fabric (full type name) or the aspect instance it is inherited from, added or required by, then its documentation summary, wrapped to about 70 characters. "N aspects" and "transformed code" list each aspect with its name.
+- The "transformed code" hint always opens the transformed code directly.
+- Fixed *Run / Debug Metalama Aspect Test* saying "This file is not in a Metalama aspect test project" for a test file: the lookup accepts Windows paths with '/' and prefers the file's real project over Miscellaneous Files.
 - Code Vision names aspects added by fabrics, inheritance etc.; aspects added by an attribute are not named (the hint reads "transformed code" and opens the transformed code). More than two collapse to "N aspects". The tooltip lists each aspect's origin and documentation summary.
 - Parameters get their own inlay hint for aspects not added by an attribute; the Code Vision menu groups aspects by member, parameter and return value. In the LamaRider window each parameter shows only its own transformations.
 - *Clicking an aspect* setting (Settings › Tools › LamaRider › Code Vision): go to its source (default, library aspects via SourceLink or the decompiler), show it in the LamaRider window, or ask.
