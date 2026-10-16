@@ -59,6 +59,14 @@
             description="Aspect test for the aspect class at the caret, in an existing or new aspect test project">
       <add-to-group group-id="EditorPopupMenu" anchor="last"/>
     </action>
+    <action id="LamaRider.AddAspectsAsAttributes" class="dev.lamarider.actions.AddAspectsAsAttributesAction" text="Add Metalama Aspects as Attributes"
+            description="Write the aspects a fabric, inheritance or another aspect adds to the declaration at the caret as attributes, with the same settings">
+      <add-to-group group-id="EditorPopupMenu" anchor="last"/>
+    </action>
+    <action id="LamaRider.ReplaceWithTransformedCode" class="dev.lamarider.actions.ReplaceWithTransformedCodeAction" text="Replace with Metalama Transformed Code"
+            description="Replace the declaration at the caret with the code Metalama generates for it and remove its aspects">
+      <add-to-group group-id="EditorPopupMenu" anchor="last"/>
+    </action>
     <action id="LamaRider.AcceptAspectTestOutput" class="dev.lamarider.actions.AcceptAspectTestOutputAction" text="Accept Metalama Test Output"
             description="Save the last run's transformed output of this aspect test as its .t.cs snapshot">
       <add-to-group group-id="EditorPopupMenu" anchor="last"/>

@@ -20,28 +20,32 @@ public static class AspectHints
     /// One hint per aspect added by a fabric, inheritance etc. Aspects added by an attribute are visible in the code, so
     /// they are not named: only attribute aspects give one "transformed code" hint.
     /// </summary>
-    public static IReadOnlyList<Hint> Hints(IReadOnlyCollection<AspectInstanceInfo> instances, Func<string, string> aspectName, Func<string, string?> summary)
+    /// <param name="offersCodeFixes">The aspect class's assembly references Metalama.Extensions.CodeFixes.</param>
+    public static IReadOnlyList<Hint> Hints(IReadOnlyCollection<AspectInstanceInfo> instances, Func<string, string> aspectName, Func<string, string?> summary,
+        Func<string, bool>? offersCodeFixes = null)
     {
         var all = instances.GroupBy(i => i.AspectClass).Select(g => g.First()).ToList();
         var named = all.Where(i => i.AppliedVia != "Attribute").ToList();
-        if (named.Count == 0) return [new Hint("transformed code", Describe(all, aspectName, summary), TransformedCode: true)];
-        if (named.Count > MaxNamed) return [new Hint($"{all.Count} aspects", Describe(all, aspectName, summary), TransformedCode: false)];
-        return named.Select(i => new Hint(aspectName(i.AspectClass), Describe(i, summary), TransformedCode: false)).ToList();
-    }
-
-    /// <summary>Where the aspect comes from, then its documentation summary (the hint names the aspect).</summary>
-    static string Describe(AspectInstanceInfo instance, Func<string, string?> summary)
-    {
-        var origin = Origin(instance.AppliedVia, instance.AppliedBy);
-        return summary(instance.AspectClass) is { Length: > 0 } doc ? origin + "\n" + Wrap(doc) : origin;
-    }
-
-    static string Describe(IEnumerable<AspectInstanceInfo> instances, Func<string, string> aspectName, Func<string, string?> summary) =>
-        string.Join("\n\n", instances.Select(i =>
+        string? Details(AspectInstanceInfo i)
         {
-            var head = $"{aspectName(i.AspectClass)} — {Lower(Origin(i.AppliedVia, i.AppliedBy))}";
-            return summary(i.AspectClass) is { Length: > 0 } doc ? head + "\n" + Wrap(doc) : head;
-        }));
+            var lines = new List<string>();
+            if (summary(i.AspectClass) is { Length: > 0 } doc) lines.Add(Wrap(doc));
+            if (offersCodeFixes?.Invoke(i.AspectClass) == true) lines.Add(CodeFixesNote);
+            return lines.Count == 0 ? null : string.Join("\n", lines);
+        }
+        string Describe(IEnumerable<AspectInstanceInfo> some) => string.Join("\n\n", some.Select(i =>
+            Join($"{aspectName(i.AspectClass)} — {Lower(Origin(i.AppliedVia, i.AppliedBy))}", Details(i))));
+
+        if (named.Count == 0) return [new Hint("transformed code", Describe(all), TransformedCode: true)];
+        if (named.Count > MaxNamed) return [new Hint($"{all.Count} aspects", Describe(all), TransformedCode: false)];
+        // Where the aspect comes from, then its documentation (the hint names the aspect).
+        return named.Select(i => new Hint(aspectName(i.AspectClass), Join(Origin(i.AppliedVia, i.AppliedBy), Details(i)), TransformedCode: false)).ToList();
+    }
+
+    /// <summary>Metalama.Extensions.CodeFixes is a Premium component (without a license the build fails with LAMA0806).</summary>
+    public const string CodeFixesNote = "May offer code fixes (Alt+Enter); they need a Metalama Professional license.";
+
+    static string Join(string head, string? details) => details == null ? head : head + "\n" + details;
 
     /// <summary>Metalama's AspectPredecessorKind and the predecessor (fabric name or aspect instance) in words.</summary>
     public static string Origin(string appliedVia, string? appliedBy) => appliedVia switch
@@ -55,7 +59,8 @@ public static class AspectHints
         _ => "Origin unknown",
     };
 
-    static string Lower(string sentence) => sentence.Length == 0 ? sentence : char.ToLowerInvariant(sentence[0]) + sentence.Substring(1);
+    /// <summary>Sentence case to mid-sentence: "Added by fabric X" to "added by fabric X".</summary>
+    public static string Lower(string sentence) => sentence.Length == 0 ? sentence : char.ToLowerInvariant(sentence[0]) + sentence.Substring(1);
 
     /// <summary>Word wrap so tooltips stay narrow.</summary>
     static string Wrap(string text)

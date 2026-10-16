@@ -23,6 +23,7 @@ using JetBrains.ReSharper.Psi.Caches;
 using JetBrains.ReSharper.Psi.Modules;
 using JetBrains.ReSharper.Feature.Services.Protocol;
 using JetBrains.Rider.Model;
+using JetBrains.ReSharper.Resources.Shell;
 using JetBrains.Util;
 using LamaRider.Model;
 using LamaRider.Testing;
@@ -78,6 +79,8 @@ public sealed class AspectModelHost
             RdModel.RefreshTestSettingsStatus.Advise(lifetime, _ => UpdateTestSettingsStatus());
             RdModel.NavigateToClass.Advise(lifetime, NavigateToClass);
             RdModel.CreateAspectTest.Advise(lifetime, position => CreateAspectTest(position.File, position.Offset));
+            RdModel.AddAspectsAsAttributes.Advise(lifetime, position => EditSource("LamaRider.AddAspectsAsAttributes", position, AddAspectsAsAttributes));
+            RdModel.ReplaceWithTransformedCode.Advise(lifetime, position => EditSource("LamaRider.ReplaceWithTransformedCode", position, ReplaceWithTransformedCode));
             RdModel.AcceptAspectTestOutput.Advise(lifetime, AcceptAspectTestOutput);
             RdModel.RunAspectTest.Advise(lifetime, run => RunAspectTest(run.File, run.Debug));
             RdModel.AutoBuild.Advise(lifetime, enabled => _autoBuild = enabled);
@@ -197,6 +200,44 @@ public sealed class AspectModelHost
             var (testCsproj, newProject) = Testing.AspectTests.Targets(_solution, project)[0];
             Testing.AspectTests.Create(_solution, type, project, testCsproj, newProject);
         });
+
+    /// <summary>The editor menu twins of the Alt+Enter actions on the declaration whose name is at the position.</summary>
+    void EditSource(string name, EditorPosition position, Action<AspectModel, IDeclaration, string> edit) =>
+        _solution.Locks.ExecuteOrQueueReadLockEx(_lifetime, name, () =>
+        {
+            using var _ = CompilationContextCookie.GetExplicitUniversalContextIfNotSet();
+            _solution.GetPsiServices().Files.CommitAllDocuments();
+            var sourceFile = SourceFile(position.File);
+            if (Model is { } model && sourceFile?.GetDominantPsiFile<CSharpLanguage>() is { } psiFile &&
+                Actions.AspectTargets.At(psiFile, new DocumentOffset(sourceFile.Document, position.Offset)) is var (declaration, target))
+                edit(model, declaration, target);
+            else
+                RdModel.Info.Fire("Place the caret on the name of a declaration with Metalama aspects.");
+        });
+
+    void AddAspectsAsAttributes(AspectModel model, IDeclaration declaration, string target)
+    {
+        var candidates = Actions.AddAspectAsAttribute.Candidates(model, declaration, target);
+        if (candidates.Count == 0)
+        {
+            RdModel.Info.Fire("No aspect here that a fabric, inheritance or another aspect adds and that can be written as an attribute.");
+            return;
+        }
+        _solution.GetPsiServices().Transactions.Execute("LamaRider: add aspects as attributes", () =>
+        {
+            using (WriteLockCookie.Create())
+                foreach (var candidate in candidates) Actions.AddAspectAsAttribute.Add(declaration, candidate);
+        });
+        RdModel.Info.Fire(string.Join("\n", candidates.Select(Actions.AddAspectAsAttribute.Done)));
+    }
+
+    void ReplaceWithTransformedCode(AspectModel model, IDeclaration declaration, string target)
+    {
+        if (Actions.ReplaceWithTransformedCode.Find(model, declaration, target) is { } replacement)
+            Actions.ReplaceWithTransformedCode.Apply(_solution, replacement);
+        else
+            RdModel.Info.Fire("No transformed code for this declaration: it has no aspects, or the file changed since LamaRider analyzed it (save and wait a moment).");
+    }
 
     void RunAspectTest(string path, bool debug) =>
         _solution.Locks.ExecuteOrQueueReadLockEx(_lifetime, "LamaRider.RunAspectTest", () =>
