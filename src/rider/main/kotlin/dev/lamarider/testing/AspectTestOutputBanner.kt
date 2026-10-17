@@ -22,8 +22,8 @@ class AspectTestOutputBanner : EditorNotificationProvider {
     override fun collectNotificationData(project: Project, file: VirtualFile): Function<in FileEditor, out JComponent?>? {
         if (file.extension != "cs") return null
         val files = AspectTestOutput.of(File(file.path)) ?: return null
-        // Loaded into the VFS so that the next run's output raises a file event (OutputChanges).
-        files.output?.let { LocalFileSystem.getInstance().refreshIoFiles(listOf(it), true, false, null) }
+        // Loaded into the VFS so that the next run's output raises file events (OutputChanges); a test run is a separate process.
+        LocalFileSystem.getInstance().refreshIoFiles(listOf(files.projectDir.resolve("obj"), files.outputDir), true, true, null)
         if (!files.differs()) return null
         return Function { fileEditor ->
             EditorNotificationPanel(fileEditor, EditorNotificationPanel.Status.Warning).apply {
@@ -39,7 +39,7 @@ class AspectTestOutputBanner : EditorNotificationProvider {
 /** New test output or an edited snapshot: banners update. */
 class OutputChanges : BulkFileListener {
     override fun after(events: List<VFileEvent>) {
-        if (events.any { it.path.endsWith(".t.cs") }) EditorNotifications.updateAll()
+        if (events.any { it.path.endsWith(".t.cs") || it.path.contains("/obj/transformed") }) EditorNotifications.updateAll()
     }
 }
 
