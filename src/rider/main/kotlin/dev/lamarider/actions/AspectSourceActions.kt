@@ -29,3 +29,23 @@ abstract class AspectSourceAction(private val fire: LamaRiderService.(EditorPosi
 class AddAspectsAsAttributesAction : AspectSourceAction(LamaRiderService::addAspectsAsAttributes)
 
 class ReplaceWithTransformedCodeAction : AspectSourceAction(LamaRiderService::replaceWithTransformedCode)
+
+/** Twins of the Metalama Premium API quick-fixes (Find Action and UI tests; Alt+Enter on the warning is the usual way). */
+abstract class PremiumAction(private val fire: LamaRiderService.(EditorPosition) -> Unit) : DumbAwareAction() {
+    override fun getActionUpdateThread() = ActionUpdateThread.BGT
+
+    override fun update(e: AnActionEvent) {
+        e.presentation.isEnabledAndVisible = e.getData(CommonDataKeys.EDITOR) != null && e.getData(CommonDataKeys.VIRTUAL_FILE)?.extension == "cs"
+    }
+
+    override fun actionPerformed(e: AnActionEvent) {
+        val project = e.project ?: return
+        val editor = e.getData(CommonDataKeys.EDITOR) ?: return
+        val file = e.getData(CommonDataKeys.VIRTUAL_FILE) ?: return
+        project.service<LamaRiderService>().fire(EditorPosition(file.path, editor.caretModel.offset))
+    }
+}
+
+class WrapPremiumCodeAction : PremiumAction(LamaRiderService::wrapPremiumCode)
+
+class SetUpPremiumBuildsAction : PremiumAction(LamaRiderService::setUpPremiumBuilds)

@@ -65,6 +65,10 @@ object LamaRiderModel : Ext(SolutionModel.Solution) {
         // write the aspects fabrics etc. add as attributes / replace its source with its transformed code
         signal("addAspectsAsAttributes", EditorPosition)
         signal("replaceWithTransformedCode", EditorPosition)
+        // frontend -> backend (twins of the Metalama Premium API quick-fixes): #if METALAMA_PREMIUM around the use at the
+        // position / free and Premium builds for the project of a file
+        signal("wrapPremiumCode", EditorPosition)
+        signal("setUpPremiumBuilds", string)
         // frontend -> backend: run (debug=false) or debug the Metalama aspect test of a file in Rider's unit test runner
         signal("runAspectTest", structdef("RunAspectTest") {
             field("file", string)

@@ -154,6 +154,46 @@ class LamaRiderUiTest : UiTestBase() {
     }
 
     @Test
+    fun `Metalama Premium code is kept out of the free build`() = withRider("premium", prepare = { dir ->
+        val csproj = dir.resolve("MetalamaSample/MetalamaSample.csproj")
+        Files.writeString(csproj, Files.readString(csproj).replace(
+            """<PackageReference Include="Metalama.Framework" Version="2026.1.30" />""",
+            """<PackageReference Include="Metalama.Framework" Version="2026.1.30" />
+    <PackageReference Include="Metalama.Extensions.CodeFixes" Version="2026.1.30" />"""))
+        Files.writeString(dir.resolve("MetalamaSample/SuggestObsolete.cs"),
+            """
+            using Metalama.Extensions.CodeFixes;
+            using Metalama.Framework.Aspects;
+            using Metalama.Framework.Code;
+
+            namespace MetalamaSample;
+
+            public class SuggestObsoleteAttribute : MethodAspect
+            {
+                public override void BuildAspect(IAspectBuilder<IMethod> builder)
+                {
+                    builder.Diagnostics.Suggest(CodeFixFactory.AddAttribute(builder.Target, typeof(ObsoleteAttribute)));
+                }
+            }
+            """.trimIndent())
+    }) {
+        openToolWindow("LamaRider")
+        ideFrame { waitForText("aspects listed (first refresh done)", "Log") }
+        caretAt("MetalamaSample/SuggestObsolete.cs", "Suggest(")
+        editorAction("LamaRider.WrapPremiumCode")
+        waitFor("Premium code in #if", timeout = 1.minutes) {
+            editorText().contains("#if METALAMA_PREMIUM\n        builder.Diagnostics.Suggest(") &&
+                editorText().contains("#if METALAMA_PREMIUM\nusing Metalama.Extensions.CodeFixes;\n#endif")
+        }
+        editorAction("LamaRider.SetUpPremiumBuilds")
+        val csproj = solutionDir.resolve("MetalamaSample/MetalamaSample.csproj")
+        waitFor("project set up", timeout = 1.minutes) { Files.readString(csproj).contains("METALAMA_PREMIUM") }
+        ideFrame { invokeAction("SaveAll", component = codeEditor().component) }
+        // Without a license the Premium package alone fails the build (LAMA0806): the free build leaves it out.
+        assertTrue(dotnet("build", csproj.toString()) == 0, "free build passes")
+    }
+
+    @Test
     fun `aspect test project is created when there is none`() = withRider("aspecttestproject", prepare = { dir ->
         dotnet("sln", dir.resolve("MetalamaSample.sln").toString(), "remove", dir.resolve("MetalamaSample.AspectTests/MetalamaSample.AspectTests.csproj").toString())
         dir.resolve("MetalamaSample.AspectTests").toFile().deleteRecursively()
