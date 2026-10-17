@@ -17,8 +17,8 @@ refreshes on its own after saves, builds and package changes.</p>
   <li>Above every declaration an aspect touches: one entry per aspect added by a fabric, inheritance etc.,
     <b>N aspects</b> for more than two, <b>transformed code</b> when all are attributes you see anyway; <b>applied to N
     targets</b> above aspect classes. The tooltip says where the aspect comes from (the fabric's name, or the aspect it
-    is inherited from, added or required by) and gives its documentation. Aspects a fabric puts on a parameter get an
-    inlay hint each.</li>
+    is inherited from, added or required by) and gives its documentation, and notes when the aspect's code fixes need a
+    Metalama Professional license. Aspects a fabric puts on a parameter get an inlay hint each.</li>
   <li>A click shows the aspects grouped by member, parameter and return value. Clicking an aspect goes to its source
     (also SourceLink or decompiled), shows it in the LamaRider window, or asks: your choice in the settings.</li>
   <li><b>Show Transformed Code</b> (also a click on <b>transformed code</b>): the transformed code of one declaration in a
@@ -28,6 +28,18 @@ refreshes on its own after saves, builds and package changes.</p>
 </ul>
 <p><img src="{{screenshots}}/code-vision-popup.png" width="640" alt="Code Vision popup"></p>
 <p><img src="{{screenshots}}/transformed-code-popup.png" width="640" alt="Transformed code popup"></p>
+
+<h3>Aspects into code</h3>
+<ul>
+  <li>Alt+Enter on a declaration name: <b>Add [Log] as attribute</b> writes an aspect that a fabric, inheritance or
+    another aspect adds as an attribute, with the same constructor arguments and properties.</li>
+  <li><b>Replace with transformed code</b>: the type or member becomes Metalama's transformed code, like
+    <code>metalama divorce</code> for one declaration. Aspect attributes go; aspects a fabric would add again get
+    <code>[ExcludeAspect]</code>. Ctrl+Z undoes it.</li>
+  <li>Both are also in the editor menu: <b>Add Metalama Aspects as Attributes</b>, <b>Replace with Metalama Transformed
+    Code</b>.</li>
+</ul>
+<p><img src="{{screenshots}}/replace-with-transformed-code.png" width="640" alt="Replaced with transformed code"></p>
 
 <h3>T# template highlighting</h3>
 <p>Compile-time code in templates is tinted; <code>meta.*</code> and compile-time variables stand out
@@ -64,5 +76,6 @@ every build configuration, with or without formatting it (LAMA0066).</p>
 Metalama aspect tests need (shows whether it is in place).</p>
 <p><img src="{{screenshots}}/settings.png" width="640" alt="LamaRider settings"></p>
 
-<p>Works with Metalama 2026.x and Rider 2026.2 and 2026.3. No Metalama license needed.
+<p>Works with Metalama 2026.x and Rider 2026.2 and 2026.3. No Metalama license needed. LamaRider does not bypass Metalama
+licensing: code fixes from <code>Metalama.Extensions.CodeFixes</code> need Metalama Professional.
 <a href="https://github.com/wollume-studios/LamaRider/blob/main/docs/usage.md">How to use each feature</a>.</p>

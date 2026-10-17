@@ -12,6 +12,8 @@ Run them with `dotnet test LamaRider.sln` (backend model + worker) and `./gradle
 | Worker: transformed files formatted like Metalama, declaration spans for the popup, T# classification | `WorkerTests.cs` |
 | Model: Code Vision lookup (incl. parameter aspects counted on their method), click targets, T# per file | `tests/LamaRider.Model.Tests/AspectModelTests.cs` |
 | Model: project-wide errors on own aspect classes, compile-time files (Alt+Enter build), error summary | `AspectModelTests.cs` |
+| Worker: aspects as attributes (constructor and named arguments from the aspect object), standalone transformed code (aspect attributes removed, `[ExcludeAspect]`) | `AttributeArgumentsTests.cs`, `WorkerTests.cs` |
+| Model: warnings of *Replace with transformed code*, code-fix license note | `ReplaceWithTransformedTests.cs`, `AspectHintsTests.cs` |
 | Auto refresh: which file changes refresh | `RefreshTriggerTests.cs` |
 | LamaDebug configuration added to .sln / .slnx | `LamaDebugConfigurationTests.cs` |
 | Test-settings status text (settings page) | `TestSettingsStatusTests.cs` |
