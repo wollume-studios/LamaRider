@@ -74,7 +74,7 @@ class CompiledCopyBanner : EditorNotificationProvider {
         ApplicationManager.getApplication().executeOnPooledThread {
             val until = System.currentTimeMillis() + 15_000
             while (session != null && !session.isStopped && System.currentTimeMillis() < until) Thread.sleep(200)
-            service.rebuildAndDebugAspectTest(test)
+            ApplicationManager.getApplication().invokeLater { service.rebuildAndDebugAspectTest(test) } // rd signals fire on the EDT
         }
     }
 
