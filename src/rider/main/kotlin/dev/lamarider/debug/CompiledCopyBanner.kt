@@ -79,28 +79,29 @@ class CompiledCopyBanner : EditorNotificationProvider {
         val copyEditor = (fileEditor as? TextEditor)?.editor ?: return
         val sourceFile = LocalFileSystem.getInstance().refreshAndFindFileByPath(copy.source.replace('\\', '/')) ?: return
         OpenInRightSplitAction.openInRightSplit(project, sourceFile, null, false)
-        val sourceEditor = FileEditorManager.getInstance(project).getEditors(sourceFile).filterIsInstance<TextEditor>().lastOrNull()?.editor ?: return
+        // Every editor of the source, in any split: it is often also open as a tab next to the copy (the breakpoint's file).
+        fun sourceEditors() = FileEditorManager.getInstance(project).getAllEditors(sourceFile).filterIsInstance<TextEditor>().map { it.editor }
 
         var syncing = false
-        fun follow(from: Editor, to: Editor, map: (Int) -> Int?) = object : CaretListener {
-            override fun caretPositionChanged(event: CaretEvent) {
-                if (syncing || to.isDisposed || event.editor != from) return
-                val line = map(event.newPosition.line) ?: return
-                syncing = true
-                try {
-                    to.caretModel.moveToLogicalPosition(LogicalPosition(line, 0))
-                    to.scrollingModel.scrollToCaret(ScrollType.CENTER)
-                } finally {
-                    syncing = false
+        fun moveTo(editors: List<Editor>, line: Int) {
+            syncing = true
+            try {
+                for (editor in editors.filter { !it.isDisposed }) {
+                    editor.caretModel.moveToLogicalPosition(LogicalPosition(line, 0))
+                    editor.scrollingModel.scrollToCaret(ScrollType.CENTER)
                 }
+            } finally {
+                syncing = false
             }
         }
-        // Both listeners end with the compiled copy's editor tab.
-        copyEditor.caretModel.addCaretListener(follow(copyEditor, sourceEditor, copy::sourceLine), fileEditor)
-        sourceEditor.caretModel.addCaretListener(follow(sourceEditor, copyEditor, copy::copyLine), fileEditor)
-        copy.sourceLine(copyEditor.caretModel.logicalPosition.line)?.let {
-            sourceEditor.caretModel.moveToLogicalPosition(LogicalPosition(it, 0))
-            sourceEditor.scrollingModel.scrollToCaret(ScrollType.CENTER)
+        fun follow(map: (Int) -> Int?, targets: () -> List<Editor>) = object : CaretListener {
+            override fun caretPositionChanged(event: CaretEvent) {
+                if (!syncing) map(event.newPosition.line)?.let { moveTo(targets(), it) }
+            }
         }
+        // The listeners end with the compiled copy's editor tab.
+        copyEditor.caretModel.addCaretListener(follow(copy::sourceLine, ::sourceEditors), fileEditor)
+        for (source in sourceEditors()) source.caretModel.addCaretListener(follow(copy::copyLine) { listOf(copyEditor) }, fileEditor)
+        copy.sourceLine(copyEditor.caretModel.logicalPosition.line)?.let { moveTo(sourceEditors(), it) }
     }
 }
