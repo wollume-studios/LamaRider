@@ -47,7 +47,7 @@ class ScreenshotsUiTest : UiTestBase() {
 
     @Test
     fun `tool window, Code Vision, popups, T#, diff and settings`() = withRider("shots", prepare = { dir ->
-        // Fabric aspects on Multiply and its parameters: named Code Vision and parameter inlay hints.
+        // Fabric aspects on Multiply, its parameters and return value: named Code Vision and inlay hints.
         dir.resolve("MetalamaSample/Fabric.cs").writeText(
             """
             using Metalama.Framework.Aspects;
@@ -66,7 +66,7 @@ class ScreenshotsUiTest : UiTestBase() {
                         .Where(m => m.Name == nameof(Calculator.Multiply));
                     multiply.AddAspect<LogAttribute>();
                     multiply.SelectMany(m => m.Parameters).AddAspect<NonNegativeAttribute>();
-                    // A second fabric aspect on the method itself: one Code Vision entry per aspect.
+                    // On the return value: an inlay hint after the return type.
                     multiply.Select(m => m.ReturnParameter).AddAspect<NonNegativeAttribute>();
                 }
             }
@@ -208,6 +208,41 @@ class ScreenshotsUiTest : UiTestBase() {
         debugUntilPaused { editorAction("LamaRider.DebugAspectTest") }
         ideFrame { waitForText("compiled copy banner", "Metalama's compiled copy of LogAttribute.cs") }
         shot("debug-aspect-test", frame())
+    }
+
+    @Test
+    fun `aspect test output compared with its snapshot`() = withRider("shots-testdiff") {
+        layout()
+        openToolWindow("LamaRider")
+        ideFrame { waitForText("aspects listed (first refresh done)", "Log") }
+        caretAt("MetalamaSample/LogAttribute.cs", "LogAttribute :")
+        editorAction("LamaRider.CreateAspectTest")
+        val project = solutionDir.resolve("MetalamaSample.AspectTests")
+        waitFor("test file created", timeout = 1.minutes) { Files.exists(project.resolve("LogTests/LogTest.cs")) }
+        runCatching { waitFor("test project built", timeout = 3.minutes) { ideFrame().hasSubtext("Added the test") } }
+        // Fails (no snapshot yet) and writes the output; LamaRider's background build of the new test can collide: try again.
+        val outputDir = project.resolve("obj/transformed")
+        for (attempt in 1..3) {
+            dotnet("test", project.toString())
+            if (Files.exists(outputDir)) break
+        }
+        val output = Files.walk(outputDir).use { p -> p.filter { it.toString().endsWith("LogTests/LogTest.t.cs") }.findFirst().get() }
+        // A snapshot from an older version of the aspect: the output differs in one line.
+        project.resolve("LogTests/LogTest.t.cs").writeText(Files.readString(output).replace("Leaving", "Exiting"))
+
+        // Run outside the IDE: what Rider does when its window gets the focus back.
+        ideFrame { invokeAction("Synchronize", component = codeEditor().component) }
+        caretAt("MetalamaSample.AspectTests/LogTests/LogTest.cs", "Add(")
+        invokeAction("HideAllWindows")
+        val banner = popup("Test output differs from LogTest.t.cs")
+        shot("aspect-test-banner", editorArea(260).union(banner.rect()).grown())
+
+        ui.x(xQuery { byAccessibleName("Compare") }).click()
+        val diff = windowOf(popup("Last run output (read-only)"))
+        // Its tooltip points out Accept All in the diff toolbar (an icon).
+        runCatching { ui.x(xQuery { byAccessibleName("Accept All") }).moveMouse() }
+        Thread.sleep(2000)
+        shot("aspect-test-diff", diff)
     }
 
     @Test
