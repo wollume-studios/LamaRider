@@ -26,9 +26,8 @@ Run them with `dotnet test LamaRider.sln` (backend model + worker) and `./gradle
 ## Covered by UI tests
 
 `./gradlew uiTest` (`src/rider/uiTest/kotlin/dev/lamarider/uitest/LamaRiderUiTest.kt`) drives a real Rider on the sample
-solution. Among them, *aspect test output is compared with the snapshot and accepted from the banner*: creates a test,
-runs `dotnet test` outside the IDE, waits for the info bar, opens *Compare* (the diff with *Last run output
-(read-only)*), accepts from the info bar and checks that the test then passes.
+solution, e.g. *aspect test output is compared with the snapshot and accepted from the banner* (create, run with
+`dotnet test`, *Compare*, accept, pass).
 
 ## Checked by hand in the sandbox only
 
@@ -43,10 +42,10 @@ A ReSharper integration test project (`JetBrains.ReSharper.TestFramework`) would
 
 ## Known gaps
 
-- **Windows**: UI tests are routinely run only on Linux (Ubuntu VM); they can run on Windows but open Rider on the desktop. Windows-specific behavior (frontend↔backend paths, the
-  Miscellaneous Files project, file locks) is not covered end to end. A *Run / Debug Metalama Aspect Test* failure was
-  reported on Windows that the Linux UI test does not reproduce; 0.6.261016.1844 added a fix candidate (prefer the real
-  project over Miscellaneous Files) and logging (`LamaRider: run aspect test refused ...`).
+- **Windows**: UI tests run routinely only on Linux (on Windows they open Rider on the desktop). Windows-specific
+  behavior (frontend↔backend paths, the Miscellaneous Files project, file locks) is not covered end to end. A *Run /
+  Debug Metalama Aspect Test* failure reported on Windows does not reproduce on Linux; it logs `LamaRider: run aspect
+  test refused ...`.
 - **Fixtures**: only the small `samples/MetalamaSample` (.sln, net8). No fixture is shaped like a real project (.slnx,
   net10, older generated test projects).
 - **Features without automated end-to-end tests**: parameter and return value inlay hint clicks, tooltip rendering, the "transformed
