@@ -1,5 +1,7 @@
 package dev.lamarider.uitest
 
+import com.intellij.driver.client.Driver
+import com.intellij.driver.sdk.VirtualFile
 import com.intellij.driver.sdk.invokeAction
 import com.intellij.driver.model.OnDispatcher
 import com.intellij.driver.sdk.openToolWindow
@@ -14,6 +16,7 @@ import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.fail
 import java.nio.file.Files
+import java.nio.file.Path
 import kotlin.time.Duration.Companion.minutes
 import kotlin.time.Duration.Companion.seconds
 
@@ -260,8 +263,33 @@ class LamaRiderUiTest : UiTestBase() {
             }
             // Offered only while Metalama does not format compile-time code.
             assertTrue(ui.x(xQuery { byAccessibleName("Make it readable") }).present() != readable, "'Make it readable' offered: ${!readable}")
+            if (!readable) sideBySideFollowsTheCaret(aspect, file)
         } finally {
             debugger.getCurrentSession()?.stop()
+        }
+    }
+
+    /**
+     * The source of the compiled copy in a split next to it follows the copy's caret, also when the source is already open
+     * as a tab next to the copy (where the breakpoint was set).
+     */
+    private fun Driver.sideBySideFollowsTheCaret(aspect: Path, source: VirtualFile) {
+        val editors = utility(FileEditorManagerRef::class).getInstance(singleProject())
+        val copy = editors.getSelectedFiles().first()
+        withContext<Unit>(OnDispatcher.EDT) { editors.openFile(source, false); editors.openFile(copy, true) }
+        ideFrame { invokeAction("HideAllWindows", component = codeEditor().component) }
+        ui.x(xQuery { byAccessibleName("Show LogAttribute.cs side by side") }).click()
+        waitFor("LogAttribute.cs in a second editor", timeout = 30.seconds) { editors.getAllEditors(source).size >= 2 }
+
+        val nameLine = Files.readAllLines(aspect).indexOfFirst { it.contains("var name = meta.Target.Method.Name;") }
+        withReadAction<Unit>(OnDispatcher.EDT) {
+            val copyEditor = editors.getAllEditors(copy).first().getEditor()
+            copyEditor.getCaretModel().moveToOffset(copyEditor.getDocument().getText().lastIndexOf("Leaving"))
+        }
+        waitFor("every LogAttribute.cs editor follows to the finally block", timeout = 30.seconds) {
+            withReadAction(OnDispatcher.EDT) {
+                editors.getAllEditors(source).all { e -> e.getEditor().let { it.getDocument().getLineNumber(it.getCaretModel().getOffset()) } > nameLine }
+            }
         }
     }
 
