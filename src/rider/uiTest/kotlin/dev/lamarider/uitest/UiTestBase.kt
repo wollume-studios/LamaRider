@@ -173,6 +173,7 @@ interface XDebugSession {
 interface FileEditorManagerRef {
     fun getInstance(project: com.intellij.driver.sdk.Project): FileEditorManagerRef
     fun getSelectedFiles(): Array<VirtualFile>
+    fun getOpenFiles(): Array<VirtualFile>
     fun getAllEditors(file: VirtualFile): Array<TextEditorRef>
     fun openFile(file: VirtualFile, focusEditor: Boolean): Array<TextEditorRef>
 }

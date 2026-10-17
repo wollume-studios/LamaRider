@@ -263,7 +263,20 @@ class LamaRiderUiTest : UiTestBase() {
             }
             // Offered only while Metalama does not format compile-time code.
             assertTrue(ui.x(xQuery { byAccessibleName("Make it readable") }).present() != readable, "'Make it readable' offered: ${!readable}")
-            if (!readable) sideBySideFollowsTheCaret(aspect, file)
+            if (!readable) {
+                sideBySideFollowsTheCaret(aspect, file)
+                // Readable code applies from the next build: the dialog restarts the test, which builds first.
+                ui.x(xQuery { byAccessibleName("Make it readable") }).click()
+                ui.x(xQuery { byAccessibleName("Debug Again") }).click()
+                val editors = utility(FileEditorManagerRef::class).getInstance(singleProject())
+                waitFor("stopped again in readable compile-time code", timeout = 10.minutes, interval = 5.seconds) {
+                    debugger.getCurrentSession()?.isPaused() == true && withReadAction(OnDispatcher.EDT) {
+                        editors.getSelectedFiles().firstOrNull()?.let { copy ->
+                            editors.getAllEditors(copy).firstOrNull()?.getEditor()?.getDocument()?.getText()
+                        }?.let { it.contains("OverrideMethod") && !it.contains("global::") } == true
+                    }
+                }
+            }
         } finally {
             debugger.getCurrentSession()?.stop()
         }
@@ -279,7 +292,11 @@ class LamaRiderUiTest : UiTestBase() {
         withContext<Unit>(OnDispatcher.EDT) { editors.openFile(source, false); editors.openFile(copy, true) }
         ideFrame { invokeAction("HideAllWindows", component = codeEditor().component) }
         ui.x(xQuery { byAccessibleName("Show LogAttribute.cs side by side") }).click()
-        waitFor("LogAttribute.cs in a second editor", timeout = 30.seconds) { editors.getAllEditors(source).size >= 2 }
+        waitFor("LogAttribute.cs in a second editor", timeout = 30.seconds) {
+            println("side by side: ${editors.getAllEditors(source).size} LogAttribute.cs editors; open: " +
+                editors.getOpenFiles().joinToString { it.getPath() } + "; selected: " + editors.getSelectedFiles().joinToString { it.getPath() })
+            editors.getAllEditors(source).size >= 2
+        }
 
         val nameLine = Files.readAllLines(aspect).indexOfFirst { it.contains("var name = meta.Target.Method.Name;") }
         withReadAction<Unit>(OnDispatcher.EDT) {
