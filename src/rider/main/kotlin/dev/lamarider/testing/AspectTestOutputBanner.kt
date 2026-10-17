@@ -28,8 +28,8 @@ class AspectTestOutputBanner : EditorNotificationProvider {
         if (!files.differs()) return null
         return Function { fileEditor ->
             EditorNotificationPanel(fileEditor, EditorNotificationPanel.Status.Warning).apply {
-                text = if (files.snapshot.isFile && files.snapshot.length() > 0) "The last run's output differs from ${files.snapshot.name}"
-                    else "${files.snapshot.name} is empty: the last run's output is not accepted yet"
+                text = if (files.snapshot.isFile && files.snapshot.length() > 0) "Test output differs from ${files.snapshot.name}"
+                    else "${files.snapshot.name} is empty"
                 createActionLabel("Compare") { AspectTestDiff.show(project, files) }
                 createActionLabel("Accept all") { AspectTestDiff.accept(project, files) }
             }

@@ -141,6 +141,8 @@ class LamaRiderUiTest : UiTestBase() {
         ideFrame { invokeAction("Synchronize", component = codeEditor().component) }
         caretAt("MetalamaSample.AspectTests/LogTests/LogTest.cs", "Add(")
         waitFor("banner: output differs", timeout = 1.minutes) { ui.x(xQuery { byAccessibleName("Compare") }).present() }
+        // The banner's links must be on screen to be clicked: the test window is only 1024 pixels wide.
+        ideFrame { invokeAction("HideAllWindows", component = codeEditor().component) }
         ui.x(xQuery { byAccessibleName("Compare") }).click()
         waitFor("diff of output and snapshot", timeout = 1.minutes) { ui.x(xQuery { contains(byVisibleText("Last run output (read-only)")) }).present() }
 
