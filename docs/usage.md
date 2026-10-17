@@ -218,7 +218,8 @@ It appears after the first refresh and follows the file as of the last one.
   lists all of them; they are also underlined on your aspect classes in that project.
 - **LAMA documentation.** Alt+Enter on a LAMA error › *Open LAMAxxxx documentation*.
 - **Build to resume (LAMA0118).** Metalama pauses its analysis in Rider after compile-time code changes until the
-  project is built. Alt+Enter in an aspect or template file › *Build '&lt;project&gt;' to resume Metalama analysis*. Or
+  project is built. Alt+Enter in an aspect or template file › *Build '&lt;project&gt;' to resume Metalama analysis*
+  (offered when the project's compile-time files changed after its last build). Or
   turn on *Settings › Tools › LamaRider › Build the project after aspect or template code is saved*.
 
 ![Metalama error info bar](screenshots/error-banner.png)
@@ -304,9 +305,13 @@ templates and fabrics stop**, without `Debugger.Break()` or `meta.DebugBreak()`.
 The debugger stops in Metalama's compiled copy of your compile-time code, not in your file. The copy opens with an info
 bar:
 
-- *Show LogAttribute.cs side by side*: your file in a split, carets synced both ways.
+- *Show LogAttribute.cs side by side*: your file in a split on the right. Moving the caret in either one moves the
+  other (in every open editor of your file).
 - *Open LogAttribute.cs at this line*.
-- *Make it readable*: turns on *Readable aspect code while debugging*.
+- *Make it readable*: turns on *Readable aspect code while debugging* and asks: *Debug Again* stops debugging,
+  rebuilds the aspect test project with its dependencies and debugs the same aspect test again; *Later* leaves it.
+  *Debug Again* is offered when you started the aspect test from LamaRider (gutter icon or *Run / Debug Metalama Aspect
+  Test*); otherwise the dialog tells you to rebuild and debug again.
 
 ![Debugging an aspect test](screenshots/debug-aspect-test.png)
 
