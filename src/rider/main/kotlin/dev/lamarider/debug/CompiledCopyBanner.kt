@@ -1,6 +1,7 @@
 package dev.lamarider.debug
 
 import com.intellij.ide.actions.OpenInRightSplitAction
+import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.components.service
 import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.editor.LogicalPosition
@@ -13,7 +14,6 @@ import com.intellij.openapi.fileEditor.TextEditor
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.ui.Messages
 import com.intellij.xdebugger.XDebuggerManager
-import com.jetbrains.rd.ide.model.RunAspectTest
 import com.intellij.openapi.vfs.LocalFileSystem
 import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.ui.EditorNotificationPanel
@@ -65,11 +65,17 @@ class CompiledCopyBanner : EditorNotificationProvider {
             return
         }
         val answer = Messages.showYesNoDialog(project,
-            "Metalama formats compile-time code from the next build on. Stop debugging and debug ${File(test).name} again? Rider builds the aspect project first.",
+            "Metalama formats compile-time code from the next build on. Stop debugging, rebuild and debug ${File(test).name} again?",
             title, "Debug Again", "Later", Messages.getQuestionIcon())
         if (answer != Messages.YES) return
-        XDebuggerManager.getInstance(project).currentSession?.stop()
-        service.runAspectTest(RunAspectTest(test, true))
+        val session = XDebuggerManager.getInstance(project).currentSession
+        session?.stop()
+        // The test host releases its assemblies when it has exited (Windows locks them), then the rebuild can replace them.
+        ApplicationManager.getApplication().executeOnPooledThread {
+            val until = System.currentTimeMillis() + 15_000
+            while (session != null && !session.isStopped && System.currentTimeMillis() < until) Thread.sleep(200)
+            service.rebuildAndDebugAspectTest(test)
+        }
     }
 
     private fun caretLine(fileEditor: FileEditor) = (fileEditor as? TextEditor)?.editor?.caretModel?.logicalPosition?.line ?: 0

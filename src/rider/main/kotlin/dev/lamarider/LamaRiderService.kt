@@ -95,6 +95,11 @@ class LamaRiderService(val project: Project) {
     var lastDebuggedTest: String? = null
         private set
 
+    fun rebuildAndDebugAspectTest(file: String) {
+        lastDebuggedTest = file
+        rd?.rebuildAndDebugAspectTest?.fire(file)
+    }
+
     fun runAspectTest(run: com.jetbrains.rd.ide.model.RunAspectTest) {
         if (run.debug) lastDebuggedTest = run.file
         rd?.runAspectTest?.fire(run)

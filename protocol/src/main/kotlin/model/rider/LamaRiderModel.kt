@@ -70,6 +70,9 @@ object LamaRiderModel : Ext(SolutionModel.Solution) {
         signal("wrapPremiumCode", EditorPosition)
         signal("setUpPremiumBuilds", string)
         // frontend -> backend: run (debug=false) or debug the Metalama aspect test of a file in Rider's unit test runner
+        // frontend -> backend: rebuild the aspect test project and its dependencies (Rider's build skips them when only
+        // Directory.Build.props changed), then debug the aspect test of the file
+        signal("rebuildAndDebugAspectTest", string)
         signal("runAspectTest", structdef("RunAspectTest") {
             field("file", string)
             field("debug", bool)

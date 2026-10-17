@@ -274,8 +274,10 @@ class LamaRiderUiTest : UiTestBase() {
                     val (path, text) = withReadAction(OnDispatcher.EDT) {
                         editors.getSelectedFiles().firstOrNull()?.let { it.getPath() to editors.getAllEditors(it).firstOrNull()?.getEditor()?.getDocument()?.getText() }
                     } ?: (null to null)
-                    println("debug again: session ${session != null}, paused ${session?.isPaused()}, selected $path, global:: ${text?.contains("global::")}")
-                    session?.isPaused() == true && text != null && text.contains("OverrideMethod") && !text.contains("global::")
+                    val qualified = text?.split("global::")?.size?.minus(1)
+                    println("debug again: session ${session != null}, paused ${session?.isPaused()}, selected $path, global:: $qualified")
+                    // Formatted: only the using directives keep global:: (unformatted: dozens).
+                    session?.isPaused() == true && text != null && text.contains("OverrideMethod") && qualified!! < 10
                 }
             }
         } finally {
