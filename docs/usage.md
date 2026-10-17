@@ -4,7 +4,7 @@ Step by step for every feature, and what it cannot do. For an overview with scre
 
 - [Before you start](#before-you-start)
 - [LamaRider tool window](#lamarider-tool-window)
-- [Code Vision and parameter hints](#code-vision-and-parameter-hints)
+- [Code Vision and inlay hints](#code-vision-and-inlay-hints): aspect names or counts, parameter and return value hints
 - [Transformed code](#transformed-code): popup, Metalama Diff, Open Transformed File
 - [Aspects into code](#aspects-into-code): add an aspect as attribute, replace a declaration with its transformed code
 - [T# highlighting](#t-highlighting)
@@ -88,39 +88,50 @@ Limitations:
 - Projects that cannot be restored or loaded by MSBuild are missing (the reason is in the log).
 - Aspect test projects are loaded a second time (see [Aspect tests](#aspect-tests)), which adds to the refresh time.
 
-## Code Vision and parameter hints
+## Code Vision and inlay hints
 
-Above every declaration an aspect touches, Code Vision says which aspects:
+Above every declaration an aspect touches, Code Vision says which aspects. With the default settings
+(*Aspects: Each aspect by name where it applies*, *Transformed code: "transformed code" hint of its own*):
 
 | Code Vision | Meaning |
 |---|---|
-| `transformed code` | Only aspects added by attributes, which you see in the code anyway. Click for the transformed code. |
-| `Log` | One entry per aspect not visible in the code (added by a fabric, inherited, added or required by another aspect, ...), e.g. `Log` and `NonNegative` side by side. At most two are named. |
-| `3 aspects` | More than two aspects not visible in the code, in one entry (the count includes all aspects on the declaration). |
+| `Log` | One entry per aspect on the declaration not visible in the code (added by a fabric, inherited, added or required by another aspect, ...), e.g. `Log` and `Cache` side by side. At most two are named. Aspects added by an attribute are not named: you see the attribute. |
+| `3 aspects` | More than two such aspects, in one entry. |
+| `transformed code` | On every declaration with aspects, also when they are only on its parameters or return value. Click for the transformed code. |
 | `applied to 2 targets` | On an aspect class: how many targets it has in the solution. |
 
-Aspects on a parameter that an attribute adds count for the member (the attribute is in the code). Aspects on a
-parameter from a fabric, inheritance etc. get an **inlay hint** each, right after the parameter name, e.g.
-`a NonNegative`.
+Aspects on a parameter or a return value that a fabric, inheritance etc. adds get an **inlay hint** each: right after the
+parameter name (`a NonNegative`) or after the method's return type (`int NonNegative Multiply`). Aspects an attribute
+puts there get none (the attribute is in the code).
 
 **Hover** an entry or hint for its tooltip. A named aspect's tooltip first says where it comes from: *Added by fabric
 MetalamaSample.Fabric* (the fabric's full type name), *Inherited from ...*, *Added by aspect ...* or *Required by aspect
 ...* (the aspect instance it comes from), *Added by an attribute*, *Added from the IDE*. Then the aspect's documentation
-summary, wrapped to about 70 characters. The tooltips of `N aspects` and `transformed code` list each aspect that way,
-with its name.
+summary, wrapped to about 70 characters. The tooltip of `N aspects` lists each aspect that way, with its name.
+
+**Fewer hints.** *Settings › Tools › LamaRider › Code Vision*:
+
+- *Aspects: Their number on the declaration*: one `N aspects` entry per declaration, counting the aspects on it, its
+  parameters and its return value (attribute aspects included), and no inlay hints. Its tooltip says where each one is,
+  e.g. *GreaterThan1 on a — added by fabric App.Fabric* or *NonNegative on the return value — ...*.
+- *Transformed code: Item in the aspect menu*: no `transformed code` entry; *Show Transformed Code* is in the menu of the
+  declaration's aspect entries instead. A declaration where nothing is named then gets a count entry (`1 aspect`,
+  `2 aspects`) that leads to that menu.
 
 Aspects whose assembly references `Metalama.Extensions.CodeFixes` add a last line to their tooltip: *May offer code
 fixes (Alt+Enter); they need a Metalama Professional license.* `Metalama.Extensions.CodeFixes` is a Premium component
 of Metalama; see [Licensing](#licensing).
 
-![Code Vision and parameter hints](screenshots/code-vision.png)
+![Code Vision and inlay hints](screenshots/code-vision.png)
 
-**Click** a Code Vision entry or a parameter hint (or use *Show Metalama Aspects* in the editor context menu or Find
+**Click** a Code Vision entry or an inlay hint (or use *Show Metalama Aspects* in the editor context menu or Find
 Action for the declaration at the caret, without the mouse):
 
-- `transformed code` (only attribute aspects) opens the [transformed code popup](#transformed-code) right away.
+- `transformed code` opens the [transformed code popup](#transformed-code) right away.
 - Otherwise a menu offers:
-  1. *Show Transformed Code*: the declaration after all aspects, see [below](#transformed-code).
+  1. *Show Transformed Code*: the declaration after all aspects, see [below](#transformed-code). Only with *Transformed
+     code: Item in the aspect menu*, and only in the declaration's own menu: the menus of parameter and return value
+     hints never offer it.
   2. *Metalama Diff (whole file)*.
   3. The aspects, grouped by what they decorate: the member, each parameter (*Parameter a*), the return value, with
      their origin for those not added by an attribute (`Log (fabric)`).
@@ -134,17 +145,19 @@ aspects open their SourceLink or decompiled source), *Show it in the LamaRider w
 
 Limitations:
 
-- Code Vision is per line, so aspects on parameters are hints after the parameter, not Code Vision entries.
-- Rider shows one Code Vision entry per provider and declaration. LamaRider has three providers (*Metalama aspects*,
-  *Metalama aspects (second aspect)*, *Metalama aspect targets*, also in *Settings › Editor › Inlay Hints › Code
-  Vision*), so a declaration shows at most two named aspects, and more collapse into `N aspects`.
+- Code Vision is per line, so aspects on parameters and return values are inlay hints, not Code Vision entries.
+- Rider shows one Code Vision entry per provider and declaration. LamaRider has four providers (*Metalama aspects*,
+  *Metalama aspects (second aspect)*, *Metalama aspects (third hint, e.g. transformed code)*, *Metalama aspect
+  targets*, also in *Settings › Editor › Inlay Hints › Code Vision*), so a declaration shows at most two named aspects,
+  and more collapse into `N aspects`.
 - The counts come from the last refresh: a freshly added `[Log]` shows up after the save has been analyzed.
 
 ## Transformed code
 
 **Transformed code popup.** From Code Vision (*Show Transformed Code*), the editor context menu / Find Action
 (*Show Transformed Code*, for the declaration at the caret), or a double-click on a transformation in the LamaRider
-window, or a click on a `transformed code` Code Vision hint. The popup shows the declaration as Metalama compiles it,
+window, or a click on a `transformed code` Code Vision hint (or *Show Transformed Code* in the aspect menu, see
+[Code Vision](#code-vision-and-inlay-hints)). The popup shows the declaration as Metalama compiles it,
 highlighted like the editor. Its toolbar has the diff toggle, which switches to source and transformed code side by
 side (remembered; not offered for declarations an aspect introduced), and *Whole File in Metalama Diff*. The bottom row
 links the aspects that changed it (hover for their documentation; a click does what
@@ -179,7 +192,7 @@ aspects transform.
 ### Add an aspect as attribute
 
 For aspects you don't see in the code: added by a fabric, inherited, or added or required by another aspect (Code
-Vision names them, parameters have an inlay hint).
+Vision names them, parameters and return values have an inlay hint).
 
 1. Put the caret on the name of the declaration (type, member or parameter).
 2. Alt+Enter › *Add [Log] as attribute (added by fabric MetalamaSample.Fabric)*, one entry per aspect class. Or editor
@@ -319,11 +332,28 @@ is a test case, and the test compares its transformed code with the `.t.cs` file
 ### Run and accept
 
 1. Run the test: the run icon in the gutter of the test file, or *Run Metalama Aspect Test* in the editor or Solution
-   Explorer context menu (also from Rider's Unit Tests window). Rider builds the project and discovers its tests first
-   when it has not yet.
-2. The first run fails: there is no snapshot yet. Check the transformed code in the test output.
-3. In the test file, Alt+Enter › *Accept Metalama test output* (or editor context menu › *Accept Metalama Test Output*):
-   the last run's output becomes the test's `.t.cs` snapshot. Run again: it passes.
+   Explorer context menu (also from Rider's Unit Tests window), or `dotnet test` in a terminal. Rider builds the project
+   and discovers its tests first when it has not yet.
+2. The first run fails: there is no snapshot yet. Metalama writes the run's output to
+   `obj/transformed/<tfm>/<folder>/<Test>.t.cs` in the test project.
+3. The test file and its `.t.cs` get an info bar when that output differs from the `.t.cs`: *Test output differs from
+   LogTest.t.cs* (or *LogTest.t.cs is empty* when there is no snapshot yet), with two links:
+   - *Compare*: Rider's diff viewer, the last run's output on the left (*Last run output (read-only)*), the real `.t.cs`
+     on the right (editable). Take single changes with the diff's arrows, edit the snapshot directly, or take the whole
+     output with *Accept All* in the diff toolbar. Also *Compare Metalama Test Output* in the editor and Solution
+     Explorer context menus of the test file or its `.t.cs`.
+   - *Accept all*: the whole output becomes the `.t.cs` (created when missing).
+4. Or Alt+Enter in the test file › *Accept Metalama test output* (or editor context menu › *Accept Metalama Test
+   Output*): the last run's output becomes the test's `.t.cs` snapshot.
+5. Run again: it passes, and the info bar goes away.
+
+Accepting from the info bar or the diff is an undoable edit of the `.t.cs` (Ctrl+Z), saved right away. Like Metalama's
+own comparison, LamaRider ignores line endings and trailing whitespace: output that differs only in those gets no info
+bar.
+
+![Test output info bar](screenshots/aspect-test-banner.png)
+
+![Test output diff](screenshots/aspect-test-diff.png)
 
 Test inputs show their aspects like any other code: LamaRider window, Code Vision, Track Caret, transformed code. Rider
 no longer greys them out as unused.
@@ -357,6 +387,9 @@ the formatted copy (covered by the UI test *debugging stops in readable compile-
 
 Limitations:
 
+- The test output info bar updates when Rider notices the new output files: right away for runs inside Rider; after a
+  run in a terminal, when Rider's window gets the focus back. With several target frameworks, the newest output is
+  compared.
 - Breakpoints added or changed during a session are mirrored at the next session.
 - Mirroring reads Metalama's internal line map format (Metalama 2026.1) and watches for the test run's copy by polling.
   If Metalama changes the format or the copy is missed, the breakpoint simply doesn't stop, as without LamaRider.
@@ -390,6 +423,8 @@ Rider 2026.2 and 2026.3 test runs). The first *Run / Debug Metalama Aspect Test*
 
 | Setting | Default | Effect |
 |---|---|---|
+| Code Vision › Aspects | Each aspect by name where it applies | By name: aspects not visible in the code on the declaration; parameter and return value aspects as inlay hints. *Their number on the declaration*: one `N aspects` with the declaration's, its parameters' and return value's aspects, no inlay hints. See [Code Vision](#code-vision-and-inlay-hints). For all solutions. |
+| Code Vision › Transformed code | "transformed code" hint of its own | A `transformed code` entry on every declaration with aspects that opens its transformed code, or *Item in the aspect menu*: *Show Transformed Code* in the declaration's aspect menu. For all solutions. |
 | Code Vision › Clicking an aspect | Go to the aspect's source | In the Code Vision menu and the transformed code popup: go to the aspect class (library aspects: SourceLink or decompiled), show it in the LamaRider window, or ask. For all solutions. |
 | Build the project after aspect or template code is saved | off | Builds the saved file's project so Metalama's design-time analysis resumes (LAMA0118). For all solutions. |
 | Debug transformed code in every build configuration | off | `MetalamaDebugTransformedCode` in the solution's `Directory.Build.props`. |

@@ -14,12 +14,21 @@ Run them with `dotnet test LamaRider.sln` (backend model + worker) and `./gradle
 | Model: project-wide errors on own aspect classes, compile-time files (Alt+Enter build), error summary | `AspectModelTests.cs` |
 | Worker: aspects as attributes (constructor and named arguments from the aspect object), standalone transformed code (aspect attributes removed, `[ExcludeAspect]`) | `AttributeArgumentsTests.cs`, `WorkerTests.cs` |
 | Model: warnings of *Replace with transformed code*, code-fix license note | `ReplaceWithTransformedTests.cs`, `AspectHintsTests.cs` |
+| Model: Code Vision hints per setting (named or count, "transformed code" hint or menu, count tooltip naming where each aspect is), parameter and return value hints | `AspectHintsTests.cs` |
 | Auto refresh: which file changes refresh | `RefreshTriggerTests.cs` |
 | LamaDebug configuration added to .sln / .slnx | `LamaDebugConfigurationTests.cs` |
 | Test-settings status text (settings page) | `TestSettingsStatusTests.cs` |
 | Metalama version detection, worker runner, workspace inputs, Directory.Build.props toggle | `MetalamaVersionDetectorTests.cs`, `WorkerRunnerTests.cs`, `WorkspaceInputsTests.cs`, `DebugTransformedCodePropsTests.cs` |
 | Frontend: grouping/filter, caret target, error signature + info-bar text, contract transformations, member names, transformed-code lookup and re-indentation | `src/rider/test/kotlin/dev/lamarider/ModelDataTest.kt` |
 | Frontend: obj/…/metalama fallback for Open Transformed File / Metalama Diff | `ObjTransformedFilesTest.kt` |
+| Frontend: aspect test output lookup (newest `obj/transformed/<tfm>` output, test ↔ `.t.cs`, only aspect test projects), comparison ignoring line endings and trailing whitespace | `AspectTestOutputTest.kt` |
+
+## Covered by UI tests
+
+`./gradlew uiTest` (`src/rider/uiTest/kotlin/dev/lamarider/uitest/LamaRiderUiTest.kt`) drives a real Rider on the sample
+solution. Among them, *aspect test output is compared with the snapshot and accepted from the banner*: creates a test,
+runs `dotnet test` outside the IDE, waits for the info bar, opens *Compare* (the diff with *Last run output
+(read-only)*), accepts from the info bar and checks that the test then passes.
 
 ## Checked by hand in the sandbox only
 
@@ -40,8 +49,9 @@ A ReSharper integration test project (`JetBrains.ReSharper.TestFramework`) would
   project over Miscellaneous Files) and logging (`LamaRider: run aspect test refused ...`).
 - **Fixtures**: only the small `samples/MetalamaSample` (.sln, net8). No fixture is shaped like a real project (.slnx,
   net10, older generated test projects).
-- **Features without automated end-to-end tests**: parameter inlay hint clicks, tooltip rendering, the "transformed
-  code" hint opening the popup directly, the *Clicking an aspect* setting and popup links, the compiled-copy banner
+- **Features without automated end-to-end tests**: parameter and return value inlay hint clicks, tooltip rendering, the "transformed
+  code" hint opening the popup directly, the Code Vision *Aspects* / *Transformed code* settings in a running Rider,
+  taking single changes in the test output diff, the *Clicking an aspect* setting and popup links, the compiled-copy banner
   action, Alt+Enter variants (only their editor-menu twins are tested), the LamaDebug configuration, settings toggles,
   applying the aspect-test settings, library-aspect navigation (decompiled / SourceLink), auto-build, grouping options.
 - **Versions**: tested in Rider 2026.2.3 and 2026.3 EAP6, with Metalama 2026.1.30 only (the Metalama 2027 xUnit v3 test
