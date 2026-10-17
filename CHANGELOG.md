@@ -21,6 +21,8 @@
 - *Clicking an aspect* setting (Settings › Tools › LamaRider › Code Vision): go to its source (default, library aspects via SourceLink or the decompiler), show it in the LamaRider window, or ask.
 - The transformed-code popup links its aspects and opens the whole file in Metalama Diff.
 - Banner on Metalama's compiled copy of compile-time code (where the debugger stops in aspects): *Show <file> side by side* (source in the right split, carets synced both ways), *Open <file> at this line*, and *Make it readable* while the setting below is off.
+- Compiled-copy banner: *Make it readable* offers *Debug Again* (stop, rebuild the aspect test project with its dependencies, debug the same aspect test) for aspect tests started from LamaRider; side by side, moving the caret in the compiled copy or in any open editor of the source moves the other.
+- Alt+Enter *Build '<project>' to resume Metalama analysis* is offered only when the project's compile-time files changed after its last build.
 - *Readable aspect code while debugging* setting (Settings › Tools › LamaRider › Debugging): writes `MetalamaFormatCompileTimeCode=true` to `Directory.Build.props`, so Metalama formats its compiled copy of aspects, templates and fabrics (no `global::`, normal indentation; slower aspect project builds; rebuild after changing it). Breakpoint mirroring keeps working.
 - A worker build that succeeds without producing the worker dll is retried once; the error message then includes the build's last output lines.
 - Known limitation: Rider analyses the compiled copy as a loose file and shows unresolved-symbol errors there; LamaRider never edits it (the debugger maps it by line).
