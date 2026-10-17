@@ -238,7 +238,11 @@ class ScreenshotsUiTest : UiTestBase() {
         shot("aspect-test-banner", editorArea(260).union(banner.rect()).grown())
 
         ui.x(xQuery { byAccessibleName("Compare") }).click()
-        shot("aspect-test-diff", windowOf(popup("Last run output (read-only)")))
+        val diff = windowOf(popup("Last run output (read-only)"))
+        // Its tooltip points out Accept All in the diff toolbar (an icon).
+        runCatching { ui.x(xQuery { byAccessibleName("Accept All") }).moveMouse() }
+        Thread.sleep(2000)
+        shot("aspect-test-diff", diff)
     }
 
     @Test
