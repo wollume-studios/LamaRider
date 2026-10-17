@@ -3,6 +3,7 @@ package dev.lamarider.testing
 import com.intellij.openapi.actionSystem.ActionUpdateThread
 import com.intellij.openapi.actionSystem.AnActionEvent
 import com.intellij.openapi.actionSystem.CommonDataKeys
+import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.fileEditor.FileEditor
 import com.intellij.openapi.project.DumbAwareAction
 import com.intellij.openapi.project.Project
@@ -23,8 +24,11 @@ class AspectTestOutputBanner : EditorNotificationProvider {
         if (file.extension != "cs") return null
         val files = AspectTestOutput.of(File(file.path)) ?: return null
         // Loaded into the VFS so that the next run's output raises file events (OutputChanges); a test run is a separate process.
-        LocalFileSystem.getInstance().refreshIoFiles(listOf(files.projectDir.resolve("obj")), true, false, null)
-        LocalFileSystem.getInstance().refreshIoFiles(listOf(files.outputDir), true, true, null)
+        // Off the read lock: refreshIoFiles looks the files up with a synchronous refresh first.
+        ApplicationManager.getApplication().executeOnPooledThread {
+            LocalFileSystem.getInstance().refreshIoFiles(listOf(files.projectDir.resolve("obj")), true, false, null)
+            LocalFileSystem.getInstance().refreshIoFiles(listOf(files.outputDir), true, true, null)
+        }
         if (!files.differs()) return null
         return Function { fileEditor ->
             EditorNotificationPanel(fileEditor, EditorNotificationPanel.Status.Warning).apply {
