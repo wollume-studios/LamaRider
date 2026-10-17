@@ -23,7 +23,8 @@ class AspectTestOutputBanner : EditorNotificationProvider {
         if (file.extension != "cs") return null
         val files = AspectTestOutput.of(File(file.path)) ?: return null
         // Loaded into the VFS so that the next run's output raises file events (OutputChanges); a test run is a separate process.
-        LocalFileSystem.getInstance().refreshIoFiles(listOf(files.projectDir.resolve("obj"), files.outputDir), true, true, null)
+        LocalFileSystem.getInstance().refreshIoFiles(listOf(files.projectDir.resolve("obj")), true, false, null)
+        LocalFileSystem.getInstance().refreshIoFiles(listOf(files.outputDir), true, true, null)
         if (!files.differs()) return null
         return Function { fileEditor ->
             EditorNotificationPanel(fileEditor, EditorNotificationPanel.Status.Warning).apply {

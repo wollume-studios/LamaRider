@@ -129,8 +129,16 @@ class LamaRiderUiTest : UiTestBase() {
         editorAction("LamaRider.CreateAspectTest")
         val test = solutionDir.resolve("MetalamaSample.AspectTests/LogTests/LogTest.cs")
         waitFor("test file created", timeout = 1.minutes) { Files.exists(test) }
-        dotnet("test", solutionDir.resolve("MetalamaSample.AspectTests").toString()) // fails: writes the output
+        // Fails and writes the output. LamaRider builds the new test in the background, which can collide: try again.
+        val output = solutionDir.resolve("MetalamaSample.AspectTests/obj/transformed")
+        for (attempt in 1..3) {
+            dotnet("test", solutionDir.resolve("MetalamaSample.AspectTests").toString())
+            if (Files.exists(output)) break
+        }
+        assertTrue(Files.exists(output), "dotnet test wrote no output")
 
+        // Run outside the IDE: what Rider does when its window gets the focus back.
+        ideFrame { invokeAction("Synchronize", component = codeEditor().component) }
         caretAt("MetalamaSample.AspectTests/LogTests/LogTest.cs", "Add(")
         waitFor("banner: output differs", timeout = 1.minutes) { ui.x(xQuery { byAccessibleName("Compare") }).present() }
         ui.x(xQuery { byAccessibleName("Compare") }).click()
