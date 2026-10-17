@@ -270,11 +270,12 @@ class LamaRiderUiTest : UiTestBase() {
                 ui.x(xQuery { byAccessibleName("Debug Again") }).click()
                 val editors = utility(FileEditorManagerRef::class).getInstance(singleProject())
                 waitFor("stopped again in readable compile-time code", timeout = 10.minutes, interval = 5.seconds) {
-                    debugger.getCurrentSession()?.isPaused() == true && withReadAction(OnDispatcher.EDT) {
-                        editors.getSelectedFiles().firstOrNull()?.let { copy ->
-                            editors.getAllEditors(copy).firstOrNull()?.getEditor()?.getDocument()?.getText()
-                        }?.let { it.contains("OverrideMethod") && !it.contains("global::") } == true
-                    }
+                    val session = debugger.getCurrentSession()
+                    val (path, text) = withReadAction(OnDispatcher.EDT) {
+                        editors.getSelectedFiles().firstOrNull()?.let { it.getPath() to editors.getAllEditors(it).firstOrNull()?.getEditor()?.getDocument()?.getText() }
+                    } ?: (null to null)
+                    println("debug again: session ${session != null}, paused ${session?.isPaused()}, selected $path, global:: ${text?.contains("global::")}")
+                    session?.isPaused() == true && text != null && text.contains("OverrideMethod") && !text.contains("global::")
                 }
             }
         } finally {
