@@ -75,6 +75,11 @@ public sealed class AspectModelHost
             RdModel.SetDebugTransformedCode.Advise(lifetime, enable => WriteProps(o => o with { DebugTransformedCode = enable }));
             RdModel.SetFormatTransformedCode.Advise(lifetime, format => WriteProps(o => o with { FormatOutput = format }));
             RdModel.SetFormatCompileTimeCode.Advise(lifetime, format => WriteProps(o => o with { FormatCompileTimeCode = format }));
+            RdModel.SetHintOptions.Advise(lifetime, options =>
+            {
+                HintOptions = new AspectHints.Options(options.CountOnly ? AspectHints.Style.Count : AspectHints.Style.Named, options.TransformedCodeHint);
+                _solution.GetComponent<IDaemon>().Invalidate("LamaRider hint options");
+            });
             RdModel.ApplyTestSettings.Advise(lifetime, ApplyTestSettings);
             RdModel.RefreshTestSettingsStatus.Advise(lifetime, _ => UpdateTestSettingsStatus());
             RdModel.NavigateToClass.Advise(lifetime, NavigateToClass);
@@ -95,6 +100,9 @@ public sealed class AspectModelHost
     }
 
     public AspectModel? Model => _model;
+
+    /// <summary>How Code Vision shows aspects (frontend setting, sent over rd).</summary>
+    public AspectHints.Options HintOptions { get; private set; } = new();
 
     LamaRiderModel RdModel => _solution.GetProtocolSolution().GetLamaRiderModel();
 

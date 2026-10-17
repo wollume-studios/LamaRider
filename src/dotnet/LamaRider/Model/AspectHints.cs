@@ -13,33 +13,72 @@ public static class AspectHints
 
     const int TooltipWidth = 70;
 
-    /// <param name="TransformedCode">The "transformed code" hint (only attribute aspects): its click shows the transformed code.</param>
+    /// <param name="TransformedCode">The "transformed code" hint: its click shows the transformed code.</param>
     public sealed record Hint(string Text, string ToolTip, bool TransformedCode);
 
+    /// <summary>Named: each aspect at its location (member, parameter, return value). Count: "N aspects" on the declaration.</summary>
+    public enum Style { Named, Count }
+
+    /// <param name="TransformedCodeHint">A "transformed code" hint of its own; otherwise the aspect menu offers it.</param>
+    public sealed record Options(Style Style = Style.Named, bool TransformedCodeHint = true);
+
     /// <summary>
-    /// One hint per aspect added by a fabric, inheritance etc. Aspects added by an attribute are visible in the code, so
-    /// they are not named: only attribute aspects give one "transformed code" hint.
+    /// The Code Vision hints of a type or member. Named: one per aspect a fabric, inheritance etc. added to it (attribute
+    /// aspects are visible in the code; parameter and return value aspects get inlay hints). Count: one "N aspects" for
+    /// it, its parameters and return value. Plus the "transformed code" hint when the options ask for it.
+    /// </summary>
+    /// <param name="all">Instances on the declaration, its parameters and return value.</param>
+    public static IReadOnlyList<Hint> ForDeclaration(IReadOnlyCollection<AspectInstanceInfo> all, string docId, Options options,
+        Func<string, string> aspectName, Func<string, string?> summary, Func<string, bool>? offersCodeFixes = null)
+    {
+        var distinct = all.GroupBy(i => (i.AspectClass, i.Target)).Select(g => g.First()).ToList();
+        if (distinct.Count == 0) return [];
+        var hints = new List<Hint>();
+        if (options.Style == Style.Named)
+            hints.AddRange(Hints(distinct.Where(i => i.Target == docId).ToList(), aspectName, summary, offersCodeFixes));
+        // Count style, or nothing named and no "transformed code" hint: a count leads to the aspect menu.
+        if (options.Style == Style.Count || hints.Count == 0 && !options.TransformedCodeHint)
+            hints.Add(new Hint(distinct.Count == 1 ? "1 aspect" : $"{distinct.Count} aspects",
+                Describe(distinct, docId, aspectName, summary, offersCodeFixes), TransformedCode: false));
+        if (options.TransformedCodeHint)
+            hints.Add(new Hint("transformed code", "Show the code Metalama generates for it", TransformedCode: true));
+        return hints;
+    }
+
+    /// <summary>
+    /// One hint per aspect added by a fabric, inheritance etc. ("N aspects" for more than <see cref="MaxNamed"/>).
+    /// Aspects added by an attribute are visible in the code, so they are not named.
     /// </summary>
     /// <param name="offersCodeFixes">The aspect class's assembly references Metalama.Extensions.CodeFixes.</param>
     public static IReadOnlyList<Hint> Hints(IReadOnlyCollection<AspectInstanceInfo> instances, Func<string, string> aspectName, Func<string, string?> summary,
         Func<string, bool>? offersCodeFixes = null)
     {
-        var all = instances.GroupBy(i => i.AspectClass).Select(g => g.First()).ToList();
-        var named = all.Where(i => i.AppliedVia != "Attribute").ToList();
-        string? Details(AspectInstanceInfo i)
-        {
-            var lines = new List<string>();
-            if (summary(i.AspectClass) is { Length: > 0 } doc) lines.Add(Wrap(doc));
-            if (offersCodeFixes?.Invoke(i.AspectClass) == true) lines.Add(CodeFixesNote);
-            return lines.Count == 0 ? null : string.Join("\n", lines);
-        }
-        string Describe(IEnumerable<AspectInstanceInfo> some) => string.Join("\n\n", some.Select(i =>
-            Join($"{aspectName(i.AspectClass)} — {Lower(Origin(i.AppliedVia, i.AppliedBy))}", Details(i))));
-
-        if (named.Count == 0) return [new Hint("transformed code", Describe(all), TransformedCode: true)];
-        if (named.Count > MaxNamed) return [new Hint($"{all.Count} aspects", Describe(all), TransformedCode: false)];
+        var named = instances.Where(i => i.AppliedVia != "Attribute").GroupBy(i => i.AspectClass).Select(g => g.First()).ToList();
+        if (named.Count > MaxNamed) return [new Hint($"{named.Count} aspects", Describe(named, null, aspectName, summary, offersCodeFixes), TransformedCode: false)];
         // Where the aspect comes from, then its documentation (the hint names the aspect).
-        return named.Select(i => new Hint(aspectName(i.AspectClass), Join(Origin(i.AppliedVia, i.AppliedBy), Details(i)), TransformedCode: false)).ToList();
+        return named.Select(i => new Hint(aspectName(i.AspectClass), Join(Origin(i.AppliedVia, i.AppliedBy), Details(i, summary, offersCodeFixes)), TransformedCode: false)).ToList();
+    }
+
+    static string? Details(AspectInstanceInfo i, Func<string, string?> summary, Func<string, bool>? offersCodeFixes)
+    {
+        var lines = new List<string>();
+        if (summary(i.AspectClass) is { Length: > 0 } doc) lines.Add(Wrap(doc));
+        if (offersCodeFixes?.Invoke(i.AspectClass) == true) lines.Add(CodeFixesNote);
+        return lines.Count == 0 ? null : string.Join("\n", lines);
+    }
+
+    /// <summary>Each aspect, where it is when not on <paramref name="docId"/> itself, and where it comes from.</summary>
+    static string Describe(IEnumerable<AspectInstanceInfo> instances, string? docId, Func<string, string> aspectName, Func<string, string?> summary,
+        Func<string, bool>? offersCodeFixes) =>
+        string.Join("\n\n", instances.Select(i =>
+            Join($"{aspectName(i.AspectClass)}{Location(i, docId)} — {Lower(Origin(i.AppliedVia, i.AppliedBy))}", Details(i, summary, offersCodeFixes))));
+
+    static string Location(AspectInstanceInfo i, string? docId)
+    {
+        if (docId == null || i.Target == docId) return "";
+        if (i.Target.EndsWith(";Return")) return " on the return value";
+        var slash = i.TargetName.LastIndexOf('/');
+        return slash >= 0 ? " on " + i.TargetName.Substring(slash + 1) : "";
     }
 
     /// <summary>Metalama.Extensions.CodeFixes is a Premium component (without a license the build fails with LAMA0806).</summary>
@@ -85,18 +124,13 @@ public static class AspectHints
         return result.ToString();
     }
 
-    /// <summary>
-    /// The member's Code Vision: aspects on the member and its return value, and parameter aspects added by attributes
-    /// (visible in the code, so no hint of their own; the member's hint still offers their transformed code).
-    /// </summary>
-    public static IReadOnlyList<AspectInstanceInfo> ForMember(IEnumerable<AspectInstanceInfo> instances, string memberDocId) =>
-        instances.Where(i => AspectModel.Owner(i.Target) == memberDocId && (!IsParameter(i.Target) || i.AppliedVia == "Attribute")).ToList();
+    /// <summary>A method's return type inlay hint: its return value aspects not added by an attribute.</summary>
+    public static IReadOnlyList<AspectInstanceInfo> ForReturn(IEnumerable<AspectInstanceInfo> instances, string memberDocId) =>
+        instances.Where(i => i.Target == memberDocId + ";Return" && i.AppliedVia != "Attribute").ToList();
 
     /// <summary>A parameter's inlay hint: its aspects not added by an attribute.</summary>
     public static IReadOnlyList<AspectInstanceInfo> ForParameter(IEnumerable<AspectInstanceInfo> instances, string memberDocId, int index) =>
         instances.Where(i => i.Target == ParameterTarget(memberDocId, index) && i.AppliedVia != "Attribute").ToList();
-
-    static bool IsParameter(string target) => target.Contains(";Parameter=");
 
     /// <summary>The worker's target id of a parameter (Metalama serializable id suffix).</summary>
     public static string ParameterTarget(string memberDocId, int index) => $"{memberDocId};Parameter={index}";

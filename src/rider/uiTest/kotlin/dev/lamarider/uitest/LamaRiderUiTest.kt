@@ -122,6 +122,28 @@ class LamaRiderUiTest : UiTestBase() {
     }
 
     @Test
+    fun `aspect test output is compared with the snapshot and accepted from the banner`() = withRider("aspecttestdiff") {
+        openToolWindow("LamaRider")
+        ideFrame { waitForText("aspects listed (first refresh done)", "Log") }
+        caretAt("MetalamaSample/LogAttribute.cs", "LogAttribute :")
+        editorAction("LamaRider.CreateAspectTest")
+        val test = solutionDir.resolve("MetalamaSample.AspectTests/LogTests/LogTest.cs")
+        waitFor("test file created", timeout = 1.minutes) { Files.exists(test) }
+        dotnet("test", solutionDir.resolve("MetalamaSample.AspectTests").toString()) // fails: writes the output
+
+        caretAt("MetalamaSample.AspectTests/LogTests/LogTest.cs", "Add(")
+        waitFor("banner: output differs", timeout = 1.minutes) { ui.x(xQuery { byAccessibleName("Compare") }).present() }
+        ui.x(xQuery { byAccessibleName("Compare") }).click()
+        waitFor("diff of output and snapshot", timeout = 1.minutes) { ui.x(xQuery { contains(byVisibleText("Last run output (read-only)")) }).present() }
+
+        caretAt("MetalamaSample.AspectTests/LogTests/LogTest.cs", "Add(")
+        ui.x(xQuery { byAccessibleName("Accept all") }).click()
+        val snapshot = solutionDir.resolve("MetalamaSample.AspectTests/LogTests/LogTest.t.cs")
+        waitFor("snapshot accepted", timeout = 1.minutes) { Files.readString(snapshot).contains("Entering Add") }
+        assertTrue(dotnet("test", solutionDir.resolve("MetalamaSample.AspectTests").toString()) == 0, "accepted test passes")
+    }
+
+    @Test
     fun `aspect test project is created when there is none`() = withRider("aspecttestproject", prepare = { dir ->
         dotnet("sln", dir.resolve("MetalamaSample.sln").toString(), "remove", dir.resolve("MetalamaSample.AspectTests/MetalamaSample.AspectTests.csproj").toString())
         dir.resolve("MetalamaSample.AspectTests").toFile().deleteRecursively()

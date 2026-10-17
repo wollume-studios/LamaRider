@@ -65,6 +65,11 @@ class LamaRiderService(val project: Project) {
         rd?.refreshTestSettingsStatus?.fire(Unit)
     }
 
+    /** Settings › Tools › LamaRider › Code Vision to the backend, which draws the hints. */
+    fun sendHintOptions() {
+        rd?.setHintOptions?.fire(AspectHintSettings.options())
+    }
+
     fun createAspectTest(position: com.jetbrains.rd.ide.model.EditorPosition) {
         rd?.createAspectTest?.fire(position)
     }
@@ -121,6 +126,7 @@ class LamaRiderService(val project: Project) {
             }
         }
         rdModel.codeVisionClicked.advise(lifetime) { id -> onCodeVisionClicked?.invoke(id) }
+        sendHintOptions()
         rdModel.info.advise(lifetime) { message -> notify("LamaRider", message) }
         rdModel.openFile.advise(lifetime) { path ->
             ApplicationManager.getApplication().invokeLater {

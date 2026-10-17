@@ -44,14 +44,11 @@ object AspectPopup {
         }
 
         val location = model.instancesOn(member).firstNotNullOfOrNull { it.location }
-        // Only attribute aspects ("transformed code" hint): the transformed code right away; it links the aspects.
-        if (location != null && groups.isNotEmpty() && groups.all { g -> g.entries.all { it.viaAttribute } } &&
-            TransformedCodePopup.show(project, location.file, member, caretAt = location.start)) return@invokeLater
-
         val items = mutableListOf<Item>()
         val pointer = if (atMouse) MouseInfo.getPointerInfo()?.location else null
         location?.let { loc ->
-            if (model.transformedDeclaration(loc.file, member) != null) {
+            // The member's menu, when there is no "transformed code" hint (parameter and return value hints don't offer it).
+            if (AspectHintSettings.transformedCode == TransformedCodeAccess.MENU && docId == member && model.transformedDeclaration(loc.file, member) != null) {
                 items += Item("Show Transformed Code") { TransformedCodePopup.show(project, loc.file, member, caretAt = loc.start); Unit }
             }
             items += Item("Metalama Diff (whole file)") { MetalamaDiff.open(project, loc.file, loc.start) }

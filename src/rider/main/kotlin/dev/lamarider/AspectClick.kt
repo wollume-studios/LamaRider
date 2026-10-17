@@ -3,6 +3,8 @@ package dev.lamarider
 import com.intellij.ide.util.PropertiesComponent
 import com.intellij.openapi.components.service
 import com.intellij.openapi.project.Project
+import com.intellij.openapi.project.ProjectManager
+import com.jetbrains.rd.ide.model.HintOptions
 import com.intellij.openapi.ui.popup.JBPopupFactory
 import com.intellij.openapi.ui.popup.PopupStep
 import com.intellij.openapi.ui.popup.util.BaseListPopupStep
@@ -26,6 +28,36 @@ enum class AspectClickAction(val label: String) {
             get() = PropertiesComponent.getInstance().getValue(KEY)?.let { v -> entries.firstOrNull { it.name == v } } ?: SOURCE
             set(value) = PropertiesComponent.getInstance().setValue(KEY, value.name, SOURCE.name)
     }
+}
+
+/** How Code Vision shows aspects (Settings › Tools › LamaRider). */
+enum class AspectHintStyle(val label: String) {
+    NAMED("Each aspect by name where it applies"),
+    COUNT("Their number on the declaration"),
+}
+
+/** How the transformed code of a declaration is reached from Code Vision. */
+enum class TransformedCodeAccess(val label: String) {
+    HINT("\"transformed code\" hint of its own"),
+    MENU("Item in the aspect menu"),
+}
+
+object AspectHintSettings {
+    private const val STYLE = "lamarider.hintStyle"
+    private const val TRANSFORMED = "lamarider.transformedCodeAccess"
+
+    var style: AspectHintStyle
+        get() = PropertiesComponent.getInstance().getValue(STYLE)?.let { v -> AspectHintStyle.entries.firstOrNull { it.name == v } } ?: AspectHintStyle.NAMED
+        set(value) = PropertiesComponent.getInstance().setValue(STYLE, value.name, AspectHintStyle.NAMED.name)
+
+    var transformedCode: TransformedCodeAccess
+        get() = PropertiesComponent.getInstance().getValue(TRANSFORMED)?.let { v -> TransformedCodeAccess.entries.firstOrNull { it.name == v } } ?: TransformedCodeAccess.HINT
+        set(value) = PropertiesComponent.getInstance().setValue(TRANSFORMED, value.name, TransformedCodeAccess.HINT.name)
+
+    fun options() = HintOptions(countOnly = style == AspectHintStyle.COUNT, transformedCodeHint = transformedCode == TransformedCodeAccess.HINT)
+
+    /** Every open solution's backend redraws its hints. */
+    fun apply() = ProjectManager.getInstance().openProjects.forEach { it.service<LamaRiderService>().sendHintOptions() }
 }
 
 object AspectClick {

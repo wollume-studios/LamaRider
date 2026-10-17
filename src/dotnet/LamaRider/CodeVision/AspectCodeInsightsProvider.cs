@@ -9,8 +9,8 @@ namespace LamaRider.CodeVision;
 
 /// <summary>
 /// Rider shows one Code Vision entry per provider and declaration, so each aspect hint has a provider of its own:
-/// <see cref="AspectCodeInsightsProvider"/> and <see cref="SecondAspectCodeInsightsProvider"/> (one aspect each, see
-/// AspectHints.MaxNamed), <see cref="AspectTargetsCodeInsightsProvider"/> for "applied to N targets" on aspect classes.
+/// <see cref="AspectCodeInsightsProvider"/>, <see cref="SecondAspectCodeInsightsProvider"/> and <see cref="ThirdAspectCodeInsightsProvider"/> (one hint each, see
+/// AspectHints.MaxNamed, plus "transformed code"), <see cref="AspectTargetsCodeInsightsProvider"/> for "applied to N targets" on aspect classes.
 /// </summary>
 public abstract class AspectCodeInsightsProviderBase(AspectModelHost host) : ICodeInsightsProvider
 {
@@ -52,10 +52,19 @@ public sealed class SecondAspectCodeInsightsProvider(AspectModelHost host) : Asp
 }
 
 [SolutionComponent(Instantiation.DemandAnyThreadSafe)]
+public sealed class ThirdAspectCodeInsightsProvider(AspectModelHost host) : AspectCodeInsightsProviderBase(host)
+{
+    public const string Id = "LamaRider.Aspects.Third";
+    public override string ProviderId => Id;
+    public override string DisplayName => "Metalama aspects (third hint, e.g. transformed code)";
+    public override ICollection<CodeVisionRelativeOrdering> RelativeOrderings => new CodeVisionRelativeOrdering[] { new CodeVisionRelativeOrderingAfter(SecondAspectCodeInsightsProvider.Id) };
+}
+
+[SolutionComponent(Instantiation.DemandAnyThreadSafe)]
 public sealed class AspectTargetsCodeInsightsProvider(AspectModelHost host) : AspectCodeInsightsProviderBase(host)
 {
     public const string Id = "LamaRider.AspectTargets";
     public override string ProviderId => Id;
     public override string DisplayName => "Metalama aspect targets";
-    public override ICollection<CodeVisionRelativeOrdering> RelativeOrderings => new CodeVisionRelativeOrdering[] { new CodeVisionRelativeOrderingAfter(SecondAspectCodeInsightsProvider.Id) };
+    public override ICollection<CodeVisionRelativeOrdering> RelativeOrderings => new CodeVisionRelativeOrdering[] { new CodeVisionRelativeOrderingAfter(ThirdAspectCodeInsightsProvider.Id) };
 }

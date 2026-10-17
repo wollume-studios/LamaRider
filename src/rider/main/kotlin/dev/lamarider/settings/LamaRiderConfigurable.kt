@@ -10,6 +10,9 @@ import com.intellij.ui.SimpleListCellRenderer
 import com.intellij.ui.dsl.builder.bindItem
 import com.intellij.ui.dsl.builder.bindSelected
 import dev.lamarider.AspectClickAction
+import dev.lamarider.AspectHintSettings
+import dev.lamarider.AspectHintStyle
+import dev.lamarider.TransformedCodeAccess
 import com.intellij.ui.dsl.builder.panel
 import dev.lamarider.LamaRiderService
 import dev.lamarider.actions.AutoBuildAction
@@ -45,6 +48,17 @@ class LamaRiderConfigurable(private val project: Project) : BoundConfigurable("L
             }
         }
         group("Code Vision") {
+            row("Aspects:") {
+                comboBox(AspectHintStyle.entries, SimpleListCellRenderer.create("") { it.label })
+                    .comment("By name: on the declaration, parameter and return value aspects as inlay hints where they apply (attribute aspects are " +
+                        "visible in the code). Number: one \"N aspects\" on the declaration, its parameters and return value included.")
+                    .bindItem({ AspectHintSettings.style }, { AspectHintSettings.style = it ?: AspectHintStyle.NAMED; AspectHintSettings.apply() })
+            }
+            row("Transformed code:") {
+                comboBox(TransformedCodeAccess.entries, SimpleListCellRenderer.create("") { it.label })
+                    .comment("A hint on every declaration with aspects that opens its transformed code right away, or <b>Show Transformed Code</b> in the menu of the aspect hints.")
+                    .bindItem({ AspectHintSettings.transformedCode }, { AspectHintSettings.transformedCode = it ?: TransformedCodeAccess.HINT; AspectHintSettings.apply() })
+            }
             row("Clicking an aspect:") {
                 comboBox(AspectClickAction.entries, SimpleListCellRenderer.create("") { it.label })
                     .comment("In the Code Vision menu and the transformed-code popup. Library aspects open their SourceLink or decompiled source.")
