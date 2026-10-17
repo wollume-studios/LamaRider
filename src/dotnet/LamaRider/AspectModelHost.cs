@@ -87,6 +87,7 @@ public sealed class AspectModelHost
             RdModel.AddAspectsAsAttributes.Advise(lifetime, position => EditSource("LamaRider.AddAspectsAsAttributes", position, AddAspectsAsAttributes));
             RdModel.ReplaceWithTransformedCode.Advise(lifetime, position => EditSource("LamaRider.ReplaceWithTransformedCode", position, ReplaceWithTransformedCode));
             RdModel.WrapPremiumCode.Advise(lifetime, WrapPremiumCode);
+            RdModel.RebuildAndDebugAspectTest.Advise(lifetime, RebuildAndDebugAspectTest);
             RdModel.SetUpPremiumBuilds.Advise(lifetime, path => _solution.Locks.ExecuteOrQueueReadLockEx(_lifetime, "LamaRider.SetUpPremiumBuilds", () =>
                 RdModel.Info.Fire(SourceFile(path)?.GetProject() is { } project ? Premium.PremiumUses.SetUpBuilds(project) : "Not a file of a project.")));
             RdModel.AcceptAspectTestOutput.Advise(lifetime, AcceptAspectTestOutput);
@@ -264,6 +265,22 @@ public sealed class AspectModelHost
         else
             RdModel.Info.Fire("No transformed code for this declaration: it has no aspects, or the file changed since LamaRider analyzed it (save and wait a moment).");
     }
+
+    /// <summary>Rider's build sees nothing to do after only Directory.Build.props changed (e.g. readable compile-time code).</summary>
+    void RebuildAndDebugAspectTest(string path) =>
+        _solution.Locks.ExecuteOrQueueReadLockEx(_lifetime, "LamaRider.RebuildAndDebugAspectTest", () =>
+        {
+            if (SourceFile(path)?.GetProject() is not { } project)
+            {
+                RdModel.Info.Fire("This file is not in a project.");
+                return;
+            }
+            var builder = _solution.GetComponent<ISolutionBuilder>();
+            var request = builder.CreateBuildRequest(BuildSessionTarget.Rebuild, [project], SolutionBuilderRequestSilentMode.Default,
+                new SolutionBuilderRequestAdvancedSettings());
+            request.ContinueWith(_lifetime, _ => RunAspectTest(path, debug: true));
+            builder.ExecuteBuildRequest(request);
+        });
 
     void RunAspectTest(string path, bool debug) =>
         _solution.Locks.ExecuteOrQueueReadLockEx(_lifetime, "LamaRider.RunAspectTest", () =>

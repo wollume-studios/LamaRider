@@ -1,6 +1,7 @@
 package dev.lamarider.debug
 
 import com.intellij.ide.actions.OpenInRightSplitAction
+import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.components.service
 import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.editor.LogicalPosition
@@ -11,6 +12,8 @@ import com.intellij.openapi.fileEditor.FileEditor
 import com.intellij.openapi.fileEditor.FileEditorManager
 import com.intellij.openapi.fileEditor.TextEditor
 import com.intellij.openapi.project.Project
+import com.intellij.openapi.ui.Messages
+import com.intellij.xdebugger.XDebuggerManager
 import com.intellij.openapi.vfs.LocalFileSystem
 import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.ui.EditorNotificationPanel
@@ -30,7 +33,9 @@ import javax.swing.JComponent
 class CompiledCopyBanner : EditorNotificationProvider {
     override fun collectNotificationData(project: Project, file: VirtualFile): Function<in FileEditor, out JComponent?>? {
         if (file.extension != "cs") return null
-        val copy = CompileTimeMaps.copyFor(File(file.path), CompileTimeMaps.root()) ?: return null
+        // The source in this solution, not in another clone of the project.
+        val solutionDir = project.basePath?.let { File(it).path } ?: return null
+        val copy = CompileTimeMaps.copyFor(File(file.path), CompileTimeMaps.root()) { it.startsWith(solutionDir, ignoreCase = File.separatorChar == '\\') } ?: return null
         val source = File(copy.source)
         return Function { fileEditor ->
             EditorNotificationPanel(fileEditor, EditorNotificationPanel.Status.Info).apply {
@@ -43,11 +48,33 @@ class CompiledCopyBanner : EditorNotificationProvider {
                 if (!service.formatCompileTimeCode) {
                     createActionLabel("Make it readable") {
                         service.setFormatCompileTimeCode(true)
-                        service.notify("LamaRider", "Metalama now formats compile-time code. Rebuild the aspect project, then debug again.")
                         EditorNotifications.getInstance(project).updateNotifications(file)
+                        debugAgain(project, service)
                     }
                 }
             }
+        }
+    }
+
+    /** Formatting applies from the next build of the aspect project: offer to restart the aspect test (it builds first). */
+    private fun debugAgain(project: Project, service: LamaRiderService) {
+        val title = "Readable Aspect Code"
+        val test = service.lastDebuggedTest
+        if (test == null) {
+            Messages.showInfoMessage(project, "Metalama formats compile-time code from the next build on. Rebuild the aspect project and debug again.", title)
+            return
+        }
+        val answer = Messages.showYesNoDialog(project,
+            "Metalama formats compile-time code from the next build on. Stop debugging, rebuild and debug ${File(test).name} again?",
+            title, "Debug Again", "Later", Messages.getQuestionIcon())
+        if (answer != Messages.YES) return
+        val session = XDebuggerManager.getInstance(project).currentSession
+        session?.stop()
+        // The test host releases its assemblies when it has exited (Windows locks them), then the rebuild can replace them.
+        ApplicationManager.getApplication().executeOnPooledThread {
+            val until = System.currentTimeMillis() + 15_000
+            while (session != null && !session.isStopped && System.currentTimeMillis() < until) Thread.sleep(200)
+            ApplicationManager.getApplication().invokeLater { service.rebuildAndDebugAspectTest(test) } // rd signals fire on the EDT
         }
     }
 
@@ -58,28 +85,29 @@ class CompiledCopyBanner : EditorNotificationProvider {
         val copyEditor = (fileEditor as? TextEditor)?.editor ?: return
         val sourceFile = LocalFileSystem.getInstance().refreshAndFindFileByPath(copy.source.replace('\\', '/')) ?: return
         OpenInRightSplitAction.openInRightSplit(project, sourceFile, null, false)
-        val sourceEditor = FileEditorManager.getInstance(project).getEditors(sourceFile).filterIsInstance<TextEditor>().lastOrNull()?.editor ?: return
+        // Every editor of the source, in any split: it is often also open as a tab next to the copy (the breakpoint's file).
+        fun sourceEditors() = FileEditorManager.getInstance(project).getAllEditors(sourceFile).filterIsInstance<TextEditor>().map { it.editor }
 
         var syncing = false
-        fun follow(from: Editor, to: Editor, map: (Int) -> Int?) = object : CaretListener {
-            override fun caretPositionChanged(event: CaretEvent) {
-                if (syncing || to.isDisposed || event.editor != from) return
-                val line = map(event.newPosition.line) ?: return
-                syncing = true
-                try {
-                    to.caretModel.moveToLogicalPosition(LogicalPosition(line, 0))
-                    to.scrollingModel.scrollToCaret(ScrollType.CENTER)
-                } finally {
-                    syncing = false
+        fun moveTo(editors: List<Editor>, line: Int) {
+            syncing = true
+            try {
+                for (editor in editors.filter { !it.isDisposed }) {
+                    editor.caretModel.moveToLogicalPosition(LogicalPosition(line, 0))
+                    editor.scrollingModel.scrollToCaret(ScrollType.CENTER)
                 }
+            } finally {
+                syncing = false
             }
         }
-        // Both listeners end with the compiled copy's editor tab.
-        copyEditor.caretModel.addCaretListener(follow(copyEditor, sourceEditor, copy::sourceLine), fileEditor)
-        sourceEditor.caretModel.addCaretListener(follow(sourceEditor, copyEditor, copy::copyLine), fileEditor)
-        copy.sourceLine(copyEditor.caretModel.logicalPosition.line)?.let {
-            sourceEditor.caretModel.moveToLogicalPosition(LogicalPosition(it, 0))
-            sourceEditor.scrollingModel.scrollToCaret(ScrollType.CENTER)
+        fun follow(map: (Int) -> Int?, targets: () -> List<Editor>) = object : CaretListener {
+            override fun caretPositionChanged(event: CaretEvent) {
+                if (!syncing) map(event.newPosition.line)?.let { moveTo(targets(), it) }
+            }
         }
+        // The listeners end with the compiled copy's editor tab.
+        copyEditor.caretModel.addCaretListener(follow(copy::sourceLine, ::sourceEditors), fileEditor)
+        for (source in sourceEditors()) source.caretModel.addCaretListener(follow(copy::copyLine) { listOf(copyEditor) }, fileEditor)
+        copy.sourceLine(copyEditor.caretModel.logicalPosition.line)?.let { moveTo(sourceEditors(), it) }
     }
 }

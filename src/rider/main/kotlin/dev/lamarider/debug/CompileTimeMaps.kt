@@ -27,16 +27,17 @@ object CompileTimeMaps {
 
     /**
      * [file] as a compiled copy under the Metalama temp directory [root] (a build's, with its .map next to it, or a test
-     * run's, mapped through the identical build copy); null for any other file.
+     * run's, mapped through the identical build copy of a [wanted] source: clones of a project compile to the same copy);
+     * null for any other file.
      */
-    fun copyFor(file: File, root: File): Copy? {
+    fun copyFor(file: File, root: File, wanted: (source: String) -> Boolean): Copy? {
         val path = file.absoluteFile.path
         val cache = File(root, "CompileTime")
         return when {
             path.startsWith(cache.absoluteFile.path + File.separator) ->
                 read(File(file.parentFile, file.nameWithoutExtension + ".map"))?.takeIf { it.file.absoluteFile == file.absoluteFile }
             path.startsWith(File(root, "Tests").absoluteFile.path + File.separator) ->
-                mapOf(file, byName(cache)) { File(it).isFile }
+                mapOf(file, byName(cache)) { wanted(it) && File(it).isFile }
             else -> null
         }
     }

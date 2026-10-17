@@ -202,6 +202,15 @@ public sealed class AspectModel
         return Diagnostics.Where(d => d.Severity == "Error" && d.File != null && Normalize(d.File) == normalized);
     }
 
+    /// <summary>The project's own files with compile-time code (aspect classes, templates) under <paramref name="projectDir"/>.</summary>
+    public List<string> CompileTimeFilesIn(string projectDir)
+    {
+        var root = Normalize(projectDir).TrimEnd(Path.DirectorySeparatorChar) + Path.DirectorySeparatorChar;
+        return AspectClasses.Select(c => c.Location?.File).Concat(TemplateClassifications.Select(c => c.File))
+            .OfType<string>().Where(f => Normalize(f).StartsWith(root, StringComparison.Ordinal))
+            .Distinct(StringComparer.OrdinalIgnoreCase).ToList();
+    }
+
     /// <summary>Files with compile-time code (aspect classes, templates): editing them pauses Metalama until a build.</summary>
     public bool IsCompileTimeFile(string path)
     {

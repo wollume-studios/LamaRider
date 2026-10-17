@@ -168,3 +168,35 @@ interface XDebugSession {
     fun stepOut()
     fun stop()
 }
+
+@Remote("com.intellij.openapi.fileEditor.FileEditorManager")
+interface FileEditorManagerRef {
+    fun getInstance(project: com.intellij.driver.sdk.Project): FileEditorManagerRef
+    fun getSelectedFiles(): Array<VirtualFile>
+    fun getOpenFiles(): Array<VirtualFile>
+    fun getAllEditors(file: VirtualFile): Array<TextEditorRef>
+    fun openFile(file: VirtualFile, focusEditor: Boolean): Array<TextEditorRef>
+}
+
+@Remote("com.intellij.openapi.fileEditor.TextEditor")
+interface TextEditorRef {
+    fun getEditor(): EditorRef
+}
+
+@Remote("com.intellij.openapi.editor.Editor")
+interface EditorRef {
+    fun getCaretModel(): CaretModelRef
+    fun getDocument(): DocumentRef
+}
+
+@Remote("com.intellij.openapi.editor.CaretModel")
+interface CaretModelRef {
+    fun getOffset(): Int
+    fun moveToOffset(offset: Int)
+}
+
+@Remote("com.intellij.openapi.editor.Document")
+interface DocumentRef {
+    fun getText(): String
+    fun getLineNumber(offset: Int): Int
+}
