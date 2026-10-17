@@ -3,6 +3,7 @@ package dev.lamarider.uitest
 import com.intellij.driver.client.Driver
 import com.intellij.driver.client.Remote
 import com.intellij.driver.model.OnDispatcher
+import com.intellij.driver.model.RemoteMouseButton
 import com.intellij.driver.sdk.expireNotifications
 import com.intellij.driver.sdk.invokeAction
 import com.intellij.driver.sdk.openToolWindow
@@ -144,7 +145,40 @@ class ScreenshotsUiTest : UiTestBase() {
     }
 
     @Test
-    fun `aspect test file and debugging into the aspect`() = withRider("shots-debugaspect") {
+    fun `editor menu and an aspect added as attribute`() = withRider("shots-asattribute") {
+        layout()
+        openToolWindow("LamaRider")
+        ideFrame { waitForText("aspects listed (first refresh done)", "Log") }
+        caretAt("MetalamaSample/Calculator.cs", "Multiply(")
+        Thread.sleep(5000) // Code Vision
+
+        // The editor menu twins of the Alt+Enter actions (the intention popup needs keyboard focus, which test Riders lack).
+        ideFrame { codeEditor().clickOn("Multiply(", button = RemoteMouseButton.RIGHT) }
+        val item = popup("Replace with Metalama Transformed Code")
+        val menu = item.component.getParent() ?: item.component
+        val at = menu.getLocationOnScreen()
+        shot("aspect-actions-menu", editorArea(330).union(Rectangle(at.x, at.y, menu.width, menu.height)).grown())
+        withContext<Unit>(OnDispatcher.EDT) { utility(MenuSelectionManager::class).defaultManager().clearSelectedPath() }
+        Thread.sleep(500)
+
+        editorAction("LamaRider.AddAspectsAsAttributes")
+        waitFor("[Log] added to Multiply", timeout = 1.minutes) { editorText().contains("[Log]\n    public int Multiply(") }
+        shot("add-as-attribute", editorArea(330))
+    }
+
+    @Test
+    fun `declaration replaced with its transformed code`() = withRider("shots-replace") {
+        layout()
+        openToolWindow("LamaRider")
+        ideFrame { waitForText("aspects listed (first refresh done)", "Log") }
+        caretAt("MetalamaSample/Calculator.cs", "Multiply(")
+        editorAction("LamaRider.ReplaceWithTransformedCode")
+        waitFor("Multiply replaced", timeout = 1.minutes) { editorText().contains("Entering Multiply") }
+        shot("replace-with-transformed-code", editorArea(480))
+    }
+
+    @Test
+    fun `aspect test file and debugging into the aspect`()= withRider("shots-debugaspect") {
         layout()
         openToolWindow("LamaRider")
         ideFrame { waitForText("aspects listed (first refresh done)", "Log") }
@@ -288,6 +322,12 @@ interface SwingUtilities {
 @Remote("com.intellij.openapi.ui.popup.util.PopupUtil")
 interface PopupUtil {
     fun getPopupContainerFor(c: Component): JBPopup?
+}
+
+@Remote("javax.swing.MenuSelectionManager")
+interface MenuSelectionManager {
+    fun defaultManager(): MenuSelectionManager
+    fun clearSelectedPath()
 }
 
 @Remote("com.intellij.openapi.ui.popup.JBPopup")

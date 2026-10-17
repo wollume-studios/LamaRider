@@ -6,6 +6,7 @@ Step by step for every feature, and what it cannot do. For an overview with scre
 - [LamaRider tool window](#lamarider-tool-window)
 - [Code Vision and parameter hints](#code-vision-and-parameter-hints)
 - [Transformed code](#transformed-code): popup, Metalama Diff, Open Transformed File
+- [Aspects into code](#aspects-into-code): add an aspect as attribute, replace a declaration with its transformed code
 - [T# highlighting](#t-highlighting)
 - [Metalama errors](#metalama-errors)
 - [Debugging transformed code](#debugging-transformed-code)
@@ -19,7 +20,7 @@ Step by step for every feature, and what it cannot do. For an overview with scre
 - The solution references `Metalama.Framework` 2026.x and has been restored once (`obj/project.assets.json` exists).
   The Metalama version is read from there; with several versions in one solution, LamaRider uses one of them for all
   projects (and logs a warning).
-- No Metalama license is needed.
+- No Metalama license is needed (see [Licensing](#licensing) for what Metalama itself licenses).
 
 LamaRider does not take its data from Rider's code model. A separate process, **LamaRider.Worker**, loads the solution
 with Metalama's own introspection API (`Metalama.Framework.Workspaces`) and writes what it finds (aspects, targets,
@@ -108,6 +109,10 @@ MetalamaSample.Fabric* (the fabric's full type name), *Inherited from ...*, *Add
 summary, wrapped to about 70 characters. The tooltips of `N aspects` and `transformed code` list each aspect that way,
 with its name.
 
+Aspects whose assembly references `Metalama.Extensions.CodeFixes` add a last line to their tooltip: *May offer code
+fixes (Alt+Enter); they need a Metalama Professional license.* `Metalama.Extensions.CodeFixes` is a Premium component
+of Metalama; see [Licensing](#licensing).
+
 ![Code Vision and parameter hints](screenshots/code-vision.png)
 
 **Click** a Code Vision entry or a parameter hint (or use *Show Metalama Aspects* in the editor context menu or Find
@@ -162,6 +167,65 @@ Limitations:
   in layout from what a LamaDebug build writes to `obj/`.
 - Without a refresh result for a file (no aspects there, or the worker failed), Metalama Diff falls back to the
   transformed files of the last build in `obj/` and otherwise says there is nothing to show.
+
+## Aspects into code
+
+Two Alt+Enter actions on the **name** of a declaration turn aspects into code you see and own. Each has a twin in the
+editor context menu (also in Find Action) for the declaration whose name is at the caret; the twins show in C# files
+aspects transform.
+
+![Editor menu with the aspect actions](screenshots/aspect-actions-menu.png)
+
+### Add an aspect as attribute
+
+For aspects you don't see in the code: added by a fabric, inherited, or added or required by another aspect (Code
+Vision names them, parameters have an inlay hint).
+
+1. Put the caret on the name of the declaration (type, member or parameter).
+2. Alt+Enter › *Add [Log] as attribute (added by fabric MetalamaSample.Fabric)*, one entry per aspect class. Or editor
+   context menu › *Add Metalama Aspects as Attributes*, which adds all of them.
+3. LamaRider writes the attribute with the same constructor arguments and properties as the aspect instance, read from
+   the live aspect object at the last refresh (only the properties that differ from their default are written). A
+   notification reminds you that the fabric (inheritance, the other aspect) still adds the aspect too.
+
+![Aspect added as attribute](screenshots/add-as-attribute.png)
+
+Limitations:
+
+- The fabric, inheritance or other aspect still adds the aspect as well. Metalama runs the attribute's instance (the
+  attribute is the primary one); to have only the attribute, remove the aspect from the fabric yourself.
+- Not offered when the aspect class is not a public attribute, or when one of its values cannot be written in C#: only
+  constants (strings, characters, numbers, `bool`, `null`), enum values, `typeof(...)` and one-dimensional arrays of
+  them.
+- Constructor arguments are read back from the properties or fields named like the constructor's parameters (also
+  `_name` fields and primary constructor parameters). A constructor with a parameter that has no such member is not
+  used; when no constructor fits, the action is not offered.
+
+### Replace with transformed code
+
+Like Metalama's `metalama divorce`, but for one declaration.
+
+1. Put the caret on the name of a type or member that aspects transform (save the file first: see the limitations).
+2. Alt+Enter › *Replace with transformed code (remove its aspects)*, or editor context menu › *Replace with Metalama
+   Transformed Code*.
+3. The declaration's source is replaced with its transformed code, as in the [transformed code popup](#transformed-code).
+   Aspect attributes in it are removed (`[Log, Obsolete]` keeps `[Obsolete]`). Aspects that a fabric, inheritance or
+   another aspect would add again get `[ExcludeAspect(typeof(...))]` on the declaration.
+4. If the replacement does not carry everything over, a notification says so:
+   - *&lt;Aspect&gt; on the containing declaration still transforms it*: an aspect on, for example, the containing type
+     changes this declaration and will transform the written-out code again. Replace the containing declaration
+     instead, or undo.
+   - *&lt;Aspect&gt; also changed code outside it (e.g. introduced members)*: that code goes away with the aspect.
+5. Ctrl+Z undoes the replacement.
+
+![Replaced with transformed code](screenshots/replace-with-transformed-code.png)
+
+Limitations:
+
+- Only offered when LamaRider's last analysis matches the file. After editing, save and wait for the refresh (a few
+  seconds); the editor menu twin says so when it finds nothing.
+- Not offered on a parameter: put the caret on its member's name.
+- The code is Metalama's formatted output (simplified names, its own line breaks), not your layout.
 
 ## T# highlighting
 
@@ -345,3 +409,11 @@ Rider 2026.2 and 2026.3 test runs). The first *Run / Debug Metalama Aspect Test*
 - Debugging aspects relies on Metalama's internal compiled-copy map format (2026.1), and the compiled copy shows
   unresolved-symbol errors in Rider (it is analysed as a loose file); see [Debug an aspect test](#debug-an-aspect-test).
 - Only the solution-level `Directory.Build.props` is written by the debugging settings.
+
+### Licensing
+
+- LamaRider needs no Metalama license. Everything it does, including [Add as attribute and Replace with transformed
+  code](#aspects-into-code), runs on the open-source Metalama framework.
+- LamaRider does not bypass Metalama licensing. Code fixes that aspects offer through `Metalama.Extensions.CodeFixes`
+  (a Premium component) need a Metalama Professional license; without one, the build fails with LAMA0806. Code Vision
+  tooltips point out the aspects that may offer them.

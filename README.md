@@ -11,7 +11,8 @@ Metalama tooling for JetBrains Rider — the Rider counterpart of the Visual Stu
 | Feature | What you get |
 |---|---|
 | **LamaRider tool window** | Right side bar (llama icon): every aspect class of the solution and its packages, filtered by name and grouped by project/package, by namespace or not at all; documentation and *Go to source* (also for library aspects: sources or decompiled); the targets of the selected aspect as Project › Namespace › Type › Member with transformations and diagnostics. *Track Caret* shows the aspects affecting the code at the caret instead. Refreshes on its own after saves, builds and package changes. |
-| **Code Vision** | Above every declaration an aspect touches: one entry per aspect added by a fabric, inheritance etc. (`Log`, `NonNegative`), `N aspects` for more than two, `transformed code` when all its aspects are attributes you see anyway; `applied to N targets` on aspect classes. The tooltip says where the aspect comes from (the fabric's full name, or the aspect it is inherited from, added or required by) and gives its documentation. Aspects a fabric or inheritance puts on a parameter get an inlay hint per aspect after the parameter. A click on `transformed code` opens the transformed code; on aspect names, a menu with the transformed code, Metalama Diff and the aspects grouped by member, parameter and return value. Clicking an aspect goes to its source, shows it in the LamaRider window, or asks (*Settings › Tools › LamaRider*). |
+| **Code Vision** | Above every declaration an aspect touches: one entry per aspect added by a fabric, inheritance etc. (`Log`, `NonNegative`), `N aspects` for more than two, `transformed code` when all its aspects are attributes you see anyway; `applied to N targets` on aspect classes. The tooltip says where the aspect comes from (the fabric's full name, or the aspect it is inherited from, added or required by) and gives its documentation. Aspects a fabric or inheritance puts on a parameter get an inlay hint per aspect after the parameter. A click on `transformed code` opens the transformed code; on aspect names, a menu with the transformed code, Metalama Diff and the aspects grouped by member, parameter and return value. Clicking an aspect goes to its source, shows it in the LamaRider window, or asks (*Settings › Tools › LamaRider*). Aspects whose assembly references `Metalama.Extensions.CodeFixes` say in the tooltip that their code fixes need a Metalama Professional license. |
+| **Aspects into code** | Alt+Enter on a declaration name: *Add [Log] as attribute (added by fabric …)* writes an aspect that a fabric, inheritance or another aspect adds as an attribute, with the same constructor arguments and properties. *Replace with transformed code (remove its aspects)* replaces a type or member with Metalama's transformed code, like `metalama divorce` for one declaration: aspect attributes go, aspects a fabric etc. would add again get `[ExcludeAspect]`. Editor menu: *Add Metalama Aspects as Attributes* (all of them), *Replace with Metalama Transformed Code*. |
 | **Transformed code** | *Show Transformed Code* (Code Vision, editor menu): the declaration after all aspects in a popup, highlighted, with a toggle to diff it with the source, *Whole File in Metalama Diff*, and links to the aspects that changed it. *Metalama Diff* (editor / Solution Explorer menu, `Ctrl+K, 0` in the Visual Studio keymap): the whole file, source vs transformed. |
 | **T# highlighting** | Compile-time code in templates is tinted, `meta.*` and compile-time variables stand out. Colors: *Settings › Editor › Color Scheme › Metalama T#*. |
 | **Metalama errors** | Errors such as LAMA0037 are underlined from LamaRider's own analysis seconds after a save, also while Rider's own Metalama analysis waits for a build (LAMA0118). Errors without a location (e.g. an exception in a fabric) show in an info bar on C# editors and on your aspect classes. Alt+Enter: LAMA documentation, *Build project to resume Metalama analysis*; optional build on save. |
@@ -55,6 +56,22 @@ switches to a diff with the source or opens the whole file in Metalama Diff; the
 
 *Metalama Diff* (right-click a `.cs` file in the editor or Solution Explorer): the source next to the whole transformed
 file.
+
+![Editor menu with the aspect actions](docs/screenshots/aspect-actions-menu.png)
+
+The editor menu on `Multiply`, whose `Log` aspect a fabric adds: *Add Metalama Aspects as Attributes* and *Replace with
+Metalama Transformed Code*, the twins of the Alt+Enter actions on the declaration name.
+
+![Aspect added as attribute](docs/screenshots/add-as-attribute.png)
+
+*Add [Log] as attribute (added by fabric MetalamaSample.Fabric)* (Alt+Enter on `Multiply`): `[Log]` with the aspect's
+settings. The fabric still adds it too; Metalama runs the attribute's instance.
+
+![Replaced with transformed code](docs/screenshots/replace-with-transformed-code.png)
+
+*Replace with transformed code (remove its aspects)* (Alt+Enter on `Multiply`): its source is now the code `Log`
+generated, and `ExcludeAspect(typeof(LogAttribute))` (fully qualified, as the file has no `using` for it) keeps the
+fabric from adding `Log` again. Ctrl+Z undoes it.
 
 ![T# highlighting](docs/screenshots/tsharp-highlighting.png)
 
@@ -100,7 +117,9 @@ aspect tests.
   supported: it lacks an API LamaRider uses (`ISolution.ToDataContext2`).
 - .NET SDK on `PATH` (8.0 or newer).
 - Solutions referencing `Metalama.Framework` 2026.x, restored at least once (`obj/project.assets.json` must exist).
-- No Metalama license needed: everything runs on the open-source Metalama framework.
+- No Metalama license needed: everything LamaRider does, including the Alt+Enter actions, runs on the open-source
+  Metalama framework. LamaRider does not bypass Metalama licensing: code fixes that aspects offer through
+  `Metalama.Extensions.CodeFixes` need Metalama Professional (without a license the build fails with LAMA0806).
 
 ## How it works
 
