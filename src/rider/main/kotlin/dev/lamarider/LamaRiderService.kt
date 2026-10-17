@@ -82,6 +82,14 @@ class LamaRiderService(val project: Project) {
         rd?.replaceWithTransformedCode?.fire(position)
     }
 
+    fun wrapPremiumCode(position: com.jetbrains.rd.ide.model.EditorPosition) {
+        rd?.wrapPremiumCode?.fire(position)
+    }
+
+    fun setUpPremiumBuilds(position: com.jetbrains.rd.ide.model.EditorPosition) {
+        rd?.setUpPremiumBuilds?.fire(position.file)
+    }
+
     fun runAspectTest(run: com.jetbrains.rd.ide.model.RunAspectTest) {
         rd?.runAspectTest?.fire(run)
     }

@@ -77,6 +77,10 @@
       <add-to-group group-id="EditorPopupMenu" anchor="last"/>
       <add-to-group group-id="ProjectViewPopupMenu" anchor="last"/>
     </action>
+    <action id="LamaRider.WrapPremiumCode" class="dev.lamarider.actions.WrapPremiumCodeAction" text="Put Metalama Premium Code in #if METALAMA_PREMIUM"
+            description="Wrap the use of a Metalama Premium API at the caret, and the file's Premium using directives, in #if METALAMA_PREMIUM"/>
+    <action id="LamaRider.SetUpPremiumBuilds" class="dev.lamarider.actions.SetUpPremiumBuildsAction" text="Set Up Free and Metalama Premium Builds"
+            description="Project file: a free build by default, and METALAMA_PREMIUM plus the Premium packages with MetalamaPremium=true"/>
     <action id="LamaRider.AcceptAspectTestOutput" class="dev.lamarider.actions.AcceptAspectTestOutputAction" text="Accept Metalama Test Output"
             description="Save the last run's transformed output of this aspect test as its .t.cs snapshot">
       <add-to-group group-id="EditorPopupMenu" anchor="last"/>

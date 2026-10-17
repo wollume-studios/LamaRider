@@ -86,6 +86,9 @@ public sealed class AspectModelHost
             RdModel.CreateAspectTest.Advise(lifetime, position => CreateAspectTest(position.File, position.Offset));
             RdModel.AddAspectsAsAttributes.Advise(lifetime, position => EditSource("LamaRider.AddAspectsAsAttributes", position, AddAspectsAsAttributes));
             RdModel.ReplaceWithTransformedCode.Advise(lifetime, position => EditSource("LamaRider.ReplaceWithTransformedCode", position, ReplaceWithTransformedCode));
+            RdModel.WrapPremiumCode.Advise(lifetime, WrapPremiumCode);
+            RdModel.SetUpPremiumBuilds.Advise(lifetime, path => _solution.Locks.ExecuteOrQueueReadLockEx(_lifetime, "LamaRider.SetUpPremiumBuilds", () =>
+                RdModel.Info.Fire(SourceFile(path)?.GetProject() is { } project ? Premium.PremiumUses.SetUpBuilds(project) : "Not a file of a project.")));
             RdModel.AcceptAspectTestOutput.Advise(lifetime, AcceptAspectTestOutput);
             RdModel.RunAspectTest.Advise(lifetime, run => RunAspectTest(run.File, run.Debug));
             RdModel.AutoBuild.Advise(lifetime, enabled => _autoBuild = enabled);
@@ -221,6 +224,21 @@ public sealed class AspectModelHost
                 edit(model, declaration, target);
             else
                 RdModel.Info.Fire("Place the caret on the name of a declaration with Metalama aspects.");
+        });
+
+    void WrapPremiumCode(EditorPosition position) =>
+        _solution.Locks.ExecuteOrQueueReadLockEx(_lifetime, "LamaRider.WrapPremiumCode", () =>
+        {
+            using var _ = CompilationContextCookie.GetExplicitUniversalContextIfNotSet();
+            _solution.GetPsiServices().Files.CommitAllDocuments();
+            var sourceFile = SourceFile(position.File);
+            var node = sourceFile?.GetDominantPsiFile<CSharpLanguage>() is { } psiFile
+                ? psiFile.FindNodeAt(psiFile.Translate(new DocumentOffset(sourceFile.Document, position.Offset)))
+                : null;
+            if (node != null && Premium.PremiumUses.UseAt(node) is { } use)
+                Premium.PremiumUses.Wrap(sourceFile!.Document, Premium.PremiumUses.Wraps(use));
+            else
+                RdModel.Info.Fire("No Metalama Premium API at the caret.");
         });
 
     void AddAspectsAsAttributes(AspectModel model, IDeclaration declaration, string target)
