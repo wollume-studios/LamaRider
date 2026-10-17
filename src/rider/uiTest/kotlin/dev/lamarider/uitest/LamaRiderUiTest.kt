@@ -122,6 +122,38 @@ class LamaRiderUiTest : UiTestBase() {
     }
 
     @Test
+    fun `aspect test output is compared with the snapshot and accepted from the banner`() = withRider("aspecttestdiff") {
+        openToolWindow("LamaRider")
+        ideFrame { waitForText("aspects listed (first refresh done)", "Log") }
+        caretAt("MetalamaSample/LogAttribute.cs", "LogAttribute :")
+        editorAction("LamaRider.CreateAspectTest")
+        val test = solutionDir.resolve("MetalamaSample.AspectTests/LogTests/LogTest.cs")
+        waitFor("test file created", timeout = 1.minutes) { Files.exists(test) }
+        // Fails and writes the output. LamaRider builds the new test in the background, which can collide: try again.
+        val output = solutionDir.resolve("MetalamaSample.AspectTests/obj/transformed")
+        for (attempt in 1..3) {
+            dotnet("test", solutionDir.resolve("MetalamaSample.AspectTests").toString())
+            if (Files.exists(output)) break
+        }
+        assertTrue(Files.exists(output), "dotnet test wrote no output")
+
+        // Run outside the IDE: what Rider does when its window gets the focus back.
+        ideFrame { invokeAction("Synchronize", component = codeEditor().component) }
+        caretAt("MetalamaSample.AspectTests/LogTests/LogTest.cs", "Add(")
+        waitFor("banner: output differs", timeout = 1.minutes) { ui.x(xQuery { byAccessibleName("Compare") }).present() }
+        // The banner's links must be on screen to be clicked: the test window is only 1024 pixels wide.
+        ideFrame { invokeAction("HideAllWindows", component = codeEditor().component) }
+        ui.x(xQuery { byAccessibleName("Compare") }).click()
+        waitFor("diff of output and snapshot", timeout = 1.minutes) { ui.x(xQuery { contains(byVisibleText("Last run output (read-only)")) }).present() }
+
+        caretAt("MetalamaSample.AspectTests/LogTests/LogTest.cs", "Add(")
+        ui.x(xQuery { byAccessibleName("Accept all") }).click()
+        val snapshot = solutionDir.resolve("MetalamaSample.AspectTests/LogTests/LogTest.t.cs")
+        waitFor("snapshot accepted", timeout = 1.minutes) { Files.readString(snapshot).contains("Entering Add") }
+        assertTrue(dotnet("test", solutionDir.resolve("MetalamaSample.AspectTests").toString()) == 0, "accepted test passes")
+    }
+
+    @Test
     fun `aspect test project is created when there is none`() = withRider("aspecttestproject", prepare = { dir ->
         dotnet("sln", dir.resolve("MetalamaSample.sln").toString(), "remove", dir.resolve("MetalamaSample.AspectTests/MetalamaSample.AspectTests.csproj").toString())
         dir.resolve("MetalamaSample.AspectTests").toFile().deleteRecursively()

@@ -17,8 +17,13 @@
                          instance="dev.lamarider.settings.LamaRiderConfigurable"/>
     <editorNotificationProvider implementation="dev.lamarider.errors.MetalamaErrorBanner"/>
     <editorNotificationProvider implementation="dev.lamarider.debug.CompiledCopyBanner"/>
+    <editorNotificationProvider implementation="dev.lamarider.testing.AspectTestOutputBanner"/>
     <runLineMarkerContributor language="C#" implementationClass="dev.lamarider.actions.AspectTestRunLineMarker"/>
   </extensions>
+
+  <applicationListeners>
+    <listener class="dev.lamarider.testing.OutputChanges" topic="com.intellij.openapi.vfs.newvfs.BulkFileListener"/>
+  </applicationListeners>
 
   <projectListeners>
     <listener class="dev.lamarider.debug.CompileTimeBreakpoints" topic="com.intellij.xdebugger.XDebuggerManagerListener"/>
@@ -66,6 +71,11 @@
     <action id="LamaRider.ReplaceWithTransformedCode" class="dev.lamarider.actions.ReplaceWithTransformedCodeAction" text="Replace with Metalama Transformed Code"
             description="Replace the declaration at the caret with the code Metalama generates for it and remove its aspects">
       <add-to-group group-id="EditorPopupMenu" anchor="last"/>
+    </action>
+    <action id="LamaRider.CompareAspectTestOutput" class="dev.lamarider.testing.CompareAspectTestOutputAction" text="Compare Metalama Test Output"
+            description="Diff of this aspect test's last run output and its .t.cs snapshot: accept single changes or all of them">
+      <add-to-group group-id="EditorPopupMenu" anchor="last"/>
+      <add-to-group group-id="ProjectViewPopupMenu" anchor="last"/>
     </action>
     <action id="LamaRider.AcceptAspectTestOutput" class="dev.lamarider.actions.AcceptAspectTestOutputAction" text="Accept Metalama Test Output"
             description="Save the last run's transformed output of this aspect test as its .t.cs snapshot">

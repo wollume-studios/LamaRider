@@ -31,6 +31,12 @@ object LamaRiderModel : Ext(SolutionModel.Solution) {
         // frontend -> backend: write MetalamaFormatOutput=false (or remove it) in the solution's Directory.Build.props
         signal("setFormatTransformedCode", bool)
         signal("setFormatCompileTimeCode", bool)
+        // frontend -> backend (Settings > Tools > LamaRider): count only on the declaration or names at their location;
+        // a "transformed code" hint of its own or only the aspect menu item
+        signal("setHintOptions", structdef("HintOptions") {
+            field("countOnly", bool)
+            field("transformedCodeHint", bool)
+        })
         // backend -> frontend: solution has aspect tests but Rider is not configured for them (ask the user)
         signal("testSettingsSuggested", void)
         // frontend -> backend: apply the aspect-test settings; payload is the scope: Shared | Personal | Global
