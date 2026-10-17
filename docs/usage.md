@@ -11,6 +11,7 @@ How to use each feature, and its limitations. Overview with screenshots: [README
 - [Metalama errors](#metalama-errors)
 - [Debugging transformed code](#debugging-transformed-code)
 - [Aspect tests](#aspect-tests)
+- [Metalama Premium code](#metalama-premium-code): warnings, `#if METALAMA_PREMIUM`, free and Premium builds
 - [Settings](#settings)
 - [Known limitations](#known-limitations)
 
@@ -336,6 +337,36 @@ processes.
 - *Settings › Tools › LamaRider › Aspect Tests* shows whether they are in place and has *Configure Rider for Metalama
   Tests…*.
 
+## Metalama Premium code
+
+Uses of Metalama's Premium components (see [Licensing](#licensing)) get the warning **Metalama Premium API**: types,
+members and extension methods such as `builder.Diagnostics.Suggest`, `CodeFixFactory`, validators and architecture
+attributes, and their using directives. Code inside `#if METALAMA_PREMIUM` is not flagged. The severity is set in
+*Settings › Editor › Inspection Settings › Inspection Severity*.
+
+![Metalama Premium API warning](screenshots/premium-api.png)
+
+To keep a free build that compiles without a license, Alt+Enter on a warning:
+
+- *Put it in #if METALAMA_PREMIUM*: wraps the statement, member, attribute or using directive of the use, and the
+  file's Premium using directives. The code must be on lines of its own.
+- *Set up free and Premium builds of this project*: adds the property `MetalamaPremium` (default `false`) to the
+  `.csproj`. `MetalamaPremium=true` (`dotnet build -p:MetalamaPremium=true`, or the `MetalamaPremium` environment
+  variable) defines `METALAMA_PREMIUM` and references the Premium packages; their `PackageReference`s get a
+  `Condition`. A Premium reference outside the project file (`Directory.Build.props`, another project) must be made
+  conditional there.
+
+Both are also in *Find Action*: *Put Metalama Premium Code in #if METALAMA_PREMIUM*, *Set Up Free and Metalama Premium
+Builds*.
+
+Limitations:
+
+- Rider analyses the free build unless `MetalamaPremium` is set (e.g. as environment variable before starting Rider):
+  Premium code is greyed out as inactive.
+- A NuGet package is either free or Premium: publish two packages, or build the package with Premium.
+- For library aspects, Code Vision tooltips mark the use of `Metalama.Extensions.CodeFixes` only, not of the other
+  Premium components.
+
 ## Settings
 
 *Settings › Tools › LamaRider* (also the settings icon in the LamaRider tool window):
@@ -367,4 +398,5 @@ The Code Vision and build settings apply to all solutions.
 Metalama's Premium components need a Metalama Professional license: `Metalama.Extensions.CodeFixes` (code fixes that
 aspects offer), architecture validation (`Metalama.Extensions.Validation`, `Metalama.Extensions.Architecture`), and the
 Azure and Redis caching back-ends. Without a license, a project using them fails to build with LAMA0806. Code Vision
-tooltips mark aspects whose code fixes need it.
+tooltips mark aspects whose code fixes need it; [Metalama Premium code](#metalama-premium-code) flags and guards
+your own uses.

@@ -1,6 +1,7 @@
 # Changelog
 
 ## Unreleased
+- Inspection *Metalama Premium API* (warning, severity configurable) on uses of Metalama Premium components (`Metalama.Extensions.CodeFixes`, `.Validation`, `.Architecture`, Azure / Redis caching back-ends) and their using directives, except inside `#if METALAMA_PREMIUM`. Alt+Enter (also in Find Action): *Put it in #if METALAMA_PREMIUM*, and *Set up free and Premium builds of this project* (property `MetalamaPremium`, default false; `true` defines `METALAMA_PREMIUM` and references the Premium packages).
 - Return value aspects added by a fabric, inheritance or another aspect get an inlay hint after the method's return type, like parameter hints after the parameter name.
 - *Settings › Tools › LamaRider › Code Vision › Aspects*: *Each aspect by name where it applies* (default) or *Their number on the declaration* (one "N aspects" counting the declaration's, its parameters' and its return value's aspects, no inlay hints; the tooltip says where each one is, e.g. "GreaterThan1 on a").
 - *Settings › Tools › LamaRider › Code Vision › Transformed code*: a "transformed code" hint of its own (default; now on every declaration with aspects, also when they are on its parameters or return value) or *Show Transformed Code* in the declaration's aspect menu (a count hint leads there when nothing is named). Parameter and return value hint menus no longer offer *Show Transformed Code*; the aspect menu offers it only with the menu setting.

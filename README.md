@@ -18,6 +18,7 @@ Metalama tooling for JetBrains Rider — the Rider counterpart of the Visual Stu
 | **Metalama errors** | Errors such as LAMA0037 underlined seconds after a save, also while Rider's Metalama analysis waits for a build (LAMA0118). Errors without a location in an info bar. Alt+Enter: LAMA documentation, build to resume analysis. |
 | **Debug transformed code** | *Debug with LamaDebug* adds and selects a `LamaDebug` configuration and debugs the transformed code. Or debug transformed code in every configuration. |
 | **Aspect tests** | Alt+Enter on an aspect › *Create Metalama aspect test*. Run / debug from the gutter. When the output differs from the `.t.cs`, an info bar offers *Compare* and *Accept all*. Breakpoints in aspects, templates and fabrics stop while debugging. Sets up Rider's Test Runner discovery. |
+| **Metalama Premium code** | Warning on every use of a Premium component (`CodeFixFactory`, validation, architecture, Azure / Redis caching), which needs a Metalama Professional license. Alt+Enter: *Put it in #if METALAMA_PREMIUM*, *Set up free and Premium builds* (`-p:MetalamaPremium=true` for the licensed build). |
 
 PostSharp classic (MSIL) projects are not supported. **How to use each feature, and its limitations:
 [docs/usage.md](docs/usage.md).**
@@ -96,6 +97,10 @@ Test output differs from the `.t.cs` snapshot: *Compare* or *Accept all*.
 
 *Debug Metalama Aspect Test* stopped at a breakpoint in `LogAttribute.cs`, with your file side by side.
 
+![Metalama Premium API warning](docs/screenshots/premium-api.png)
+
+A Metalama Premium API warning: Alt+Enter puts the code in `#if METALAMA_PREMIUM` or sets up free and Premium builds.
+
 ![LamaRider settings](docs/screenshots/settings.png)
 
 *Settings › Tools › LamaRider* (or the settings icon in the tool window): Code Vision display, build on save,
@@ -108,7 +113,7 @@ debugging, and the Rider setup for aspect tests.
 - Solutions referencing `Metalama.Framework` 2026.x, restored at least once.
 - Metalama's Premium components (`Metalama.Extensions.CodeFixes`, architecture validation, Azure / Redis caching) need a
   Metalama Professional license; without one the build fails with LAMA0806. See
-  [Licensing](docs/usage.md#licensing).
+  [Licensing](docs/usage.md#licensing) and [Metalama Premium code](docs/usage.md#metalama-premium-code).
 
 ## How it works
 
