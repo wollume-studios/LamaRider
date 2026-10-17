@@ -15,6 +15,7 @@ Run them with `dotnet test LamaRider.sln` (backend model + worker) and `./gradle
 | Worker: aspects as attributes (constructor and named arguments from the aspect object), standalone transformed code (aspect attributes removed, `[ExcludeAspect]`) | `AttributeArgumentsTests.cs`, `WorkerTests.cs` |
 | Model: warnings of *Replace with transformed code*, code-fix license note | `ReplaceWithTransformedTests.cs`, `AspectHintsTests.cs` |
 | Model: Code Vision hints per setting (named or count, "transformed code" hint or menu, count tooltip naming where each aspect is), parameter and return value hints | `AspectHintsTests.cs` |
+| Metalama Premium: which components are Premium, `#if METALAMA_PREMIUM` detection, wrapping whole lines, project setup (done once) | `PremiumBuildTests.cs` |
 | Auto refresh: which file changes refresh | `RefreshTriggerTests.cs` |
 | LamaDebug configuration added to .sln / .slnx | `LamaDebugConfigurationTests.cs` |
 | Test-settings status text (settings page) | `TestSettingsStatusTests.cs` |
@@ -27,7 +28,8 @@ Run them with `dotnet test LamaRider.sln` (backend model + worker) and `./gradle
 
 `./gradlew uiTest` (`src/rider/uiTest/kotlin/dev/lamarider/uitest/LamaRiderUiTest.kt`) drives a real Rider on the sample
 solution, e.g. *aspect test output is compared with the snapshot and accepted from the banner* (create, run with
-`dotnet test`, *Compare*, accept, pass).
+`dotnet test`, *Compare*, accept, pass) and *Metalama Premium code is kept out of the free build* (wrap, set up the
+project, then the free `dotnet build` passes; without them it fails with LAMA0806).
 
 ## Checked by hand in the sandbox only
 

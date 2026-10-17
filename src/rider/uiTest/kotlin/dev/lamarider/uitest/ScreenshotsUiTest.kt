@@ -167,7 +167,45 @@ class ScreenshotsUiTest : UiTestBase() {
     }
 
     @Test
-    fun `declaration replaced with its transformed code`() = withRider("shots-replace") {
+    fun `Metalama Premium API warning`() = withRider("shots-premium", prepare = { dir ->
+        val csproj = dir.resolve("MetalamaSample/MetalamaSample.csproj")
+        Files.writeString(csproj, Files.readString(csproj).replace(
+            """<PackageReference Include="Metalama.Framework" Version="2026.1.30" />""",
+            """<PackageReference Include="Metalama.Framework" Version="2026.1.30" />
+    <PackageReference Include="Metalama.Extensions.CodeFixes" Version="2026.1.30" />"""))
+        dir.resolve("MetalamaSample/SuggestObsolete.cs").writeText(
+            """
+            using Metalama.Extensions.CodeFixes;
+            using Metalama.Framework.Aspects;
+            using Metalama.Framework.Code;
+
+            namespace MetalamaSample;
+
+            public class SuggestObsoleteAttribute : MethodAspect
+            {
+                public override void BuildAspect(IAspectBuilder<IMethod> builder)
+                {
+                    builder.Diagnostics.Suggest(CodeFixFactory.AddAttribute(builder.Target, typeof(ObsoleteAttribute)));
+                }
+            }
+            """.trimIndent() + "\n")
+    }) {
+        layout()
+        openToolWindow("LamaRider")
+        ideFrame { waitForText("aspects listed (first refresh done)", "Log") }
+        caretAt("MetalamaSample/SuggestObsolete.cs", "Suggest(")
+        val area = editorArea(330)
+        // The warning's tooltip, when Rider shows it to the mouse.
+        val lines = editorText().lines()
+        val line = lines.indexOfFirst { it.contains("Suggest(") }
+        ideFrame { codeEditor().hoverOnPosition(line + 1, lines[line].indexOf("Suggest(") + 3, false) }
+        val tooltip = xQuery { contains(byVisibleText("Metalama Professional license")) }
+        val shown = runCatching { waitFor("tooltip", timeout = 30.seconds) { ui.x(tooltip).present() } }.isSuccess
+        shot("premium-api", if (shown) area.union(windowOf(ui.x(tooltip))).grown() else area)
+    }
+
+    @Test
+    fun `declaration replaced with its transformed code`()= withRider("shots-replace") {
         layout()
         openToolWindow("LamaRider")
         ideFrame { waitForText("aspects listed (first refresh done)", "Log") }
