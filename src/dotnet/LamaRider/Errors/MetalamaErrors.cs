@@ -121,15 +121,23 @@ public sealed class OpenMetalamaErrorDocumentation(MetalamaProjectErrorHighlight
 /// Rider reports that from its Roslyn host, out of ReSharper's reach, so this is offered in every compile-time file.
 /// </summary>
 [ContextAction(GroupType = typeof(CSharpContextActions), Name = "Build project to resume Metalama analysis",
-    Description = "Builds the project of an aspect or template file, so Metalama's design-time analysis resumes.")]
+    Description = "Builds the project of an aspect or template file changed since its last build, so Metalama's design-time analysis resumes.")]
 public sealed class BuildToResumeMetalamaAction(ICSharpContextActionDataProvider provider) : ContextActionBase
 {
     public override string Text => $"Build '{provider.Project?.Name}' to resume Metalama analysis";
 
     public override bool IsAvailable(IUserDataHolder cache) =>
-        provider.Project != null
+        provider.Project is { } project
         && provider.Solution.GetComponent<AspectModelHost>().Model is { } model
-        && model.IsCompileTimeFile(provider.SourceFile.GetLocation().FullPath);
+        && model.IsCompileTimeFile(provider.SourceFile.GetLocation().FullPath)
+        && AnalysisPause.Likely(model.CompileTimeFilesIn(project.Location.FullPath), LastBuild(project), System.IO.File.GetLastWriteTimeUtc);
+
+    /// <summary>When the project's output assembly was written, if it was.</summary>
+    static DateTime? LastBuild(IProject project)
+    {
+        var output = project.GetOutputFilePath(project.GetCurrentTargetFrameworkId());
+        return output.ExistsFile ? System.IO.File.GetLastWriteTimeUtc(output.FullPath) : null;
+    }
 
     protected override Action<ITextControl>? ExecutePsiTransaction(ISolution solution, IProgressIndicator progress)
     {

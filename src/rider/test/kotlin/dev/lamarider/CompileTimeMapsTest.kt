@@ -70,6 +70,21 @@ class CompileTimeMapsTest {
     }
 
     @Test
+    fun `the banner's copy belongs to the open solution, not to a clone with the same compiled code`() {
+        val clone = File(dir, "Old/App/Aspect.cs").apply { parentFile.mkdirs(); writeText("x") }
+        val source = File(dir, "Work/App/Aspect.cs").apply { parentFile.mkdirs(); writeText("x") }
+        compiled("h1", clone, listOf(12 to 40), 1_000_000).writeText("compiled code") // listed first: older clone
+        val folder = File(dir, "Metalama/CompileTime/App2/.netcoreapp8.0/h1/2026.1.30").apply { mkdirs() }
+        File(folder, "Aspect_h1.cs").writeText("compiled code")
+        map(File(folder, "Aspect_h1.map"), source.path, "Aspect_h1.cs", listOf(12 to 19))
+        val run = File(dir, "Metalama/Tests/guid/CompileTime/App/.netcoreapp8.0/h1/Aspect_h1.cs").apply { parentFile.mkdirs(); writeText("compiled code") }
+
+        val copy = CompileTimeMaps.copyFor(run, File(dir, "Metalama")) { it.startsWith(File(dir, "Work").path) }!!
+        assertEquals(source.path, copy.source)
+        assertEquals(19, copy.line(12))
+    }
+
+    @Test
     fun `a line of a compiled copy leads back to its source line`() {
         val source = File(dir, "App/Aspect.cs").apply { parentFile.mkdirs(); writeText("x"); setLastModified(1) }
         val built = compiled("h1", source, listOf(10 to 17, 11 to 18, 12 to 19), 3_000_000).apply { writeText("compiled code") }
@@ -78,13 +93,13 @@ class CompileTimeMapsTest {
 
         // The build's own copy has its map next to it; a test run's copy borrows the identical build copy's map.
         for (copy in listOf(built, run)) {
-            val mapped = CompileTimeMaps.copyFor(copy, root)!!
+            val mapped = CompileTimeMaps.copyFor(copy, root) { true }!!
             assertEquals(source.path, mapped.source)
             assertEquals(12, mapped.sourceLine(19))
             assertEquals(12, mapped.sourceLine(21)) // generated lines after a statement belong to it
             assertNull(mapped.sourceLine(3)) // before any mapped code
         }
-        assertNull(CompileTimeMaps.copyFor(source, root)) // not a compiled copy
+        assertNull(CompileTimeMaps.copyFor(source, root) { true }) // not a compiled copy
     }
 
     @Test

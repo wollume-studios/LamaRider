@@ -11,6 +11,9 @@ import com.intellij.openapi.fileEditor.FileEditor
 import com.intellij.openapi.fileEditor.FileEditorManager
 import com.intellij.openapi.fileEditor.TextEditor
 import com.intellij.openapi.project.Project
+import com.intellij.openapi.ui.Messages
+import com.intellij.xdebugger.XDebuggerManager
+import com.jetbrains.rd.ide.model.RunAspectTest
 import com.intellij.openapi.vfs.LocalFileSystem
 import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.ui.EditorNotificationPanel
@@ -30,7 +33,9 @@ import javax.swing.JComponent
 class CompiledCopyBanner : EditorNotificationProvider {
     override fun collectNotificationData(project: Project, file: VirtualFile): Function<in FileEditor, out JComponent?>? {
         if (file.extension != "cs") return null
-        val copy = CompileTimeMaps.copyFor(File(file.path), CompileTimeMaps.root()) ?: return null
+        // The source in this solution, not in another clone of the project.
+        val solutionDir = project.basePath?.let { File(it).path } ?: return null
+        val copy = CompileTimeMaps.copyFor(File(file.path), CompileTimeMaps.root()) { it.startsWith(solutionDir, ignoreCase = File.separatorChar == '\\') } ?: return null
         val source = File(copy.source)
         return Function { fileEditor ->
             EditorNotificationPanel(fileEditor, EditorNotificationPanel.Status.Info).apply {
@@ -43,12 +48,28 @@ class CompiledCopyBanner : EditorNotificationProvider {
                 if (!service.formatCompileTimeCode) {
                     createActionLabel("Make it readable") {
                         service.setFormatCompileTimeCode(true)
-                        service.notify("LamaRider", "Metalama now formats compile-time code. Rebuild the aspect project, then debug again.")
                         EditorNotifications.getInstance(project).updateNotifications(file)
+                        debugAgain(project, service)
                     }
                 }
             }
         }
+    }
+
+    /** Formatting applies from the next build of the aspect project: offer to restart the aspect test (it builds first). */
+    private fun debugAgain(project: Project, service: LamaRiderService) {
+        val title = "Readable Aspect Code"
+        val test = service.lastDebuggedTest
+        if (test == null) {
+            Messages.showInfoMessage(project, "Metalama formats compile-time code from the next build on. Rebuild the aspect project and debug again.", title)
+            return
+        }
+        val answer = Messages.showYesNoDialog(project,
+            "Metalama formats compile-time code from the next build on. Stop debugging and debug ${File(test).name} again? Rider builds the aspect project first.",
+            title, "Debug Again", "Later", Messages.getQuestionIcon())
+        if (answer != Messages.YES) return
+        XDebuggerManager.getInstance(project).currentSession?.stop()
+        service.runAspectTest(RunAspectTest(test, true))
     }
 
     private fun caretLine(fileEditor: FileEditor) = (fileEditor as? TextEditor)?.editor?.caretModel?.logicalPosition?.line ?: 0
