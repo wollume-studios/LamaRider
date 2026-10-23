@@ -35,8 +35,9 @@ public static class FixSelfTest
         {
             try
             {
-                results.Add(RunSample(solution, model, project));
-                progress?.Invoke($"{project.Name}: {results[^1].Fixes.Count} fixes, {results[^1].Fixes.Count(f => f.Matches)} match");
+                var sample = RunSample(solution, model, project);
+                results.Add(sample);
+                progress?.Invoke($"{project.Name}: {sample.Fixes.Count} fixes, {sample.Fixes.Count(f => f.Matches)} match");
             }
             catch (Exception e) when (e is not OperationCanceledException) { results.Add(new SampleResult(project.Name, [], [], e.ToString())); }
         }
