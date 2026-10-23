@@ -91,7 +91,9 @@ public sealed class AspectModelHost
             RdModel.SelfTestFixes.Advise(lifetime, path => _solution.Locks.ExecuteOrQueueEx(_lifetime, "LamaRider.SelfTestFixes", () =>
             {
                 using var _ = CompilationContextCookie.GetExplicitUniversalContextIfNotSet();
-                var report = Model is { } model ? Fixes.FixSelfTest.ToJson(Fixes.FixSelfTest.Run(_solution, model)) : "[]";
+                string report;
+                try { report = Model is { } model ? Fixes.FixSelfTest.ToJson(Fixes.FixSelfTest.Run(_solution, model)) : "[]"; }
+                catch (Exception e) when (e is not OperationCanceledException) { report = "[{\"Id\":\"SELFTEST\",\"Reported\":[],\"Fixes\":[],\"Error\":" + Newtonsoft.Json.JsonConvert.ToString(e.ToString()) + "}]"; }
                 File.WriteAllText(path, report);
             }));
             RdModel.RebuildAndDebugAspectTest.Advise(lifetime, RebuildAndDebugAspectTest);
