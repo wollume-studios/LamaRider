@@ -40,7 +40,9 @@ public static class FixSelfTest
     static SampleResult RunSample(ISolution solution, AspectModel model, IProject project)
     {
         var id = project.Name;
-        var files = project.GetAllProjectFiles(f => f.Location.ExtensionNoDot == "cs").Select(f => f.ToSourceFile()).OfType<IPsiSourceFile>().ToList();
+        // Only the sample's own files, not the generated AssemblyInfo.cs and the like.
+        var files = project.GetAllProjectFiles(f => f.Location.ExtensionNoDot == "cs" && f.Name.StartsWith(id + "_Error", StringComparison.Ordinal))
+            .Select(f => f.ToSourceFile()).OfType<IPsiSourceFile>().ToList();
         var dir = project.Location.FullPath;
         var expected = FixSamples.Normalize(string.Concat(files.OrderBy(f => f.Name).Select(f =>
             File.ReadAllText(Path.Combine(dir, FixSamples.ExpectedName(f.Name))))));

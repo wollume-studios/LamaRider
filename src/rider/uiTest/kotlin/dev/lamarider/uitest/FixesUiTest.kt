@@ -17,6 +17,7 @@ class FixesUiTest : UiTestBase() {
     @Test
     fun `quick-fixes turn Metalama's error samples into their fixed versions`() = withRider("fixes", sample = "MetalamaFixSamples") {
         val report = solutionDir.resolve("fix-selftest.json")
+        val copy = Path.of(System.getProperty("lamarider.plugin")).parent.parent.resolve("fix-selftest.json")
         // The worker analyzes ~200 small projects first: run until the report has the samples' diagnostics.
         waitFor("self-test report with diagnostics", timeout = 30.minutes, interval = 30.seconds) {
             Files.deleteIfExists(report)
@@ -24,7 +25,6 @@ class FixesUiTest : UiTestBase() {
             waitFor("report written", timeout = 10.minutes, interval = 5.seconds) { Files.exists(report) }
             Regex(""""Reported": \[\s*"LAMA""").containsMatchIn(Files.readString(report))
         }
-        val copy = Path.of(System.getProperty("lamarider.plugin")).parent.parent.resolve("fix-selftest.json")
         Files.copy(report, copy, StandardCopyOption.REPLACE_EXISTING)
         println("Fix self-test report: $copy")
     }
