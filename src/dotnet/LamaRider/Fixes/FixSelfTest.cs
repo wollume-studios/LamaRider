@@ -30,8 +30,9 @@ public static class FixSelfTest
     public static List<SampleResult> Run(ISolution solution, AspectModel model, Action<string>? progress = null)
     {
         var results = new List<SampleResult>();
-        progress?.Invoke($"start: {solution.GetAllProjects().Count()} projects, {model.Diagnostics.Count} diagnostics");
-        foreach (var project in solution.GetAllProjects().Where(p => Regex.IsMatch(p.Name, @"^LAMA\d{4}$")).OrderBy(p => p.Name))
+        var projects = Read(() => solution.GetAllProjects().Where(p => Regex.IsMatch(p.Name, @"^LAMA\d{4}$")).OrderBy(p => p.Name).ToList());
+        progress?.Invoke($"start: {projects.Count} sample projects, {model.Diagnostics.Count} diagnostics");
+        foreach (var project in projects)
         {
             try
             {
@@ -44,19 +45,25 @@ public static class FixSelfTest
         return results;
     }
 
+    /// <summary>PSI and document reads need the read lock; it can't be held while a fix is applied (write lock).</summary>
+    static T Read<T>(Func<T> read)
+    {
+        using (ReadLockCookie.Create()) return read();
+    }
+
     static SampleResult RunSample(ISolution solution, AspectModel model, IProject project)
     {
-        var id = project.Name;
+        var id = Read(() => project.Name);
         // Only the sample's own files, not the generated AssemblyInfo.cs and the like.
-        var files = project.GetAllProjectFiles(f => f.Location.ExtensionNoDot == "cs" && f.Name.StartsWith(id + "_Error", StringComparison.Ordinal))
-            .Select(f => f.ToSourceFile()).OfType<IPsiSourceFile>().ToList();
-        var dir = project.Location.FullPath;
-        var expected = FixSamples.Normalize(string.Concat(files.OrderBy(f => f.Name).Select(f =>
-            File.ReadAllText(Path.Combine(dir, FixSamples.ExpectedName(f.Name))))));
-        var diagnostics = model.Diagnostics.Where(d => d.File != null && files.Any(f => SamePath(f.GetLocation().FullPath, d.File))).ToList();
+        var files = Read(() => project.GetAllProjectFiles(f => f.Location.ExtensionNoDot == "cs" && f.Name.StartsWith(id + "_Error", StringComparison.Ordinal))
+            .Select(f => f.ToSourceFile()).OfType<IPsiSourceFile>().ToList());
+        var dir = Read(() => project.Location.FullPath);
+        var expected = Read(() => FixSamples.Normalize(string.Concat(files.OrderBy(f => f.Name).Select(f =>
+            File.ReadAllText(Path.Combine(dir, FixSamples.ExpectedName(f.Name)))))));
+        var diagnostics = Read(() => model.Diagnostics.Where(d => d.File != null && files.Any(f => SamePath(f.GetLocation().FullPath, d.File))).ToList());
         var reported = diagnostics.Select(d => d.Id).Distinct().OrderBy(x => x).ToList();
         var fixResults = new List<FixResult>();
-        var csproj = project.ProjectFileLocation.FullPath;
+        var csproj = Read(() => project.ProjectFileLocation.FullPath);
 
         foreach (var diagnostic in diagnostics.Where(d => d.Id == id))
         {
@@ -64,7 +71,7 @@ public static class FixSelfTest
             using (ReadLockCookie.Create()) count = Contexts(solution, model, diagnostic, files) is { } first ? Specific(first).Count : 0;
             for (var k = 0; k < count; k++)
             {
-                var snapshot = files.ToDictionary(f => f.Document, f => f.Document.GetText());
+                var snapshot = Read(() => files.ToDictionary(f => f.Document, f => f.Document.GetText()));
                 var csprojText = File.ReadAllText(csproj);
                 string? text = null;
                 FixContext? applied = null;
@@ -84,7 +91,7 @@ public static class FixSelfTest
                     }
                     context.Commit(notify: false);
                     using (ReadLockCookie.Create()) solution.GetPsiServices().Files.CommitAllDocuments();
-                    var actual = FixSamples.Normalize(string.Concat(files.OrderBy(f => f.Name).Select(f => f.Document.GetText())));
+                    var actual = Read(() => FixSamples.Normalize(string.Concat(files.OrderBy(f => f.Name).Select(f => f.Document.GetText()))));
                     fixResults.Add(new FixResult(fix.Text, actual == expected, null));
                 }
                 catch (Exception e) when (e is not OperationCanceledException)
