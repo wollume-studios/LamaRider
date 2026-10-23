@@ -18,7 +18,7 @@ class FixesUiTest : UiTestBase() {
     @Test
     fun `quick-fixes turn Metalama's error samples into their fixed versions`() {
         val batches = Path.of(System.getProperty("lamarider.sample")).resolveSibling("MetalamaFixSamples")
-            .toFile().list { _, name -> name.matches(Regex("Batch[0-9]+\.sln")) }!!.map { it.removeSuffix(".sln") }.sorted()
+            .toFile().list { _, name -> name.startsWith("Batch") && name.endsWith(".sln") }!!.map { it.removeSuffix(".sln") }.sorted()
         val reports = Path.of(System.getProperty("lamarider.plugin")).parent.parent
         for (batch in batches) {
             withRider("fixes-$batch", sample = "MetalamaFixSamples", solution = batch) {
