@@ -60,7 +60,7 @@ public static class FixSelfTest
         var dir = Read(() => project.Location.FullPath);
         var expected = Read(() => FixSamples.Normalize(string.Concat(files.OrderBy(f => f.Name).Select(f =>
             File.ReadAllText(Path.Combine(dir, FixSamples.ExpectedName(f.Name)))))));
-        var diagnostics = Read(() => model.Diagnostics.Where(d => d.File != null && files.Any(f => SamePath(f.GetLocation().FullPath, d.File))).ToList());
+        var diagnostics = Read(() => model.Diagnostics.Where(d => !string.IsNullOrEmpty(d.File) && files.Any(f => SamePath(f.GetLocation().FullPath, d.File))).ToList());
         var reported = diagnostics.Select(d => d.Id).Distinct().OrderBy(x => x).ToList();
         var fixResults = new List<FixResult>();
         var csproj = Read(() => project.ProjectFileLocation.FullPath);
@@ -127,7 +127,7 @@ public static class FixSelfTest
         return range is { } r ? new FixContext(solution, diagnostic, file, r, model) : null;
     }
 
-    static bool SamePath(string a, string b) => string.Equals(Path.GetFullPath(a), Path.GetFullPath(b), StringComparison.OrdinalIgnoreCase);
+    static bool SamePath(string a, string b) => a.Length > 0 && b.Length > 0 && string.Equals(Path.GetFullPath(a), Path.GetFullPath(b), StringComparison.OrdinalIgnoreCase);
 
     public static string ToJson(List<SampleResult> results) => JsonConvert.SerializeObject(results, Formatting.Indented);
 }
