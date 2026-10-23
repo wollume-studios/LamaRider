@@ -152,4 +152,17 @@ public class AspectModelTests
         var errors = AspectModel.Parse(json).LocatedErrorsIn("c:/src/TEST.cs");
         Assert.Equal(["LAMA0037"], errors.Select(d => d.Id));
     }
+
+    [Fact]
+    public void Located_diagnostics_leave_out_C_sharp_compiler_errors_which_Rider_shows_itself()
+    {
+        var model = AspectModel.Parse("""
+            {"schema":1,"aspectClasses":[],"instances":[],"transformations":[],"templateClassifications":[],"transformedFiles":[],
+             "diagnostics":[
+               {"id":"CS0161","severity":"Error","message":"not all paths return","project":"P","file":"C:/x.cs","line":49},
+               {"id":"LAMA0037","severity":"Error","message":"eligibility","project":"P","file":"C:/x.cs","line":5},
+               {"id":"LAMA0048","severity":"Warning","message":"partial","project":"P","file":"C:/x.cs","line":9}]}
+            """);
+        Assert.Equal(["LAMA0037", "LAMA0048"], model.LocatedDiagnosticsIn("C:/x.cs").Select(d => d.Id));
+    }
 }

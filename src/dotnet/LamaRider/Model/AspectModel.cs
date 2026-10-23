@@ -206,12 +206,18 @@ public sealed class AspectModel
         return Diagnostics.Where(d => d.Severity == "Error" && d.File != null && Normalize(d.File) == normalized);
     }
 
-    /// <summary>Metalama errors, warnings and infos located in <paramref name="path"/> (quick-fixes attach to them).</summary>
+    /// <summary>
+    /// Metalama errors, warnings and infos located in <paramref name="path"/> (quick-fixes attach to them). C# compiler
+    /// diagnostics (CS####) are left out: Rider reports those itself.
+    /// </summary>
     public IEnumerable<DiagnosticInfo> LocatedDiagnosticsIn(string path)
     {
         var normalized = Normalize(path);
-        return Diagnostics.Where(d => d.Severity is "Error" or "Warning" or "Info" && d.File != null && Normalize(d.File) == normalized);
+        return Diagnostics.Where(d => d.Severity is "Error" or "Warning" or "Info" && d.File != null && Normalize(d.File) == normalized
+                                      && !IsCompilerDiagnostic(d.Id));
     }
+
+    static bool IsCompilerDiagnostic(string id) => id.Length > 2 && id.StartsWith("CS", StringComparison.Ordinal) && char.IsDigit(id[2]);
 
     /// <summary>The project's own files with compile-time code (aspect classes, templates) under <paramref name="projectDir"/>.</summary>
     public List<string> CompileTimeFilesIn(string projectDir)
