@@ -88,9 +88,12 @@ public static class FixSelfTest
         return new SampleResult(id, reported, fixResults, null);
     }
 
-    /// <summary>Fixes from providers, not the ones every diagnostic has (look up, suppress).</summary>
+    /// <summary>
+    /// Fixes from providers that edit code: not the ones every diagnostic has (look up, suppress), nor actions with side
+    /// effects outside the code (open a crash report, build).
+    /// </summary>
     static List<Fix> Specific(FixContext context) =>
-        FixRegistry.For(context).Where(f => !f.Text.StartsWith("Look up ") && !f.Text.StartsWith("Suppress ")).ToList();
+        FixRegistry.For(context).Where(f => !new[] { "Look up ", "Suppress ", "Open ", "Rebuild ", "Build " }.Any(f.Text.StartsWith)).ToList();
 
     static FixContext? Contexts(ISolution solution, AspectModel model, DiagnosticInfo diagnostic, List<IPsiSourceFile> files)
     {

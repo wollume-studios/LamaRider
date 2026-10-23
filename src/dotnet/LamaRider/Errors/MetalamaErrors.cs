@@ -54,8 +54,10 @@ public sealed class MetalamaErrorStage(AspectModelHost host) : IDaemonStage
                 if (declaration.DeclaredElement is not { } type) continue;
                 var nameRange = declaration.GetNameDocumentRange();
                 if (!nameRange.IsValid()) continue;
-                foreach (var diagnostic in model.ProjectErrorsFor(XMLDocUtil.GetTypeElementXmlDocId(type)))
-                    result.Add(new HighlightingInfo(nameRange, new MetalamaProjectErrorHighlighting(diagnostic, nameRange, daemonProcess.Solution)));
+                foreach (var diagnostic in model.ProjectDiagnosticsFor(XMLDocUtil.GetTypeElementXmlDocId(type)))
+                    result.Add(new HighlightingInfo(nameRange, diagnostic.Severity == "Error"
+                        ? new MetalamaProjectErrorHighlighting(diagnostic, nameRange, daemonProcess.Solution)
+                        : new MetalamaDiagnosticHint(diagnostic, nameRange, daemonProcess.Solution)));
             }
 
             var located = model.LocatedDiagnosticsIn(daemonProcess.SourceFile.GetLocation().FullPath).ToList();

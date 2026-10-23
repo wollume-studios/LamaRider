@@ -231,14 +231,14 @@ public sealed class AspectModel
     }
 
     /// <summary>
-    /// Errors without a location (e.g. LAMA0042 aspect ordering) in the project of one of the user's own aspect classes:
+    /// Diagnostics without a location (e.g. LAMA0042 aspect ordering) in the project of one of the user's own aspect classes:
     /// shown on the class name, since there is no better place in the editor.
     /// </summary>
-    public IEnumerable<DiagnosticInfo> ProjectErrorsFor(string aspectClassId)
+    public IEnumerable<DiagnosticInfo> ProjectDiagnosticsFor(string aspectClassId)
     {
         var aspect = AspectClasses.FirstOrDefault(c => c.Id == aspectClassId);
         if (aspect == null || aspect.IsLibrary) return [];
-        return Diagnostics.Where(d => d.Severity == "Error" && d.File == null && d.Project == aspect.Project);
+        return Diagnostics.Where(d => d.Severity is "Error" or "Warning" or "Info" && d.File == null && d.Project == aspect.Project);
     }
 
     /// <summary>Null when the document no longer has the length it had at classification time: spans would land on the wrong text.</summary>
