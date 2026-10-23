@@ -87,10 +87,10 @@ public sealed class AspectModelHost
             RdModel.AddAspectsAsAttributes.Advise(lifetime, position => EditSource("LamaRider.AddAspectsAsAttributes", position, AddAspectsAsAttributes));
             RdModel.ReplaceWithTransformedCode.Advise(lifetime, position => EditSource("LamaRider.ReplaceWithTransformedCode", position, ReplaceWithTransformedCode));
             RdModel.WrapPremiumCode.Advise(lifetime, WrapPremiumCode);
-            RdModel.SelfTestFixes.Advise(lifetime, path => _solution.Locks.ExecuteOrQueueReadLockEx(_lifetime, "LamaRider.SelfTestFixes", () =>
+            // Not under one read lock: applying a fix takes the write lock (FixSelfTest reads PSI under its own read locks).
+            RdModel.SelfTestFixes.Advise(lifetime, path => _solution.Locks.ExecuteOrQueueEx(_lifetime, "LamaRider.SelfTestFixes", () =>
             {
                 using var _ = CompilationContextCookie.GetExplicitUniversalContextIfNotSet();
-                _solution.GetPsiServices().Files.CommitAllDocuments();
                 var report = Model is { } model ? Fixes.FixSelfTest.ToJson(Fixes.FixSelfTest.Run(_solution, model)) : "[]";
                 File.WriteAllText(path, report);
             }));

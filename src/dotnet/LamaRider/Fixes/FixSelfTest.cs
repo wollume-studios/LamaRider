@@ -53,7 +53,8 @@ public static class FixSelfTest
 
         foreach (var diagnostic in diagnostics.Where(d => d.Id == id))
         {
-            var count = Contexts(solution, model, diagnostic, files) is { } first ? Specific(first).Count : 0;
+            int count;
+            using (ReadLockCookie.Create()) count = Contexts(solution, model, diagnostic, files) is { } first ? Specific(first).Count : 0;
             for (var k = 0; k < count; k++)
             {
                 var snapshot = files.ToDictionary(f => f.Document, f => f.Document.GetText());
@@ -62,13 +63,20 @@ public static class FixSelfTest
                 FixContext? applied = null;
                 try
                 {
+                    // PSI is read under the read lock and the fix records its edits; they are applied (write lock) after it.
                     // A fresh context per fix: the previous one's edits were undone, so PSI changed.
-                    var context = applied = Contexts(solution, model, diagnostic, files)!;
-                    var fix = Specific(context)[k];
-                    text = fix.Text;
-                    fix.Apply(context);
+                    FixContext context;
+                    Fix fix;
+                    using (ReadLockCookie.Create())
+                    {
+                        solution.GetPsiServices().Files.CommitAllDocuments();
+                        context = applied = Contexts(solution, model, diagnostic, files)!;
+                        fix = Specific(context)[k];
+                        text = fix.Text;
+                        fix.Apply(context);
+                    }
                     context.Commit(notify: false);
-                    solution.GetPsiServices().Files.CommitAllDocuments();
+                    using (ReadLockCookie.Create()) solution.GetPsiServices().Files.CommitAllDocuments();
                     var actual = FixSamples.Normalize(string.Concat(files.OrderBy(f => f.Name).Select(f => f.Document.GetText())));
                     fixResults.Add(new FixResult(fix.Text, actual == expected, null));
                 }
@@ -83,7 +91,7 @@ public static class FixSelfTest
                             if (entry.Key.GetText() != entry.Value) entry.Key.ReplaceText(new JetBrains.Util.TextRange(0, entry.Key.GetTextLength()), entry.Value);
                     if (File.ReadAllText(csproj) != csprojText) File.WriteAllText(csproj, csprojText);
                     foreach (var created in applied?.CreatedFiles ?? []) File.Delete(created);
-                    solution.GetPsiServices().Files.CommitAllDocuments();
+                    using (ReadLockCookie.Create()) solution.GetPsiServices().Files.CommitAllDocuments();
                 }
             }
         }
