@@ -11,6 +11,8 @@ using JetBrains.ReSharper.Feature.Services.ContextActions;
 using JetBrains.ReSharper.Feature.Services.CSharp.ContextActions;
 using JetBrains.ReSharper.Feature.Services.Daemon;
 using JetBrains.ReSharper.Feature.Services.QuickFixes;
+using JetBrains.ReSharper.Feature.Services.Protocol;
+using static JetBrains.Rider.Model.SolutionLamaRiderModelEx;
 using JetBrains.ReSharper.Psi;
 using JetBrains.ReSharper.Psi.CSharp;
 using JetBrains.ReSharper.Psi.CSharp.Tree;
@@ -109,11 +111,11 @@ public sealed class MetalamaProjectErrorHighlighting(DiagnosticInfo diagnostic, 
 [QuickFix]
 public sealed class OpenMetalamaErrorDocumentation(MetalamaProjectErrorHighlighting highlighting) : QuickFixBase
 {
-    public override string Text => $"Open {highlighting.Diagnostic.Id} documentation";
+    public override string Text => $"Look up {highlighting.Diagnostic.Id} online";
     public override bool IsAvailable(IUserDataHolder cache) => highlighting.Diagnostic.Id.StartsWith("LAMA", StringComparison.Ordinal);
 
     protected override Action<ITextControl>? ExecutePsiTransaction(ISolution solution, IProgressIndicator progress) =>
-        _ => solution.GetComponent<OpensUri>().OpenUri(new Uri($"https://doc.metalama.net/errors/{highlighting.Diagnostic.Id.ToLowerInvariant()}"));
+        _ => solution.GetProtocolSolution().GetLamaRiderModel().OpenDiagnosticDocs.Fire(highlighting.Diagnostic.Id);
 }
 
 /// <summary>
