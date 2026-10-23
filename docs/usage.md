@@ -236,7 +236,7 @@ Limitations:
 Metalama errors, warnings and infos with a location show in the editor; warnings and infos as a barely visible hint
 next to Rider's own squiggle. Alt+Enter on one offers fixes:
 
-- **Every diagnostic**: *Look up LAMA#### online* (the Metalama article when there is one, else a web search).
+- **Every diagnostic**: *Look up LAMA#### online* (the article on doc.metalama.net once it is published, else the article in Metalama's documentation repository on GitHub, else a web search).
   Warnings and infos: *Suppress LAMA#### here (#pragma)* and *Suppress LAMA#### in project (NoWarn)*.
   Errors where an aspect doesn't fit its target: *Remove [Aspect] from this declaration*.
 - **Specific fixes** for 199 diagnostic ids ([list](metalama-fixes.md)): they edit your code or the aspect's source,

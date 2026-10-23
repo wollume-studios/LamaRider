@@ -3,7 +3,7 @@
 ## Unreleased
 - Metalama warnings and infos show in the editor (a barely visible hint next to Rider's squiggle) and, like errors, carry Alt+Enter quick-fixes: *Look up LAMAxxxx online*, *Suppress LAMAxxxx here (#pragma)* / *in project (NoWarn)*, *Remove [Aspect] from this declaration*.
 - Specific quick-fixes for 199 diagnostic ids that edit code, aspect source, project properties or `NoWarn` (docs/metalama-fixes.md).
-- *Look up LAMAxxxx online* opens a web search while doc.metalama.net has no article for the id.
+- *Look up LAMAxxxx online* opens the article on doc.metalama.net when it is published (checked at startup), else the article in the Metalama documentation repository on GitHub, else a web search.
 - Inspection *Metalama Premium API* (warning, severity configurable) on uses of Metalama Premium components (`Metalama.Extensions.CodeFixes`, `.Validation`, `.Architecture`, Azure / Redis caching back-ends) and their using directives, except inside `#if METALAMA_PREMIUM`. Alt+Enter (also in Find Action): *Put it in #if METALAMA_PREMIUM*, and *Set up free and Premium builds of this project* (property `MetalamaPremium`, default false; `true` defines `METALAMA_PREMIUM` and references the Premium packages).
 - Return value aspects added by a fabric, inheritance or another aspect get an inlay hint after the method's return type, like parameter hints after the parameter name.
 - *Settings › Tools › LamaRider › Code Vision › Aspects*: *Each aspect by name where it applies* (default) or *Their number on the declaration* (one "N aspects" counting the declaration's, its parameters' and its return value's aspects, no inlay hints; the tooltip says where each one is, e.g. "GreaterThan1 on a").

@@ -16,6 +16,7 @@
     <projectConfigurable parentId="tools" id="dev.lamarider.settings" displayName="LamaRider"
                          instance="dev.lamarider.settings.LamaRiderConfigurable"/>
     <editorNotificationProvider implementation="dev.lamarider.errors.MetalamaErrorBanner"/>
+    <postStartupActivity implementation="dev.lamarider.errors.MetalamaDocsStartup"/>
     <editorNotificationProvider implementation="dev.lamarider.debug.CompiledCopyBanner"/>
     <editorNotificationProvider implementation="dev.lamarider.testing.AspectTestOutputBanner"/>
     <runLineMarkerContributor language="C#" implementationClass="dev.lamarider.actions.AspectTestRunLineMarker"/>
