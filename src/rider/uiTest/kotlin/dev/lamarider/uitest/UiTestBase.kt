@@ -100,10 +100,11 @@ abstract class UiTestBase {
         withReadAction(OnDispatcher.EDT) { selectedTextEditor()?.getDocument()?.getText() ?: "" }
 
     /** [prepare] changes the sample copy before Rider opens it. */
-    protected fun withRider(name: String, prepare: (Path) -> Unit = {}, test: Driver.() -> Unit) {
-        solutionDir = sampleCopy()
+    /** [sample]: a folder next to samples/MetalamaSample with a solution of the same name. */
+    protected fun withRider(name: String, prepare: (Path) -> Unit = {}, sample: String = "MetalamaSample", test: Driver.() -> Unit) {
+        solutionDir = sampleCopy(sample)
         prepare(solutionDir)
-        val context = Starter.newContext(name, TestCase(rider(), SolutionProject(solutionDir.resolve("MetalamaSample.sln"))))
+        val context = Starter.newContext(name, TestCase(rider(), SolutionProject(solutionDir.resolve("$sample.sln"))))
         PluginConfigurator(context).installPluginFromDir(Path.of(System.getProperty("lamarider.plugin")))
         // Fresh temp copy of the sample each test: without this, Rider asks to trust it (a dialog on the user's screen).
         context.applyVMOptionsPatch { addSystemProperty("idea.trust.all.projects", true) }
@@ -127,8 +128,8 @@ abstract class UiTestBase {
     }
 
     /** The sample without build output, so every test starts from the same sources. */
-    private fun sampleCopy(): Path {
-        val source = Path.of(System.getProperty("lamarider.sample"))
+    private fun sampleCopy(sample: String): Path {
+        val source = Path.of(System.getProperty("lamarider.sample")).resolveSibling(sample)
         val target = createTempDirectory("lamarider-ui-").resolve(source.name)
         Files.walk(source).use { paths ->
             paths.filter { p -> source.relativize(p).none { it.name in setOf("bin", "obj", ".idea") || it.name.startsWith("_ReSharper") } }
@@ -137,7 +138,7 @@ abstract class UiTestBase {
                     if (Files.isDirectory(p)) Files.createDirectories(dst) else Files.copy(p, dst)
                 }
         }
-        check(target.resolve("MetalamaSample.sln").readText().isNotEmpty())
+        check(target.resolve("$sample.sln").readText().isNotEmpty())
         return target
     }
 }
