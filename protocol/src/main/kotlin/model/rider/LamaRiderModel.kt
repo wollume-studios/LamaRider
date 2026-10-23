@@ -58,6 +58,8 @@ object LamaRiderModel : Ext(SolutionModel.Solution) {
         signal("refreshTestSettingsStatus", void)
         // backend -> frontend: open a file the backend created (aspect test, accepted snapshot)
         signal("openFile", string)
+        // backend -> frontend: the documentation of a Metalama diagnostic ("LAMA0115"), or a web search while it has none
+        signal("openDiagnosticDocs", string)
         // frontend -> backend (editor menu): aspect test for the aspect class at the position / accept the test output
         signal("createAspectTest", EditorPosition)
         signal("acceptAspectTestOutput", string)

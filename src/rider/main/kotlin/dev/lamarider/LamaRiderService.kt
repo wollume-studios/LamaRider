@@ -147,6 +147,7 @@ class LamaRiderService(val project: Project) {
         rdModel.codeVisionClicked.advise(lifetime) { id -> onCodeVisionClicked?.invoke(id) }
         sendHintOptions()
         rdModel.info.advise(lifetime) { message -> notify("LamaRider", message) }
+        rdModel.openDiagnosticDocs.advise(lifetime) { id -> dev.lamarider.errors.MetalamaDocs.open(id) }
         rdModel.openFile.advise(lifetime) { path ->
             ApplicationManager.getApplication().invokeLater {
                 LocalFileSystem.getInstance().refreshAndFindFileByPath(path.replace('\\', '/'))

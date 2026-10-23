@@ -30,7 +30,7 @@ class MetalamaErrorBanner : EditorNotificationProvider {
                     createActionLabel("Go to error") { Navigation.openLine(project, path, (first.line ?: 1) - 1) }
                 }
                 if (first.id.startsWith("LAMA")) {
-                    createActionLabel("${first.id} documentation") { BrowserUtil.browse("https://doc.metalama.net/errors/${first.id.lowercase()}") }
+                    createActionLabel("Look up ${first.id}") { MetalamaDocs.open(first.id) }
                 }
                 createActionLabel("Build solution") {
                     ActionManager.getInstance().getAction("BuildSolutionAction")?.let { action ->
