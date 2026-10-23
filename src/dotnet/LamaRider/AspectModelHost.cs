@@ -87,6 +87,13 @@ public sealed class AspectModelHost
             RdModel.AddAspectsAsAttributes.Advise(lifetime, position => EditSource("LamaRider.AddAspectsAsAttributes", position, AddAspectsAsAttributes));
             RdModel.ReplaceWithTransformedCode.Advise(lifetime, position => EditSource("LamaRider.ReplaceWithTransformedCode", position, ReplaceWithTransformedCode));
             RdModel.WrapPremiumCode.Advise(lifetime, WrapPremiumCode);
+            RdModel.SelfTestFixes.Advise(lifetime, path => _solution.Locks.ExecuteOrQueueReadLockEx(_lifetime, "LamaRider.SelfTestFixes", () =>
+            {
+                using var _ = CompilationContextCookie.GetExplicitUniversalContextIfNotSet();
+                _solution.GetPsiServices().Files.CommitAllDocuments();
+                var report = Model is { } model ? Fixes.FixSelfTest.ToJson(Fixes.FixSelfTest.Run(_solution, model)) : "[]";
+                File.WriteAllText(path, report);
+            }));
             RdModel.RebuildAndDebugAspectTest.Advise(lifetime, RebuildAndDebugAspectTest);
             RdModel.SetUpPremiumBuilds.Advise(lifetime, path => _solution.Locks.ExecuteOrQueueReadLockEx(_lifetime, "LamaRider.SetUpPremiumBuilds", () =>
                 RdModel.Info.Fire(SourceFile(path)?.GetProject() is { } project ? Premium.PremiumUses.SetUpBuilds(project) : "Not a file of a project.")));

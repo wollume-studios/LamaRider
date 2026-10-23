@@ -77,6 +77,8 @@
       <add-to-group group-id="EditorPopupMenu" anchor="last"/>
       <add-to-group group-id="ProjectViewPopupMenu" anchor="last"/>
     </action>
+    <action id="LamaRider.SelfTestFixes" class="dev.lamarider.actions.SelfTestFixesAction" text="LamaRider: Self-Test Metalama Quick-Fixes"
+            description="Applies every quick-fix of the Metalama fix samples and writes fix-selftest.json next to the solution"/>
     <action id="LamaRider.WrapPremiumCode" class="dev.lamarider.actions.WrapPremiumCodeAction" text="Put Metalama Premium Code in #if METALAMA_PREMIUM"
             description="Wrap the use of a Metalama Premium API at the caret, and the file's Premium using directives, in #if METALAMA_PREMIUM"/>
     <action id="LamaRider.SetUpPremiumBuilds" class="dev.lamarider.actions.SetUpPremiumBuildsAction" text="Set Up Free and Metalama Premium Builds"

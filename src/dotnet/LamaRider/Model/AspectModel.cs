@@ -78,8 +78,12 @@ public sealed class DiagnosticInfo
     public string Message = "";
     public string? Target;
     public string? File;
+    /// <summary>1-based.</summary>
     public int? Line;
     public string? Project;
+    /// <summary>LF offsets of the reported span in <see cref="File"/>, when known.</summary>
+    public int? Start;
+    public int? End;
 }
 
 public sealed class ClassifiedSpan
@@ -200,6 +204,13 @@ public sealed class AspectModel
     {
         var normalized = Normalize(path);
         return Diagnostics.Where(d => d.Severity == "Error" && d.File != null && Normalize(d.File) == normalized);
+    }
+
+    /// <summary>Metalama errors, warnings and infos located in <paramref name="path"/> (quick-fixes attach to them).</summary>
+    public IEnumerable<DiagnosticInfo> LocatedDiagnosticsIn(string path)
+    {
+        var normalized = Normalize(path);
+        return Diagnostics.Where(d => d.Severity is "Error" or "Warning" or "Info" && d.File != null && Normalize(d.File) == normalized);
     }
 
     /// <summary>The project's own files with compile-time code (aspect classes, templates) under <paramref name="projectDir"/>.</summary>

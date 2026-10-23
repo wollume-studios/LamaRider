@@ -1,0 +1,8 @@
+<Project>
+  <!-- Every sample reports a diagnostic on purpose: its build is expected to fail. -->
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <LangVersion>latest</LangVersion>
+  </PropertyGroup>
+</Project>

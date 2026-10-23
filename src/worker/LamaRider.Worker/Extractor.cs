@@ -16,7 +16,8 @@ public static class Extractor
     public static WorkerOutput Extract(Workspace workspace, string outDir)
     {
         var offsets = new Offsets();
-        var sourceTypes = workspace.SourceCode.Types
+        var safe = new ResilientWorkspace(workspace, offsets);
+        var sourceTypes = safe.Get(w => w.SourceCode.Types)
             .GroupBy(t => t.FullName)
             .ToDictionary(g => g.Key, g => g.First());
 
@@ -39,7 +40,7 @@ public static class Extractor
             return null;
         }
 
-        var classes = workspace.AspectClasses
+        var classes = safe.Get(w => w.AspectClasses)
             .GroupBy(c => c.FullName).Select(g => g.First())
             .Where(c => !c.ShortName.StartsWith("<") && !c.FullName.Contains('<')) // Metalama-internal (<Fabric>, transitive helper aspects)
             .Select(c =>
@@ -62,7 +63,7 @@ public static class Extractor
             .OrderBy(c => c.Name)
             .ToList();
 
-        var instances = workspace.AspectInstances
+        var instances = safe.Get(w => w.AspectInstances)
             .Where(i => !i.IsSkipped)
             .Select(i => new AspectInstanceInfo(
                 ClassId(i.AspectClass),
@@ -78,7 +79,7 @@ public static class Extractor
             .Distinct() // records: collapses the same instance reported once per target framework
             .ToList();
 
-        var transformations = workspace.Transformations
+        var transformations = safe.Get(w => w.Transformations)
             .Select(t => new TransformationInfo(
                 ClassId(t.Advice.AspectInstance.AspectClass),
                 DocId(t.TargetDeclaration),
@@ -89,27 +90,47 @@ public static class Extractor
             .Distinct()
             .ToList();
 
-        var diagnostics = workspace.Diagnostics
+        var diagnostics = safe.Get(w => w.Diagnostics)
             .Where(d => d.Source != IntrospectionDiagnosticSource.CSharp)
-            .Select(d => new DiagnosticInfo(d.Id, d.Severity.ToString(), d.Message, DeclarationOf(d) is { } declaration ? DocId(declaration) : null, d.FilePath, d.Line,
-                d.Compilation?.Project.Name))
-            .Distinct()
+            .Select(d => Located(d, offsets))
+            .Concat(safe.Failures) // projects where Metalama threw instead of reporting
+            .Distinct() // once per target framework
             .ToList();
 
         return new WorkerOutput(
             Schema, workspace.MetalamaVersion, classes, instances, transformations, diagnostics,
             TemplateClassifier.Classify(workspace, offsets),
-            WriteTransformedFiles(workspace, outDir, offsets, instances));
+            WriteTransformedFiles(workspace, safe, outDir, offsets, instances));
     }
 
     /// <summary>
     /// Metalama 2026.1 looks a diagnostic's declaration up in the compilation it was reported for, which throws when the
-    /// syntax tree belongs to another project (a test project's workspace also holds the projects it references).
+    /// syntax tree belongs to another project (a test project's workspace also holds the projects it references), and asserts
+    /// on declarations it can't resolve (e.g. a LINQ range variable).
     /// </summary>
     static IDeclaration? DeclarationOf(IIntrospectionDiagnostic diagnostic)
     {
         try { return diagnostic.Declaration; }
-        catch (ArgumentException) { return null; }
+        catch (Exception e) when (e is not OperationCanceledException) { return null; }
+    }
+
+
+    /// <summary>
+    /// A diagnostic with its span, from the Roslyn diagnostic Metalama wraps (internal: when that
+    /// changes, only the line remains). IIntrospectionDiagnostic.Line is 0-based; DiagnosticInfo.Line is 1-based.
+    /// </summary>
+    static DiagnosticInfo Located(IIntrospectionDiagnostic d, Offsets offsets)
+    {
+        var target = DeclarationOf(d) is { } declaration ? DocId(declaration) : null;
+        // ponytail: IntrospectionDiagnostic._diagnostic is internal Metalama state; without it the line is all we have.
+        var roslyn = d.GetType().GetField("_diagnostic", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)?.GetValue(d)
+            as Microsoft.CodeAnalysis.Diagnostic;
+        var location = roslyn?.Location is { IsInSource: true } l ? l : null;
+        var file = location?.SourceTree?.FilePath is { Length: > 0 } path ? path : d.FilePath;
+        var line = location != null ? location.GetLineSpan().StartLinePosition.Line + 1 : d.Line + 1;
+        var start = location != null && file != null ? offsets.FromPosition(file, location.SourceSpan.Start) : null;
+        var end = location != null && file != null ? offsets.FromPosition(file, location.SourceSpan.End) : null;
+        return new DiagnosticInfo(d.Id, d.Severity.ToString(), d.Message, target, file, line, d.Compilation?.Project.Name, start, end);
     }
 
     static bool IsAttribute(IIntrospectionAspectInstance instance) =>
@@ -138,7 +159,7 @@ public static class Extractor
         return suffix < 0 ? id.Substring(0, tilde) : id.Substring(0, tilde) + id.Substring(suffix);
     }
 
-    static List<TransformedFileInfo> WriteTransformedFiles(Workspace workspace, string outDir, Offsets offsets, List<AspectInstanceInfo> instances)
+    static List<TransformedFileInfo> WriteTransformedFiles(Workspace workspace, ResilientWorkspace safe, string outDir, Offsets offsets, List<AspectInstanceInfo> instances)
     {
         // Source compilation per file: the popup's diff shows a declaration's source next to its transformed code.
         var sources = new Dictionary<string, Microsoft.CodeAnalysis.Compilation>(StringComparer.OrdinalIgnoreCase);
@@ -150,7 +171,7 @@ public static class Extractor
         var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         var dir = Path.Combine(outDir, "transformed");
         Directory.CreateDirectory(dir);
-        foreach (var compilation in workspace.TransformedCode.Compilations.OfType<CompilationModel>())
+        foreach (var compilation in safe.Get(w => w.TransformedCode.Compilations).OfType<CompilationModel>())
         {
             var formatted = Format(compilation.RoslynCompilation);
             foreach (var tree in formatted.SyntaxTrees)
