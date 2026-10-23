@@ -24,27 +24,13 @@ class FixesUiTest : UiTestBase() {
             withRider("fixes-$batch", sample = "MetalamaFixSamples", solution = batch) {
                 val report = solutionDir.resolve("fix-selftest.json")
                 val progress = solutionDir.resolve("fix-selftest.json.progress")
-                // The signal is dropped while LamaRider's backend connection isn't up yet: ask again until the handler has started.
-                waitFor("self-test handler started ($batch)", timeout = 15.minutes, interval = 20.seconds) {
-                    if (!Files.exists(progress)) invokeAction("LamaRider.SelfTestFixes")
-                    Files.exists(progress)
-                }
+                // The backend runs the self-test once its model has the batch's diagnostics (the worker analyzes ~30 projects first).
+                Files.writeString(solutionDir.resolve("fix-selftest.request"), "")
                 runCatching {
-                    waitFor("report written ($batch)", timeout = 30.minutes, interval = 10.seconds) { Files.exists(report) }
+                    waitFor("self-test report ($batch)", timeout = 40.minutes, interval = 15.seconds) { Files.exists(report) }
                 }.onFailure {
-                    println("self-test progress ($batch): " + Files.readAllLines(progress).takeLast(5))
+                    println("self-test progress ($batch): " + (if (Files.exists(progress)) Files.readAllLines(progress).takeLast(5) else "not started"))
                     throw it
-                }
-                // The first pass can run before the worker has analyzed the batch (no diagnostics yet): once more.
-                if (!Regex(""""Reported": \[\s*"LAMA""").containsMatchIn(Files.readString(report))) {
-                    Files.delete(report)
-                    Files.delete(progress)
-                    waitFor("self-test report with diagnostics ($batch)", timeout = 25.minutes, interval = 30.seconds) {
-                        if (!Files.exists(progress)) invokeAction("LamaRider.SelfTestFixes")
-                        Files.exists(report) && Regex(""""Reported": \[\s*"LAMA""").containsMatchIn(Files.readString(report)).also {
-                            if (!it) { Files.deleteIfExists(report); Files.deleteIfExists(progress) }
-                        }
-                    }
                 }
                 Files.copy(report, reports.resolve("fix-selftest-$batch.json"), StandardCopyOption.REPLACE_EXISTING)
             }

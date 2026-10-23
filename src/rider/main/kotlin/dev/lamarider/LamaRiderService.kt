@@ -82,10 +82,6 @@ class LamaRiderService(val project: Project) {
         rd?.replaceWithTransformedCode?.fire(position)
     }
 
-    fun selfTestFixes(reportPath: String) {
-        rd?.selfTestFixes?.fire(reportPath)
-    }
-
     fun wrapPremiumCode(position: com.jetbrains.rd.ide.model.EditorPosition) {
         rd?.wrapPremiumCode?.fire(position)
     }

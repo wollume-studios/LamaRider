@@ -87,17 +87,6 @@ public sealed class AspectModelHost
             RdModel.AddAspectsAsAttributes.Advise(lifetime, position => EditSource("LamaRider.AddAspectsAsAttributes", position, AddAspectsAsAttributes));
             RdModel.ReplaceWithTransformedCode.Advise(lifetime, position => EditSource("LamaRider.ReplaceWithTransformedCode", position, ReplaceWithTransformedCode));
             RdModel.WrapPremiumCode.Advise(lifetime, WrapPremiumCode);
-            // Not under one read lock: applying a fix takes the write lock (FixSelfTest reads PSI under its own read locks).
-            RdModel.SelfTestFixes.Advise(lifetime, path => _solution.Locks.ExecuteOrQueueEx(_lifetime, "LamaRider.SelfTestFixes", () =>
-            {
-                using var _ = CompilationContextCookie.GetExplicitUniversalContextIfNotSet();
-                string report;
-                void Progress(string line) => File.AppendAllText(path + ".progress", $"{DateTime.Now:HH:mm:ss} {line}{Environment.NewLine}");
-                Progress("handler started, model " + (Model == null ? "missing" : "present"));
-                try { report = Model is { } model ? Fixes.FixSelfTest.ToJson(Fixes.FixSelfTest.Run(_solution, model, Progress)) : "[]"; }
-                catch (Exception e) when (e is not OperationCanceledException) { report = "[{\"Id\":\"SELFTEST\",\"Reported\":[],\"Fixes\":[],\"Error\":" + Newtonsoft.Json.JsonConvert.ToString(e.ToString()) + "}]"; }
-                File.WriteAllText(path, report);
-            }));
             RdModel.RebuildAndDebugAspectTest.Advise(lifetime, RebuildAndDebugAspectTest);
             RdModel.SetUpPremiumBuilds.Advise(lifetime, path => _solution.Locks.ExecuteOrQueueReadLockEx(_lifetime, "LamaRider.SetUpPremiumBuilds", () =>
                 RdModel.Info.Fire(SourceFile(path)?.GetProject() is { } project ? Premium.PremiumUses.SetUpBuilds(project) : "Not a file of a project.")));
@@ -435,6 +424,34 @@ public sealed class AspectModelHost
         _debounce?.Change(Debounce, Timeout.InfiniteTimeSpan);
     }
 
+    /// <summary>
+    /// UI tests: a fix-selftest.request file in the solution folder starts the fix self-test once the model has the samples'
+    /// diagnostics (the worker may not have analyzed them at the first refresh). Writes fix-selftest.json next to it.
+    /// </summary>
+    void RunRequestedFixSelfTest(AspectModel model)
+    {
+        if (_solution.SolutionDirectory.FullPath is not { } dir) return;
+        var request = Path.Combine(dir, "fix-selftest.request");
+        if (!File.Exists(request) || !model.Diagnostics.Any(d => d.Id.StartsWith("LAMA", StringComparison.Ordinal) && d.File != null)) return;
+        File.Delete(request);
+        var path = Path.Combine(dir, "fix-selftest.json");
+        _solution.Locks.ExecuteOrQueueEx(_lifetime, "LamaRider.SelfTestFixes", () =>
+        {
+            using var _ = CompilationContextCookie.GetExplicitUniversalContextIfNotSet();
+            void Progress(string line) => File.AppendAllText(path + ".progress", $"{DateTime.Now:HH:mm:ss} {line}{Environment.NewLine}");
+            Progress("started");
+            string report;
+            // Not under one read lock: applying a fix takes the write lock (FixSelfTest reads PSI under its own read locks).
+            try { report = Fixes.FixSelfTest.ToJson(Fixes.FixSelfTest.Run(_solution, model, Progress)); }
+            catch (Exception e) when (e is not OperationCanceledException)
+            {
+                report = "[{\"Id\":\"SELFTEST\",\"Reported\":[],\"Fixes\":[],\"Error\":" + Newtonsoft.Json.JsonConvert.ToString(e.ToString()) + "}]";
+            }
+            File.WriteAllText(path, report);
+        });
+    }
+
+
     // Auto-build (opt-in): saved aspect/template code is built, so Metalama resumes; the build's end refreshes the model.
     void OnFilesSettled()
     {
@@ -495,6 +512,7 @@ public sealed class AspectModelHost
                 Path.Combine(_runner.LastOutputDir, "model.json"));
             _solution.Locks.ExecuteOrQueueEx(_lifetime, "LamaRider.Invalidate",
                 () => _solution.GetComponent<IDaemon>().Invalidate("LamaRider model refreshed"));
+            RunRequestedFixSelfTest(model);
         }
         catch (OperationCanceledException) { }
         catch (Exception e) when (e is not OperationCanceledException)

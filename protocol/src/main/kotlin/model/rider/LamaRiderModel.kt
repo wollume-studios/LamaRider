@@ -60,9 +60,6 @@ object LamaRiderModel : Ext(SolutionModel.Solution) {
         signal("openFile", string)
         // backend -> frontend: the documentation of a Metalama diagnostic ("LAMA0115"), or a web search while it has none
         signal("openDiagnosticDocs", string)
-        // frontend -> backend (UI tests): apply every quick-fix of the fix samples (samples/MetalamaFixSamples) and write
-        // the results as JSON to the given path
-        signal("selfTestFixes", string)
         // frontend -> backend (editor menu): aspect test for the aspect class at the position / accept the test output
         signal("createAspectTest", EditorPosition)
         signal("acceptAspectTestOutput", string)

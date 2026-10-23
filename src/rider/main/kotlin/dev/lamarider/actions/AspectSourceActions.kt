@@ -50,13 +50,14 @@ class WrapPremiumCodeAction : PremiumAction(LamaRiderService::wrapPremiumCode)
 
 class SetUpPremiumBuildsAction : PremiumAction(LamaRiderService::setUpPremiumBuilds)
 
-/** UI tests: every quick-fix of the fix samples, results in fix-selftest.json next to the solution (Find Action only). */
+/** Every quick-fix of the fix samples, results in fix-selftest.json next to the solution: asks for it and refreshes (Find Action only). */
 class SelfTestFixesAction : DumbAwareAction() {
     override fun getActionUpdateThread() = ActionUpdateThread.BGT
 
     override fun actionPerformed(e: AnActionEvent) {
         val project = e.project ?: return
         val dir = project.basePath ?: return
-        project.service<LamaRiderService>().selfTestFixes(java.io.File(dir, "fix-selftest.json").path)
+        java.io.File(dir, "fix-selftest.request").writeText("")
+        project.service<LamaRiderService>().refresh()
     }
 }
