@@ -92,7 +92,9 @@ public sealed class AspectModelHost
             {
                 using var _ = CompilationContextCookie.GetExplicitUniversalContextIfNotSet();
                 string report;
-                try { report = Model is { } model ? Fixes.FixSelfTest.ToJson(Fixes.FixSelfTest.Run(_solution, model)) : "[]"; }
+                void Progress(string line) => File.AppendAllText(path + ".progress", $"{DateTime.Now:HH:mm:ss} {line}{Environment.NewLine}");
+                Progress("handler started, model " + (Model == null ? "missing" : "present"));
+                try { report = Model is { } model ? Fixes.FixSelfTest.ToJson(Fixes.FixSelfTest.Run(_solution, model, Progress)) : "[]"; }
                 catch (Exception e) when (e is not OperationCanceledException) { report = "[{\"Id\":\"SELFTEST\",\"Reported\":[],\"Fixes\":[],\"Error\":" + Newtonsoft.Json.JsonConvert.ToString(e.ToString()) + "}]"; }
                 File.WriteAllText(path, report);
             }));

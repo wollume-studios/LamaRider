@@ -27,7 +27,13 @@ class FixesUiTest : UiTestBase() {
                 waitFor("self-test report with diagnostics ($batch)", timeout = 25.minutes, interval = 20.seconds) {
                     Files.deleteIfExists(report)
                     invokeAction("LamaRider.SelfTestFixes")
-                    waitFor("report written", timeout = 8.minutes, interval = 5.seconds) { Files.exists(report) }
+                    val progress = solutionDir.resolve("fix-selftest.json.progress")
+                    runCatching {
+                        waitFor("report written", timeout = 8.minutes, interval = 5.seconds) { Files.exists(report) }
+                    }.onFailure {
+                        println("self-test progress ($batch): " + (if (Files.exists(progress)) Files.readAllLines(progress).takeLast(5) else "handler never started"))
+                        throw it
+                    }
                     Regex(""""Reported": \[\s*"LAMA""").containsMatchIn(Files.readString(report))
                 }
                 Files.copy(report, reports.resolve("fix-selftest-$batch.json"), StandardCopyOption.REPLACE_EXISTING)

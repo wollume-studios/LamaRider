@@ -26,12 +26,18 @@ public static class FixSelfTest
     /// <param name="Reported">Diagnostic ids the worker reported in the sample.</param>
     public sealed record SampleResult(string Id, List<string> Reported, List<FixResult> Fixes, string? Error);
 
-    public static List<SampleResult> Run(ISolution solution, AspectModel model)
+    /// <param name="progress">Called with a line of progress (the handler writes them to a file next to the report).</param>
+    public static List<SampleResult> Run(ISolution solution, AspectModel model, Action<string>? progress = null)
     {
         var results = new List<SampleResult>();
+        progress?.Invoke($"start: {solution.GetAllProjects().Count()} projects, {model.Diagnostics.Count} diagnostics");
         foreach (var project in solution.GetAllProjects().Where(p => Regex.IsMatch(p.Name, @"^LAMA\d{4}$")).OrderBy(p => p.Name))
         {
-            try { results.Add(RunSample(solution, model, project)); }
+            try
+            {
+                results.Add(RunSample(solution, model, project));
+                progress?.Invoke($"{project.Name}: {results[^1].Fixes.Count} fixes, {results[^1].Fixes.Count(f => f.Matches)} match");
+            }
             catch (Exception e) when (e is not OperationCanceledException) { results.Add(new SampleResult(project.Name, [], [], e.ToString())); }
         }
         return results;
