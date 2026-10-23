@@ -24,6 +24,11 @@ Run them with `dotnet test LamaRider.sln` (backend model + worker) and `./gradle
 | Frontend: obj/…/metalama fallback for Open Transformed File / Metalama Diff | `ObjTransformedFilesTest.kt` |
 | Frontend: aspect test output lookup (newest `obj/transformed/<tfm>` output, test ↔ `.t.cs`, only aspect test projects), comparison ignoring line endings and trailing whitespace | `AspectTestOutputTest.kt` |
 
+## Quick-fixes for Metalama diagnostics
+
+- **Unit tests** of the pure fix logic: `tests/LamaRider.Model.Tests/*FixLogicTests.cs` (target, template authoring, compile-time code, introduction, patterns, project), `FixSampleTests.cs` and `MsBuildEditsTests.cs`.
+- **Self-test**: `samples/MetalamaFixSamples` has one project per diagnostic id, with the code that reports it and the fixed code (`.expected`); `tools/make-fix-samples.py` builds it from Metalama's documentation samples. The Find Action command *LamaRider: Self-Test Metalama Quick-Fixes* applies every specific fix of each sample, compares the code with the `.expected` files, restores it and writes `fix-selftest.json`. `FixesUiTest` (`./gradlew uiTest`) runs it in a real Rider and copies the report to `build/fix-selftest.json`. The self-test has not been run yet.
+
 ## Covered by UI tests
 
 `./gradlew uiTest` (`src/rider/uiTest/kotlin/dev/lamarider/uitest/LamaRiderUiTest.kt`) drives a real Rider on the sample
