@@ -10,6 +10,9 @@ import re
 import shutil
 import sys
 
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from sln_writer import write_solution  # noqa: E402
+
 ROOT = os.path.join(os.path.dirname(__file__), "..", "samples", "MetalamaFixSamples")
 VERSION = "2026.1.30"
 # Not available for Metalama 2026.1 or not buildable on Linux: interceptors, WPF, SDK weavers.
@@ -52,6 +55,9 @@ def write(path, text):
         out.write(text)
 
 
+BATCH = 30
+
+
 def main(source):
     os.makedirs(ROOT, exist_ok=True)
     for entry in os.listdir(ROOT):  # the folder itself may be in use (a shell's working directory)
@@ -82,19 +88,11 @@ def main(source):
         samples.append(sample)
 
     write(os.path.join(ROOT, "Directory.Build.props"), PROPS)
-    lines = ["", "Microsoft Visual Studio Solution File, Format Version 12.00", "# Visual Studio Version 17"]
-    guids = []
-    for i, sample in enumerate(samples):
-        guid = "{F1A50000-0000-4000-8000-%012X}" % (i + 1)
-        guids.append(guid)
-        lines.append(f'Project("{{9A19103F-16F7-4668-BE54-9A1E7A4F7556}}") = "{sample}", "{sample}\\{sample}.csproj", "{guid}"')
-        lines.append("EndProject")
-    lines += ["Global", "\tGlobalSection(SolutionConfigurationPlatforms) = preSolution", "\t\tDebug|Any CPU = Debug|Any CPU", "\tEndGlobalSection",
-              "\tGlobalSection(ProjectConfigurationPlatforms) = postSolution"]
-    for guid in guids:
-        lines += [f"\t\t{guid}.Debug|Any CPU.ActiveCfg = Debug|Any CPU", f"\t\t{guid}.Debug|Any CPU.Build.0 = Debug|Any CPU"]
-    lines += ["\tEndGlobalSection", "EndGlobal", ""]
-    write(os.path.join(ROOT, "MetalamaFixSamples.sln"), "\n".join(lines))
+    # One solution of everything, and batches of BATCH projects: Rider watches every project's folder, and Linux allows
+    # only 128 inotify instances per user by default, so the self-test opens one batch at a time.
+    write_solution(os.path.join(ROOT, "MetalamaFixSamples.sln"), samples, 0)
+    for n in range(0, len(samples), BATCH):
+        write_solution(os.path.join(ROOT, "Batch%02d.sln" % (n // BATCH + 1)), samples[n:n + BATCH], n)
     print("samples:", len(samples))
 
 

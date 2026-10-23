@@ -101,10 +101,10 @@ abstract class UiTestBase {
 
     /** [prepare] changes the sample copy before Rider opens it. */
     /** [sample]: a folder next to samples/MetalamaSample with a solution of the same name. */
-    protected fun withRider(name: String, prepare: (Path) -> Unit = {}, sample: String = "MetalamaSample", test: Driver.() -> Unit) {
+    protected fun withRider(name: String, prepare: (Path) -> Unit = {}, sample: String = "MetalamaSample", solution: String = sample, test: Driver.() -> Unit) {
         solutionDir = sampleCopy(sample)
         prepare(solutionDir)
-        val context = Starter.newContext(name, TestCase(rider(), SolutionProject(solutionDir.resolve("$sample.sln"))))
+        val context = Starter.newContext(name, TestCase(rider(), SolutionProject(solutionDir.resolve("$solution.sln"))))
         PluginConfigurator(context).installPluginFromDir(Path.of(System.getProperty("lamarider.plugin")))
         // Fresh temp copy of the sample each test: without this, Rider asks to trust it (a dialog on the user's screen).
         context.applyVMOptionsPatch { addSystemProperty("idea.trust.all.projects", true) }
