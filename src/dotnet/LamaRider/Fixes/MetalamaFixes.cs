@@ -54,6 +54,7 @@ public sealed class FixContext
 {
     readonly List<(DocumentRange Range, string Text)> _edits = new();
     readonly List<(IProject Project, Func<string, string> Edit)> _projectEdits = new();
+    readonly List<(string Path, string Text)> _newFiles = new();
 
     public FixContext(ISolution solution, DiagnosticInfo diagnostic, ICSharpFile? file, DocumentRange range, AspectModel? model)
     {
@@ -99,9 +100,15 @@ public sealed class FixContext
     public void Delete(DocumentRange range) => Replace(range, "");
     public void Delete(ITreeNode node) => Replace(node, "");
     public void EditProjectFile(IProject project, Func<string, string> edit) => _projectEdits.Add((project, edit));
+
+    /// <summary>Creates a file (e.g. a fabric); SDK-style projects pick it up from disk.</summary>
+    public void CreateFile(string path, string text) => _newFiles.Add((path, text));
+
+    /// <summary>The files <see cref="Commit"/> created (the self-test deletes them again).</summary>
+    public List<string> CreatedFiles { get; } = new();
     public void Tell(string message) => Message = Message == null ? message : Message + "\n" + message;
 
-    internal bool HasEdits => _edits.Count > 0 || _projectEdits.Count > 0;
+    internal bool HasEdits => _edits.Count > 0 || _projectEdits.Count > 0 || _newFiles.Count > 0;
 
     /// <summary>Document edits from the end backwards, so earlier offsets stay valid; then project files. Outside PSI transactions.</summary>
     internal void Commit(bool notify = true)
@@ -114,6 +121,15 @@ public sealed class FixContext
             var path = project.ProjectFileLocation.FullPath;
             try { System.IO.File.WriteAllText(path, edit(System.IO.File.ReadAllText(path))); }
             catch (Exception e) when (e is IOException or UnauthorizedAccessException) { Tell($"Cannot change {Path.GetFileName(path)}: {e.Message}"); }
+        }
+        foreach (var (path, text) in _newFiles)
+        {
+            try
+            {
+                System.IO.File.WriteAllText(path, text);
+                CreatedFiles.Add(path);
+            }
+            catch (Exception e) when (e is IOException or UnauthorizedAccessException) { Tell($"Cannot create {Path.GetFileName(path)}: {e.Message}"); }
         }
         if (notify && Message != null) Solution.GetProtocolSolution().GetLamaRiderModel().Info.Fire(Message);
     }

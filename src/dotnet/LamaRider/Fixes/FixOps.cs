@@ -27,9 +27,14 @@ public static class FixOps
     public static bool HasModifier(ICSharpModifiersOwnerDeclaration declaration, string modifier) =>
         Modifiers(declaration).Any(m => m.GetText() == modifier);
 
-    /// <summary>Where the declaration proper starts: after its attributes and doc comment.</summary>
+    /// <summary>
+    /// Where the declaration proper starts: after its attributes and doc comment. A field's (or event's, constant's)
+    /// modifiers and type belong to its multiple declaration: that one starts the declaration.
+    /// </summary>
     public static DocumentOffset StartAfterAttributes(ITreeNode declaration)
     {
+        if (declaration is IFieldDeclaration or IEventDeclaration or IConstantDeclaration && declaration.GetContainingNode<IMultipleDeclaration>() is { } multiple)
+            declaration = multiple;
         for (var child = declaration.FirstChild; child != null; child = child.NextSibling)
             if (child is not (IAttributeSectionList or IAttributeSection or IDocCommentBlock or IWhitespaceNode or ICommentNode))
                 return child.GetDocumentStartOffset();
@@ -230,18 +235,28 @@ public static class FixOps
 
     // --- Code --------------------------------------------------------------------------------------------------------
 
-    /// <summary>Adds `using <paramref name="ns"/>;` after the file's last using directive (or at its start).</summary>
-    public static void AddUsing(FixContext c, string ns)
+    /// <summary>
+    /// Adds `using <paramref name="ns"/>;` to <paramref name="file"/> (default: the diagnostic's file) in alphabetical
+    /// position among its using directives, or at its start.
+    /// </summary>
+    public static void AddUsing(FixContext c, string ns, ICSharpFile? file = null)
     {
-        if (c.File == null) return;
-        var usings = c.File.Descendants<IUsingDirective>().ToEnumerable().ToList();
-        if (usings.OfType<IUsingSymbolDirective>().Any(u => u.ImportedSymbolName?.QualifiedName == ns)) return;
-        if (usings.LastOrDefault() is { } last)
+        file ??= c.File;
+        if (file == null) return;
+        var usings = file.Descendants<IUsingSymbolDirective>().ToEnumerable().ToList();
+        if (usings.Any(u => u.ImportedSymbolName?.QualifiedName == ns)) return;
+        var after = usings.LastOrDefault(u => string.CompareOrdinal(u.ImportedSymbolName?.QualifiedName ?? "", ns) < 0);
+        if (after != null)
         {
-            c.Insert(last.GetDocumentEndOffset(), $"\nusing {ns};");
+            c.Insert(after.GetDocumentEndOffset(), $"\nusing {ns};");
             return;
         }
-        var document = c.Document ?? c.File.GetDocumentRange().Document;
+        if (usings.FirstOrDefault() is { } first)
+        {
+            c.Insert(first.GetDocumentStartOffset(), $"using {ns};\n");
+            return;
+        }
+        var document = file.GetDocumentRange().Document;
         c.Insert(new DocumentOffset(document, 0), $"using {ns};\n\n");
     }
 

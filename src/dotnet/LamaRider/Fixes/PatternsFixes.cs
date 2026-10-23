@@ -169,13 +169,8 @@ public sealed class ContractFixes : FixProvider
             }
 
             """;
-        // A new file, not a text edit: SDK-style projects pick it up from disk.
-        try
-        {
-            File.WriteAllText(fabric, code.Replace("\n", Environment.NewLine));
-            c.Tell($"Added {Path.GetFileName(fabric)}, a fabric that enables invariant suspension in project '{c.Project!.Name}'.");
-        }
-        catch (Exception e) when (e is IOException or UnauthorizedAccessException) { c.Tell($"Cannot create {Path.GetFileName(fabric)}: {e.Message}"); }
+        c.CreateFile(fabric, code.Replace("\n", Environment.NewLine));
+        c.Tell($"Added {Path.GetFileName(fabric)}, a fabric that enables invariant suspension in project '{c.Project!.Name}'.");
     }
 }
 

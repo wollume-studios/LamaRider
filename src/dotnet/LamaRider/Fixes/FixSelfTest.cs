@@ -57,10 +57,11 @@ public static class FixSelfTest
                 var snapshot = files.ToDictionary(f => f.Document, f => f.Document.GetText());
                 var csprojText = File.ReadAllText(csproj);
                 string? text = null;
+                FixContext? applied = null;
                 try
                 {
                     // A fresh context per fix: the previous one's edits were undone, so PSI changed.
-                    var context = Contexts(solution, model, diagnostic, files)!;
+                    var context = applied = Contexts(solution, model, diagnostic, files)!;
                     var fix = Specific(context)[k];
                     text = fix.Text;
                     fix.Apply(context);
@@ -79,6 +80,7 @@ public static class FixSelfTest
                         foreach (var entry in snapshot)
                             if (entry.Key.GetText() != entry.Value) entry.Key.ReplaceText(new JetBrains.Util.TextRange(0, entry.Key.GetTextLength()), entry.Value);
                     if (File.ReadAllText(csproj) != csprojText) File.WriteAllText(csproj, csprojText);
+                    foreach (var created in applied?.CreatedFiles ?? []) File.Delete(created);
                     solution.GetPsiServices().Files.CommitAllDocuments();
                 }
             }
