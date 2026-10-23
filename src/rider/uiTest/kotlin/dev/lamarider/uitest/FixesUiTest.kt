@@ -23,18 +23,28 @@ class FixesUiTest : UiTestBase() {
         for (batch in batches) {
             withRider("fixes-$batch", sample = "MetalamaFixSamples", solution = batch) {
                 val report = solutionDir.resolve("fix-selftest.json")
-                // The worker analyzes the batch first: repeat until the report has the samples' own diagnostics.
-                waitFor("self-test report with diagnostics ($batch)", timeout = 25.minutes, interval = 20.seconds) {
-                    Files.deleteIfExists(report)
-                    invokeAction("LamaRider.SelfTestFixes")
-                    val progress = solutionDir.resolve("fix-selftest.json.progress")
-                    runCatching {
-                        waitFor("report written", timeout = 8.minutes, interval = 5.seconds) { Files.exists(report) }
-                    }.onFailure {
-                        println("self-test progress ($batch): " + (if (Files.exists(progress)) Files.readAllLines(progress).takeLast(5) else "handler never started"))
-                        throw it
+                val progress = solutionDir.resolve("fix-selftest.json.progress")
+                // The signal is dropped while LamaRider's backend connection isn't up yet: ask again until the handler has started.
+                waitFor("self-test handler started ($batch)", timeout = 15.minutes, interval = 20.seconds) {
+                    if (!Files.exists(progress)) invokeAction("LamaRider.SelfTestFixes")
+                    Files.exists(progress)
+                }
+                runCatching {
+                    waitFor("report written ($batch)", timeout = 30.minutes, interval = 10.seconds) { Files.exists(report) }
+                }.onFailure {
+                    println("self-test progress ($batch): " + Files.readAllLines(progress).takeLast(5))
+                    throw it
+                }
+                // The first pass can run before the worker has analyzed the batch (no diagnostics yet): once more.
+                if (!Regex(""""Reported": \[\s*"LAMA""").containsMatchIn(Files.readString(report))) {
+                    Files.delete(report)
+                    Files.delete(progress)
+                    waitFor("self-test report with diagnostics ($batch)", timeout = 25.minutes, interval = 30.seconds) {
+                        if (!Files.exists(progress)) invokeAction("LamaRider.SelfTestFixes")
+                        Files.exists(report) && Regex(""""Reported": \[\s*"LAMA""").containsMatchIn(Files.readString(report)).also {
+                            if (!it) { Files.deleteIfExists(report); Files.deleteIfExists(progress) }
+                        }
                     }
-                    Regex(""""Reported": \[\s*"LAMA""").containsMatchIn(Files.readString(report))
                 }
                 Files.copy(report, reports.resolve("fix-selftest-$batch.json"), StandardCopyOption.REPLACE_EXISTING)
             }
