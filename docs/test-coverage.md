@@ -27,7 +27,12 @@ Run them with `dotnet test LamaRider.sln` (backend model + worker) and `./gradle
 ## Quick-fixes for Metalama diagnostics
 
 - **Unit tests** of the pure fix logic: `tests/LamaRider.Model.Tests/*FixLogicTests.cs` (target, template authoring, compile-time code, introduction, patterns, project), `FixSampleTests.cs` and `MsBuildEditsTests.cs`.
-- **Self-test**: `samples/MetalamaFixSamples` has one project per diagnostic id, with the code that reports it and the fixed code (`.expected`); `tools/make-fix-samples.py` builds it from Metalama's documentation samples. The Find Action command *LamaRider: Self-Test Metalama Quick-Fixes* applies every specific fix of each sample, compares the code with the `.expected` files, restores it and writes `fix-selftest.json`. `FixesUiTest` (`./gradlew uiTest`) runs it in a real Rider and copies the report to `build/fix-selftest.json`. The self-test has not been run yet.
+- **Self-test**: `samples/MetalamaFixSamples` has one project per diagnostic id, with the code that reports it and the fixed code (`.expected`); `tools/make-fix-samples.py` builds it from Metalama's documentation samples. The Find Action command *LamaRider: Self-Test Metalama Quick-Fixes* applies every specific fix of each sample, compares the code with the `.expected` files, restores it and writes `fix-selftest.json`. `FixesUiTest` (`./gradlew uiTest`) runs it in a real Rider and copies the report to `build/fix-selftest.json`.
+  Run on Ubuntu against `samples/MetalamaFixSamples` with Metalama 2026.1: 202 sample projects, opened in 7 batches of 30 (`Batch01.sln` to `Batch07.sln`; Linux allows 128 inotify watchers per user). The backend runs the self-test when a `fix-selftest.request` file appears in the solution folder (the Find Action command creates it); it writes `fix-selftest.json` and `.progress` next to it, and `tools/fix-selftest-summary.py` summarizes the batch reports. To run it: `./gradlew uiTest --tests "*FixesUiTest*"`, or the Find Action command in your own Rider.
+  - 151 samples report their own diagnostic under Metalama 2026.1; the other 51 report another id or none, so their fixes (written from the docs) are untested here.
+  - 109 samples have fixes. For 100 of them a fix produces exactly the code of Metalama's documented fixed version (ignoring whitespace and comments); no fix threw.
+  - Not matching: LAMA0045, 0060, 0207, 0231, 0237, 0242, 0906, 5005, 5111 (the documented fix needs values a tool cannot know, or restructures code).
+  - About 42 samples that report their id have no fix by design (restructuring, Metalama bugs, environment).
 
 ## Covered by UI tests
 
