@@ -53,11 +53,11 @@ class CompileTimeBreakpoints(private val project: Project) : XDebuggerManagerLis
             log.info("LamaRider: mirrored ${targets.size} breakpoints to ${copies.map { it.file.path }.distinct()}")
         }
 
-        mirror(sources.keys.flatMap { CompileTimeMaps.copiesOf(cache, it) })
-
         val running = java.util.concurrent.atomic.AtomicBoolean(true)
         val started = System.currentTimeMillis()
         ApplicationManager.getApplication().executeOnPooledThread { try {
+            // Off the UI thread: the Metalama temp folder grows with every build and test run, and reading its maps takes seconds.
+            mirror(sources.keys.flatMap { CompileTimeMaps.copiesOf(cache, it) })
             // ponytail: polls (the copy is compiled ~50 ms after it is written); a miss means no stop, as without LamaRider.
             val builds = CompileTimeMaps.byName(cache)
             log.info("LamaRider: watching ${File(root, "Tests")} for ${builds.keys}")
