@@ -1,0 +1,12 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <ItemGroup>
+    <PackageReference Include="Metalama.Framework" Version="2026.1.30" />
+    <PackageReference Include="Metalama.Patterns.Contracts" Version="2026.1.30" />
+    <PackageReference Include="Metalama.Patterns.Observability" Version="2026.1.30" />
+    <PackageReference Include="Metalama.Patterns.Caching.Aspects" Version="2026.1.30" />
+    <PackageReference Include="Metalama.Patterns.Immutability" Version="2026.1.30" />
+    <PackageReference Include="Metalama.Extensions.DependencyInjection" Version="2026.1.30" />
+  </ItemGroup>
+
+</Project>

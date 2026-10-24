@@ -9,6 +9,7 @@ How to use each feature, and its limitations. Overview with screenshots: [README
 - [Aspects into code](#aspects-into-code): add an aspect as attribute, replace a declaration with its transformed code
 - [T# highlighting](#t-highlighting)
 - [Metalama errors](#metalama-errors)
+- [Quick-fixes for Metalama diagnostics](#quick-fixes-for-metalama-diagnostics): Alt+Enter on errors, warnings and infos
 - [Debugging transformed code](#debugging-transformed-code)
 - [Aspect tests](#aspect-tests)
 - [Metalama Premium code](#metalama-premium-code): warnings, `#if METALAMA_PREMIUM`, free and Premium builds
@@ -229,6 +230,27 @@ Limitations:
 - Errors without a location in aspect test inputs are not shown (a test may expect them).
 - *Build to resume* is offered in every aspect and template file, whether or not Metalama has paused. Fabric files
   without templates don't get it.
+
+## Quick-fixes for Metalama diagnostics
+
+Metalama errors, warnings and infos with a location show in the editor; warnings and infos as a barely visible hint
+next to Rider's own squiggle. Alt+Enter on one offers fixes:
+
+- **Every diagnostic**: *Look up LAMA#### online* (the article on doc.metalama.net once it is published, else the article in Metalama's documentation repository on GitHub, else a web search).
+  Warnings and infos: *Suppress LAMA#### here (#pragma)* and *Suppress LAMA#### in project (NoWarn)*.
+  Errors where an aspect doesn't fit its target: *Remove [Aspect] from this declaration*.
+- **Specific fixes** for 199 diagnostic ids ([list](metalama-fixes.md)): they edit your code or the aspect's source,
+  the project file (`LangVersion`, MSBuild properties, `NoWarn`), open a crash report or start a rebuild. Where several
+  fixes fit, each is offered.
+
+Limitations:
+
+- A fix is offered only when the code has the shape it expects; some (LINQ rewrites, constructor conversion, moves)
+  handle only simple shapes.
+- When the aspect comes from a NuGet package, only fixes on the target side are offered. Fixes in aspect code for
+  errors reported on the aspect's target need the aspect's source in the solution.
+- Diagnostics without a file (project-level) show on the aspect class.
+- Diagnostics update after each analysis, a few seconds after saving; changes to compile-time code pause Metalama until a build.
 
 ## Debugging transformed code
 

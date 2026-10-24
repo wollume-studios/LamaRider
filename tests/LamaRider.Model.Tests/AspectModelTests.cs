@@ -94,7 +94,7 @@ public class AspectModelTests
         Assert.Equal("", AspectModel.Parse(Json("")).ErrorSummary);
 
     [Fact]
-    public void Project_wide_errors_apply_to_own_aspect_classes_of_that_project()
+    public void Project_wide_diagnostics_apply_to_own_aspect_classes_of_that_project()
     {
         const string json = """
             {"schema":1,"aspectClasses":[
@@ -108,10 +108,10 @@ public class AspectModelTests
                {"id":"LAMA0999","severity":"Warning","message":"w","project":"EFA"}]}
             """;
         var model = AspectModel.Parse(json);
-        Assert.Equal(["LAMA0042"], model.ProjectErrorsFor("T:EFA.Class1").Select(d => d.Id));
-        Assert.Empty(model.ProjectErrorsFor("T:Other.Aspect"));
-        Assert.Empty(model.ProjectErrorsFor("T:Lib.Url"));
-        Assert.Empty(model.ProjectErrorsFor("T:Unknown"));
+        Assert.Equal(["LAMA0042", "LAMA0999"], model.ProjectDiagnosticsFor("T:EFA.Class1").Select(d => d.Id)); // warnings carry quick-fixes too
+        Assert.Empty(model.ProjectDiagnosticsFor("T:Other.Aspect"));
+        Assert.Empty(model.ProjectDiagnosticsFor("T:Lib.Url"));
+        Assert.Empty(model.ProjectDiagnosticsFor("T:Unknown"));
     }
 
     [Fact]
@@ -151,5 +151,18 @@ public class AspectModelTests
             """;
         var errors = AspectModel.Parse(json).LocatedErrorsIn("c:/src/TEST.cs");
         Assert.Equal(["LAMA0037"], errors.Select(d => d.Id));
+    }
+
+    [Fact]
+    public void Located_diagnostics_leave_out_C_sharp_compiler_errors_which_Rider_shows_itself()
+    {
+        var model = AspectModel.Parse("""
+            {"schema":1,"aspectClasses":[],"instances":[],"transformations":[],"templateClassifications":[],"transformedFiles":[],
+             "diagnostics":[
+               {"id":"CS0161","severity":"Error","message":"not all paths return","project":"P","file":"C:/x.cs","line":49},
+               {"id":"LAMA0037","severity":"Error","message":"eligibility","project":"P","file":"C:/x.cs","line":5},
+               {"id":"LAMA0048","severity":"Warning","message":"partial","project":"P","file":"C:/x.cs","line":9}]}
+            """);
+        Assert.Equal(["LAMA0037", "LAMA0048"], model.LocatedDiagnosticsIn("C:/x.cs").Select(d => d.Id));
     }
 }

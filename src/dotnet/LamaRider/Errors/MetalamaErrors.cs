@@ -27,11 +27,12 @@ using LamaRider.Model;
 namespace LamaRider.Errors;
 
 /// <summary>
-/// Metalama errors from the worker model, which has them seconds after a save: project-wide ones (no location, e.g. LAMA0042)
+/// Metalama diagnostics from the worker model, which has them seconds after a save (errors as errors; warnings and infos
+/// as hints that carry quick-fixes): project-wide ones (no location, e.g. LAMA0042)
 /// on the user's aspect classes of that project; located ones (e.g. LAMA0037) on their target declaration or line. Rider's
 /// own Metalama squiggles wait for a build after compile-time code changed (LAMA0118).
 /// </summary>
-[DaemonStage(HighlightingTypes = new[] { typeof(MetalamaProjectErrorHighlighting) })]
+[DaemonStage(HighlightingTypes = new[] { typeof(MetalamaProjectErrorHighlighting), typeof(MetalamaDiagnosticHint) })]
 public sealed class MetalamaErrorStage(AspectModelHost host) : IDaemonStage
 {
     public IEnumerable<IDaemonStageProcess> CreateProcess(IDaemonProcess process, IContextBoundSettingsStore settings, DaemonProcessKind processKind)
@@ -53,53 +54,37 @@ public sealed class MetalamaErrorStage(AspectModelHost host) : IDaemonStage
                 if (declaration.DeclaredElement is not { } type) continue;
                 var nameRange = declaration.GetNameDocumentRange();
                 if (!nameRange.IsValid()) continue;
-                foreach (var diagnostic in model.ProjectErrorsFor(XMLDocUtil.GetTypeElementXmlDocId(type)))
-                    result.Add(new HighlightingInfo(nameRange, new MetalamaProjectErrorHighlighting(diagnostic, nameRange)));
+                foreach (var diagnostic in model.ProjectDiagnosticsFor(XMLDocUtil.GetTypeElementXmlDocId(type)))
+                    result.Add(new HighlightingInfo(nameRange, diagnostic.Severity == "Error"
+                        ? new MetalamaProjectErrorHighlighting(diagnostic, nameRange, daemonProcess.Solution)
+                        : new MetalamaDiagnosticHint(diagnostic, nameRange, daemonProcess.Solution)));
             }
 
-            var located = model.LocatedErrorsIn(daemonProcess.SourceFile.GetLocation().FullPath).ToList();
+            var located = model.LocatedDiagnosticsIn(daemonProcess.SourceFile.GetLocation().FullPath).ToList();
             if (located.Count > 0)
             {
-                // On the target's name when the declaration is here, else on the reported line.
-                var names = new Dictionary<string, DocumentRange>();
-                foreach (var declaration in file.Descendants<IDeclaration>())
-                {
-                    var id = declaration.DeclaredElement switch
-                    {
-                        ITypeElement type => XMLDocUtil.GetTypeElementXmlDocId(type),
-                        ITypeMember member => XMLDocUtil.GetTypeMemberXmlDocId(member, member.ShortName),
-                        _ => null,
-                    };
-                    var range = declaration.GetNameDocumentRange();
-                    if (id != null && range.IsValid()) names.TryAdd(id, range);
-                }
+                var names = Fixes.DiagnosticRanges.Names(file);
                 var document = daemonProcess.Document;
                 foreach (var diagnostic in located)
                 {
-                    DocumentRange range;
-                    if (diagnostic.Target != null && names.TryGetValue(diagnostic.Target, out var name)) range = name;
-                    else if (diagnostic.Line is { } line && line >= 1 && line <= (int)document.GetLineCount())
-                    {
-                        var docLine = (Int32<DocLine>)(line - 1);
-                        var start = document.GetLineStartOffset(docLine);
-                        var end = document.GetLineEndOffsetNoLineBreak(docLine);
-                        var text = document.GetText(new TextRange(start, end));
-                        var trimmedStart = start + (text.Length - text.TrimStart().Length);
-                        range = new DocumentRange(document, new TextRange(trimmedStart, Math.Max(trimmedStart, end)));
-                    }
-                    else continue;
-                    result.Add(new HighlightingInfo(range, new MetalamaProjectErrorHighlighting(diagnostic, range)));
+                    if (Fixes.DiagnosticRanges.Of(diagnostic, document, names) is not { } range) continue;
+                    IHighlighting highlighting = diagnostic.Severity == "Error"
+                        ? new MetalamaProjectErrorHighlighting(diagnostic, range, daemonProcess.Solution)
+                        : new MetalamaDiagnosticHint(diagnostic, range, daemonProcess.Solution);
+                    result.Add(new HighlightingInfo(range, highlighting));
                 }
             }
             committer(new DaemonStageResult(result));
         }
+
     }
 }
 
 [StaticSeverityHighlighting(Severity.ERROR, typeof(HighlightingGroupIds.CodeSmellStatic), OverlapResolve = OverlapResolveKind.ERROR, ShowToolTipInStatusBar = true)]
-public sealed class MetalamaProjectErrorHighlighting(DiagnosticInfo diagnostic, DocumentRange range) : IHighlighting
+public sealed class MetalamaProjectErrorHighlighting(DiagnosticInfo diagnostic, DocumentRange range, ISolution solution) : Fixes.IMetalamaDiagnosticHighlighting
 {
     public DiagnosticInfo Diagnostic => diagnostic;
+    public ISolution Solution => solution;
     public string ToolTip => diagnostic.File == null
         ? $"Metalama {diagnostic.Id} in project '{diagnostic.Project}': {diagnostic.Message}"
         : $"Metalama {diagnostic.Id}: {diagnostic.Message}";
@@ -108,15 +93,25 @@ public sealed class MetalamaProjectErrorHighlighting(DiagnosticInfo diagnostic, 
     public DocumentRange CalculateRange() => range;
 }
 
-[QuickFix]
-public sealed class OpenMetalamaErrorDocumentation(MetalamaProjectErrorHighlighting highlighting) : QuickFixBase
+/// <summary>
+/// A Metalama warning or info. Rider shows its own squiggle for it; this one is barely visible and carries the quick-fixes.
+/// </summary>
+[StaticSeverityHighlighting(Severity.HINT, typeof(HighlightingGroupIds.CodeSmellStatic), OverlapResolve = OverlapResolveKind.NONE)]
+public sealed class MetalamaDiagnosticHint(DiagnosticInfo diagnostic, DocumentRange range, ISolution solution) : Fixes.IMetalamaDiagnosticHighlighting
 {
-    public override string Text => $"Look up {highlighting.Diagnostic.Id} online";
-    public override bool IsAvailable(IUserDataHolder cache) => highlighting.Diagnostic.Id.StartsWith("LAMA", StringComparison.Ordinal);
-
-    protected override Action<ITextControl>? ExecutePsiTransaction(ISolution solution, IProgressIndicator progress) =>
-        _ => solution.GetProtocolSolution().GetLamaRiderModel().OpenDiagnosticDocs.Fire(highlighting.Diagnostic.Id);
+    public DiagnosticInfo Diagnostic => diagnostic;
+    public ISolution Solution => solution;
+    public string ToolTip => $"Metalama {diagnostic.Id}: {diagnostic.Message}";
+    public string ErrorStripeToolTip => ToolTip;
+    public bool IsValid() => true;
+    public DocumentRange CalculateRange() => range;
 }
+
+[QuickFix]
+public sealed class MetalamaErrorFixes(MetalamaProjectErrorHighlighting highlighting) : Fixes.MetalamaFixesBase(highlighting);
+
+[QuickFix]
+public sealed class MetalamaHintFixes(MetalamaDiagnosticHint highlighting) : Fixes.MetalamaFixesBase(highlighting);
 
 /// <summary>
 /// Metalama pauses design-time analysis (LAMA0118) after compile-time code changes until the project is built.
