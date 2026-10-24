@@ -2,6 +2,8 @@
 
 Put the caret on a Metalama diagnostic (error, warning or info) and press Alt+Enter. 199 diagnostic ids have fixes specific to them; they are listed below. Back to [Using LamaRider](usage.md#quick-fixes-for-metalama-diagnostics).
 
+The fixes are checked against Metalama's documented samples ([test coverage](test-coverage.md#quick-fixes-for-metalama-diagnostics)). Known differences (the fix does not reproduce the documented code): LAMA0045, 0060, 0207, 0231, 0237, 0242, 0906, 5005, 5111.
+
 **Every diagnostic**
 - *Look up LAMA#### online*: opens the article on doc.metalama.net once Metalama publishes it there (LamaRider checks at startup), else the article in Metalama's documentation repository on GitHub, else a web search.
 - Warnings and infos: *Suppress LAMA#### here (#pragma)* and *Suppress LAMA#### in project (NoWarn)*.
