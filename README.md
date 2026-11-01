@@ -215,4 +215,4 @@ tests/               worker and model tests
 
 ## License
 
-[MIT](LICENSE). Metalama itself is licensed separately by PostSharp Technologies; LamaRider only uses its open-source framework.
+[MIT](LICENSE).
