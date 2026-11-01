@@ -53,7 +53,7 @@ object TransformedCodePopup {
         val transformed = ModelData.snippet(text, declaration.start, declaration.end)
         val source = sourceSnippet(sourceFile, declaration)
 
-        val disposable = Disposer.newDisposable("LamaRider transformed code popup")
+        val disposable = Disposer.newDisposable("LamaRyder transformed code popup")
         val fileType = FileTypeManager.getInstance().getFileTypeByFileName(File(sourceFile).name)
         val factory = DiffContentFactory.getInstance()
 

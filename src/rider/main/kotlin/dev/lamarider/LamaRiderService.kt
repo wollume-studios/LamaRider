@@ -146,7 +146,7 @@ class LamaRiderService(val project: Project) {
         }
         rdModel.codeVisionClicked.advise(lifetime) { id -> onCodeVisionClicked?.invoke(id) }
         sendHintOptions()
-        rdModel.info.advise(lifetime) { message -> notify("LamaRider", message) }
+        rdModel.info.advise(lifetime) { message -> notify("LamaRyder", message) }
         rdModel.openDiagnosticDocs.advise(lifetime) { id -> dev.lamarider.errors.MetalamaDocs.open(id) }
         rdModel.openFile.advise(lifetime) { path ->
             ApplicationManager.getApplication().invokeLater {
@@ -156,7 +156,7 @@ class LamaRiderService(val project: Project) {
         }
         rdModel.testSettingsSuggested.advise(lifetime) { TestSettingsNotification.show(project) }
         rdModel.failed.advise(lifetime) { message ->
-            NotificationGroupManager.getInstance().getNotificationGroup("LamaRider")
+            NotificationGroupManager.getInstance().getNotificationGroup("LamaRyder")
                 .createNotification("Metalama aspects could not be refreshed", message, NotificationType.WARNING)
                 .notify(project)
         }
@@ -201,5 +201,5 @@ class LamaRiderService(val project: Project) {
     }
 
     fun notify(title: String, content: String, type: NotificationType = NotificationType.INFORMATION) =
-        NotificationGroupManager.getInstance().getNotificationGroup("LamaRider").createNotification(title, content, type).notify(project)
+        NotificationGroupManager.getInstance().getNotificationGroup("LamaRyder").createNotification(title, content, type).notify(project)
 }

@@ -56,7 +56,7 @@ public static class DebugTransformedCodeProps
     {
         if (!options.DebugTransformedCode && options.FormatOutput && !options.FormatCompileTimeCode) return null;
         var sb = new StringBuilder("  <PropertyGroup Label=\"LamaRider\">\n");
-        sb.Append("    <!-- Added by LamaRider (Settings > Tools > LamaRider) -->\n");
+        sb.Append("    <!-- Added by LamaRyder (Settings > Tools > LamaRyder) -->\n");
         if (options.DebugTransformedCode)
             sb.Append("    <!-- Debug Metalama-transformed code (obj/<Configuration>/<TFM>/metalama) -->\n")
               .Append("    <MetalamaDebugTransformedCode>true</MetalamaDebugTransformedCode>\n");

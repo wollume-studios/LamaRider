@@ -21,7 +21,7 @@ object MetalamaDiff {
         val source = LocalFileSystem.getInstance().findFileByPath(file) ?: return
         val transformedPath = project.service<LamaRiderService>().transformedPathFor(file) ?: ObjTransformedFiles.find(file)
         if (transformedPath == null) {
-            NotificationGroupManager.getInstance().getNotificationGroup("LamaRider").createNotification(
+            NotificationGroupManager.getInstance().getNotificationGroup("LamaRyder").createNotification(
                 "No Metalama transformations in ${source.name}",
                 "If aspects should apply here, build the solution or refresh the Aspect Explorer. " +
                     "Without the worker, set <code>MetalamaEmitCompilerTransformedFiles</code> to <code>true</code> in the project.",

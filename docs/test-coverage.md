@@ -27,7 +27,7 @@ Run them with `dotnet test LamaRider.sln` (backend model + worker) and `./gradle
 ## Quick-fixes for Metalama diagnostics
 
 - **Unit tests** of the pure fix logic: `tests/LamaRider.Model.Tests/*FixLogicTests.cs` (target, template authoring, compile-time code, introduction, patterns, project), `FixSampleTests.cs` and `MsBuildEditsTests.cs`.
-- **Self-test**: `samples/MetalamaFixSamples` has one project per diagnostic id, with the code that reports it and the fixed code (`.expected`); `tools/make-fix-samples.py` builds it from Metalama's documentation samples. The Find Action command *LamaRider: Self-Test Metalama Quick-Fixes* applies every specific fix of each sample, compares the code with the `.expected` files, restores it and writes `fix-selftest.json`. `FixesUiTest` (`./gradlew uiTest`) runs it in a real Rider and copies the report to `build/fix-selftest.json`.
+- **Self-test**: `samples/MetalamaFixSamples` has one project per diagnostic id, with the code that reports it and the fixed code (`.expected`); `tools/make-fix-samples.py` builds it from Metalama's documentation samples. The Find Action command *LamaRyder: Self-Test Metalama Quick-Fixes* applies every specific fix of each sample, compares the code with the `.expected` files, restores it and writes `fix-selftest.json`. `FixesUiTest` (`./gradlew uiTest`) runs it in a real Rider and copies the report to `build/fix-selftest.json`.
   Run on Ubuntu against `samples/MetalamaFixSamples` with Metalama 2026.1: 202 sample projects, opened in 7 batches of 30 (`Batch01.sln` to `Batch07.sln`; Linux allows 128 inotify watchers per user). The backend runs the self-test when a `fix-selftest.request` file appears in the solution folder (the Find Action command creates it); it writes `fix-selftest.json` and `.progress` next to it, and `tools/fix-selftest-summary.py` summarizes the batch reports. To run it: `./gradlew uiTest --tests "*FixesUiTest*"`, or the Find Action command in your own Rider.
   - 151 samples report their own diagnostic under Metalama 2026.1; the other 51 report another id or none, so their fixes (written from the docs) are untested here.
   - 109 samples have fixes. For 100 of them a fix produces exactly the code of Metalama's documented fixed version (ignoring whitespace and comments); no fix threw.
@@ -47,7 +47,7 @@ These need a running Rider (ReSharper daemon, rd protocol, Swing UI); the logic 
 
 - ReSharper glue: Code Vision and error daemon stages, T# highlighter, Alt+Enter build action, quick fix, ReSharper
   navigation to library aspects, solution builder, file watcher, settings layers for aspect tests.
-- Frontend UI: LamaRider tool window, Code Vision popup, transformed-code popup, error info bar, settings page,
+- Frontend UI: LamaRyder tool window, Code Vision popup, transformed-code popup, error info bar, settings page,
   Debug with LamaDebug (solution configuration switch + Debug), Metalama Diff.
 
 A ReSharper integration test project (`JetBrains.ReSharper.TestFramework`) would cover the first group; not set up yet.
@@ -56,7 +56,7 @@ A ReSharper integration test project (`JetBrains.ReSharper.TestFramework`) would
 
 - **Windows**: UI tests run routinely only on Linux (on Windows they open Rider on the desktop). Windows-specific
   behavior (frontend↔backend paths, the Miscellaneous Files project, file locks) is not covered end to end. A *Run /
-  Debug Metalama Aspect Test* failure reported on Windows does not reproduce on Linux; it logs `LamaRider: run aspect
+  Debug Metalama Aspect Test* failure reported on Windows does not reproduce on Linux; it logs `LamaRyder: run aspect
   test refused ...`.
 - **Fixtures**: only the small `samples/MetalamaSample` (.sln, net8). No fixture is shaped like a real project (.slnx,
   net10, older generated test projects).

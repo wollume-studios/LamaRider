@@ -7,7 +7,7 @@ import com.intellij.openapi.options.ShowSettingsUtil
 import com.intellij.openapi.project.DumbAwareAction
 import dev.lamarider.settings.LamaRiderConfigurable
 
-class OpenSettingsAction : DumbAwareAction("LamaRider Settings…", "Settings › Tools › LamaRider", AllIcons.General.Settings) {
+class OpenSettingsAction : DumbAwareAction("LamaRyder Settings…", "Settings › Tools › LamaRyder", AllIcons.General.Settings) {
     override fun getActionUpdateThread() = ActionUpdateThread.BGT
 
     override fun actionPerformed(e: AnActionEvent) =

@@ -16,7 +16,7 @@ enum class TestSettingsScope(val id: String, val label: String) {
 /** Asks before changing settings: Metalama aspect tests need xUnit Test Runner discovery in Rider. */
 object TestSettingsNotification {
     fun show(project: Project) {
-        val notification = NotificationGroupManager.getInstance().getNotificationGroup("LamaRider").createNotification(
+        val notification = NotificationGroupManager.getInstance().getNotificationGroup("LamaRyder").createNotification(
             "Metalama aspect tests need Rider settings",
             "This solution uses Metalama.Testing.AspectTesting, but xUnit test discovery is set to Metadata, which does not find aspect tests. " +
                 "Switch to Test Runner discovery and stop the orphaned-processes prompt for diff tools opened by failing tests?",

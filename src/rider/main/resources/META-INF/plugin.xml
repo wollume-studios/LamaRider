@@ -1,8 +1,8 @@
 <idea-plugin require-restart="true">
   <id>dev.lamarider</id>
-  <name>LamaRider</name>
+  <name>LamaRyder</name>
   <version>_PLACEHOLDER_</version>
-  <vendor>LamaRider</vendor>
+  <vendor>LamaRyder</vendor>
   <depends>com.intellij.modules.rider</depends>
 
   <!-- description: docs/plugin-description.html, set by patchPluginXml -->
@@ -10,10 +10,10 @@
 
   <extensions defaultExtensionNs="com.intellij">
     <rd.solutionExtListener endpoint="IDE Frontend" listener="dev.lamarider.LamaRiderProtocolListener"/>
-    <toolWindow id="LamaRider" anchor="right" icon="/icons/aspectExplorer.svg"
+    <toolWindow id="LamaRyder" anchor="right" icon="/icons/aspectExplorer.svg"
                 factoryClass="dev.lamarider.explorer.AspectExplorerToolWindowFactory"/>
-    <notificationGroup id="LamaRider" displayType="BALLOON"/>
-    <projectConfigurable parentId="tools" id="dev.lamarider.settings" displayName="LamaRider"
+    <notificationGroup id="LamaRyder" displayType="BALLOON"/>
+    <projectConfigurable parentId="tools" id="dev.lamarider.settings" displayName="LamaRyder"
                          instance="dev.lamarider.settings.LamaRiderConfigurable"/>
     <editorNotificationProvider implementation="dev.lamarider.errors.MetalamaErrorBanner"/>
     <postStartupActivity implementation="dev.lamarider.errors.MetalamaDocsStartup"/>
@@ -60,7 +60,7 @@
             description="Builds the project after aspect or template code is saved, so Metalama's design-time analysis resumes (LAMA0118)">
     </action>
     <action id="LamaRider.TrackCaret" class="dev.lamarider.explorer.TrackCaretAction" text="Track Caret"
-            description="LamaRider window: show the aspects that affect the code at the caret" icon="AllIcons.General.Locate"/>
+            description="LamaRyder window: show the aspects that affect the code at the caret" icon="AllIcons.General.Locate"/>
     <action id="LamaRider.CreateAspectTest" class="dev.lamarider.actions.CreateAspectTestAction" text="Create Metalama Aspect Test"
             description="Aspect test for the aspect class at the caret, in an existing or new aspect test project">
       <add-to-group group-id="EditorPopupMenu" anchor="last"/>
@@ -78,7 +78,7 @@
       <add-to-group group-id="EditorPopupMenu" anchor="last"/>
       <add-to-group group-id="ProjectViewPopupMenu" anchor="last"/>
     </action>
-    <action id="LamaRider.SelfTestFixes" class="dev.lamarider.actions.SelfTestFixesAction" text="LamaRider: Self-Test Metalama Quick-Fixes"
+    <action id="LamaRider.SelfTestFixes" class="dev.lamarider.actions.SelfTestFixesAction" text="LamaRyder: Self-Test Metalama Quick-Fixes"
             description="Applies every quick-fix of the Metalama fix samples and writes fix-selftest.json next to the solution"/>
     <action id="LamaRider.WrapPremiumCode" class="dev.lamarider.actions.WrapPremiumCodeAction" text="Put Metalama Premium Code in #if METALAMA_PREMIUM"
             description="Wrap the use of a Metalama Premium API at the caret, and the file's Premium using directives, in #if METALAMA_PREMIUM"/>
@@ -101,7 +101,7 @@
     <action id="LamaRider.OnlyAtCaret" class="dev.lamarider.explorer.OnlyAtCaretAction"/>
     <action id="LamaRider.DebugLamaDebug" class="dev.lamarider.actions.DebugWithLamaDebugAction"/>
     <action id="LamaRider.Settings" class="dev.lamarider.actions.OpenSettingsAction"/>
-    <group id="LamaRider.Gear" text="LamaRider">
+    <group id="LamaRider.Gear" text="LamaRyder">
       <reference ref="LamaRider.DebugLamaDebug"/>
       <reference ref="LamaRider.DebugTransformedCode"/>
       <reference ref="LamaRider.AutoBuild"/>

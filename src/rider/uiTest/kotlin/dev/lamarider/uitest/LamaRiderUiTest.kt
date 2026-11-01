@@ -27,7 +27,7 @@ import kotlin.time.Duration.Companion.seconds
 class LamaRiderUiTest : UiTestBase() {
     @Test
     fun `LamaRider window lists the aspects of the solution`() = withRider("aspects") {
-        openToolWindow("LamaRider")
+        openToolWindow("LamaRyder")
         ideFrame {
             waitForText("project aspect Log listed", "Log")
             waitForText("library package listed", "Metalama.Patterns.Contracts")
@@ -36,7 +36,7 @@ class LamaRiderUiTest : UiTestBase() {
 
     @Test
     fun `Show Transformed Code shows the woven method`() = withRider("popup") {
-        openToolWindow("LamaRider")
+        openToolWindow("LamaRyder")
         ideFrame { waitForText("aspects listed (first refresh done)", "Log") }
         caretAt("MetalamaSample/Calculator.cs", "Add(")
         // An editor action: its data context (editor, file) comes from the editor component.
@@ -47,7 +47,7 @@ class LamaRiderUiTest : UiTestBase() {
 
     @Test
     fun `an aspect a fabric adds is written as an attribute`() = withRider("asattribute") {
-        openToolWindow("LamaRider")
+        openToolWindow("LamaRyder")
         ideFrame { waitForText("aspects listed (first refresh done)", "Log") }
         caretAt("MetalamaSample/Calculator.cs", "Multiply(")
         editorAction("LamaRider.AddAspectsAsAttributes")
@@ -56,7 +56,7 @@ class LamaRiderUiTest : UiTestBase() {
 
     @Test
     fun `declarations are replaced with their transformed code`() = withRider("replace") {
-        openToolWindow("LamaRider")
+        openToolWindow("LamaRyder")
         ideFrame { waitForText("aspects listed (first refresh done)", "Log") }
         // Fabric-added aspect: excluded so the fabric doesn't add it again.
         caretAt("MetalamaSample/Calculator.cs", "Multiply(")
@@ -74,7 +74,7 @@ class LamaRiderUiTest : UiTestBase() {
 
     @Test
     fun `a new file is picked up without a manual refresh`() = withRider("autorefresh") {
-        openToolWindow("LamaRider")
+        openToolWindow("LamaRyder")
         ideFrame { waitForText("aspects listed (first refresh done)", "Log") }
         // Written outside Rider, as by git or another editor: the file watcher must trigger the refresh.
         Files.writeString(solutionDir.resolve("MetalamaSample/Added.cs"),
@@ -98,7 +98,7 @@ class LamaRiderUiTest : UiTestBase() {
 
     @Test
     fun `aspect test is added to the existing test project and its output accepted`() = withRider("aspecttest") {
-        openToolWindow("LamaRider")
+        openToolWindow("LamaRyder")
         ideFrame { waitForText("aspects listed (first refresh done)", "Log") }
         caretAt("MetalamaSample/LogAttribute.cs", "LogAttribute :")
         editorAction("LamaRider.CreateAspectTest")
@@ -126,7 +126,7 @@ class LamaRiderUiTest : UiTestBase() {
 
     @Test
     fun `aspect test output is compared with the snapshot and accepted from the banner`() = withRider("aspecttestdiff") {
-        openToolWindow("LamaRider")
+        openToolWindow("LamaRyder")
         ideFrame { waitForText("aspects listed (first refresh done)", "Log") }
         caretAt("MetalamaSample/LogAttribute.cs", "LogAttribute :")
         editorAction("LamaRider.CreateAspectTest")
@@ -180,7 +180,7 @@ class LamaRiderUiTest : UiTestBase() {
             }
             """.trimIndent())
     }) {
-        openToolWindow("LamaRider")
+        openToolWindow("LamaRyder")
         ideFrame { waitForText("aspects listed (first refresh done)", "Log") }
         caretAt("MetalamaSample/SuggestObsolete.cs", "Suggest(")
         editorAction("LamaRider.WrapPremiumCode")
@@ -201,7 +201,7 @@ class LamaRiderUiTest : UiTestBase() {
         dotnet("sln", dir.resolve("MetalamaSample.sln").toString(), "remove", dir.resolve("MetalamaSample.AspectTests/MetalamaSample.AspectTests.csproj").toString())
         dir.resolve("MetalamaSample.AspectTests").toFile().deleteRecursively()
     }) {
-        openToolWindow("LamaRider")
+        openToolWindow("LamaRyder")
         ideFrame { waitForText("aspects listed (first refresh done)", "Log") }
         caretAt("MetalamaSample/IdAttribute.cs", "IdAttribute :")
         editorAction("LamaRider.CreateAspectTest")
@@ -236,7 +236,7 @@ class LamaRiderUiTest : UiTestBase() {
             </Project>
             """.trimIndent() + "\n")
     }) {
-        openToolWindow("LamaRider")
+        openToolWindow("LamaRyder")
         ideFrame { waitForText("aspects listed (first refresh done)", "Log") }
         // A template line that runs while the test runner weaves the test input (compile time).
         val aspect = solutionDir.resolve("MetalamaSample/LogAttribute.cs")
@@ -315,7 +315,7 @@ class LamaRiderUiTest : UiTestBase() {
 
     @Test
     fun `Track Caret shows the aspects at the caret in the targets tree`() = withRider("track") {
-        openToolWindow("LamaRider")
+        openToolWindow("LamaRyder")
         ideFrame { waitForText("aspects listed (first refresh done)", "Log") }
         invokeAction("LamaRider.TrackCaret")
         try {

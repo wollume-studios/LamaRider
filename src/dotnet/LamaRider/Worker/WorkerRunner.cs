@@ -47,7 +47,7 @@ public sealed class WorkerRunner(string workerSourceDir, string cacheRoot) : IDi
         if (inputs.Count == 0) throw new WorkerException($"No C# projects to analyze in {Path.GetFileName(solutionPath)}");
         if (!MetalamaVersionDetector.IsSafe(metalamaVersion)) throw new WorkerException($"Refusing unexpected Metalama version '{metalamaVersion}'");
         Directory.CreateDirectory(Path.GetDirectoryName(LogPath)!);
-        TryLog(() => File.WriteAllText(LogPath, $"LamaRider worker run {DateTime.Now:O}{Environment.NewLine}"));
+        TryLog(() => File.WriteAllText(LogPath, $"LamaRyder worker run {DateTime.Now:O}{Environment.NewLine}"));
 
         var dll = EnsureBuilt(metalamaVersion, ct);
         var runsDir = Path.Combine(cacheRoot, "out", Hash(solutionPath));

@@ -1,46 +1,47 @@
 # Changelog
 
 ## 0.7.0
+- Renamed to LamaRyder (JetBrains Marketplace doesn't allow "Rider" in plugin names); the plugin id stays `dev.lamarider`.
 - Metalama warnings and infos show in the editor (a barely visible hint next to Rider's squiggle) and, like errors, carry Alt+Enter quick-fixes: *Look up LAMAxxxx online*, *Suppress LAMAxxxx here (#pragma)* / *in project (NoWarn)*, *Remove [Aspect] from this declaration*.
 - Specific quick-fixes for 199 diagnostic ids that edit code, aspect source, project properties or `NoWarn` (docs/metalama-fixes.md).
 - The quick-fixes are verified against Metalama's documented error samples (self-test, docs/test-coverage.md).
 - *Look up LAMAxxxx online* opens the article on doc.metalama.net when it is published (checked at startup), else the article in the Metalama documentation repository on GitHub, else a web search.
 - Inspection *Metalama Premium API* (warning, severity configurable) on uses of Metalama Premium components (`Metalama.Extensions.CodeFixes`, `.Validation`, `.Architecture`, Azure / Redis caching back-ends) and their using directives, except inside `#if METALAMA_PREMIUM`. Alt+Enter (also in Find Action): *Put it in #if METALAMA_PREMIUM*, and *Set up free and Premium builds of this project* (property `MetalamaPremium`, default false; `true` defines `METALAMA_PREMIUM` and references the Premium packages).
 - Return value aspects added by a fabric, inheritance or another aspect get an inlay hint after the method's return type, like parameter hints after the parameter name.
-- *Settings › Tools › LamaRider › Code Vision › Aspects*: *Each aspect by name where it applies* (default) or *Their number on the declaration* (one "N aspects" counting the declaration's, its parameters' and its return value's aspects, no inlay hints; the tooltip says where each one is, e.g. "GreaterThan1 on a").
-- *Settings › Tools › LamaRider › Code Vision › Transformed code*: a "transformed code" hint of its own (default; now on every declaration with aspects, also when they are on its parameters or return value) or *Show Transformed Code* in the declaration's aspect menu (a count hint leads there when nothing is named). Parameter and return value hint menus no longer offer *Show Transformed Code*; the aspect menu offers it only with the menu setting.
+- *Settings › Tools › LamaRyder › Code Vision › Aspects*: *Each aspect by name where it applies* (default) or *Their number on the declaration* (one "N aspects" counting the declaration's, its parameters' and its return value's aspects, no inlay hints; the tooltip says where each one is, e.g. "GreaterThan1 on a").
+- *Settings › Tools › LamaRyder › Code Vision › Transformed code*: a "transformed code" hint of its own (default; now on every declaration with aspects, also when they are on its parameters or return value) or *Show Transformed Code* in the declaration's aspect menu (a count hint leads there when nothing is named). Parameter and return value hint menus no longer offer *Show Transformed Code*; the aspect menu offers it only with the menu setting.
 - Aspect tests: an info bar on the test file and its `.t.cs` when the last run's output differs from the snapshot ("Test output differs from X.t.cs" / "X.t.cs is empty"), with *Compare* and *Accept all*. *Compare* (also *Compare Metalama Test Output* in the editor and Solution Explorer menus) opens Rider's diff: the last run's output (read-only) against the real `.t.cs` (editable), with *Accept All* in the toolbar. Accepting is an undoable edit; line endings and trailing whitespace don't count. The info bar updates when Rider notices the new output (runs in Rider, or when its window gets the focus back after a run in a terminal).
 - Documentation: Code Vision options, return value hints, test output diff; new and refreshed screenshots.
 - Alt+Enter on a declaration name › *Add [X] as attribute (added by fabric …)*: writes an aspect that a fabric, inheritance or another aspect adds (also on parameters) as an attribute, with the same constructor arguments and properties, read from the live aspect object. Editor menu: *Add Metalama Aspects as Attributes* adds all of them. The fabric still adds the aspect too; Metalama runs the attribute's instance. Not offered when the aspect is not a public attribute or a value cannot be written in C# (constants, enums, `typeof`, one-dimensional arrays).
-- Alt+Enter on a type or member name › *Replace with transformed code (remove its aspects)*: replaces the declaration with Metalama's transformed code (`metalama divorce` for one declaration). Aspect attributes are removed; aspects a fabric, inheritance or another aspect would add again get `[ExcludeAspect(typeof(...))]`. A notification names aspects on a containing declaration that still transform it and code the aspects changed outside it, which goes away. Only offered while LamaRider's analysis matches the file. Editor menu: *Replace with Metalama Transformed Code*.
+- Alt+Enter on a type or member name › *Replace with transformed code (remove its aspects)*: replaces the declaration with Metalama's transformed code (`metalama divorce` for one declaration). Aspect attributes are removed; aspects a fabric, inheritance or another aspect would add again get `[ExcludeAspect(typeof(...))]`. A notification names aspects on a containing declaration that still transform it and code the aspects changed outside it, which goes away. Only offered while LamaRyder's analysis matches the file. Editor menu: *Replace with Metalama Transformed Code*.
 - Code Vision tooltips say "May offer code fixes (Alt+Enter); they need a Metalama Professional license." for aspects whose assembly references `Metalama.Extensions.CodeFixes` (a Premium component; without a license the build fails with LAMA0806).
-- Documentation: the new actions and licensing (LamaRider needs no license and does not bypass Metalama's), new screenshots.
+- Documentation: the new actions and licensing (LamaRyder needs no license and does not bypass Metalama's), new screenshots.
 - Runs in Rider 2026.2 and 2026.3 (one build, built against 2026.2.3, since-build 262); UI tests pass in both. Rider 2026.1 is not supported (it lacks `ISolution.ToDataContext2`).
 - Code Vision shows one entry per aspect added by a fabric, inheritance etc. (Rider shows one entry per provider, so there are three: *Metalama aspects*, *Metalama aspects (second aspect)*, *Metalama aspect targets*); more than two still collapse to "N aspects". Parameter inlay hints are one per aspect too.
 - Hint tooltips start with where the aspect comes from, naming the fabric (full type name) or the aspect instance it is inherited from, added or required by, then its documentation summary, wrapped to about 70 characters. "N aspects" and "transformed code" list each aspect with its name.
 - The "transformed code" hint always opens the transformed code directly.
 - Fixed *Run / Debug Metalama Aspect Test* saying "This file is not in a Metalama aspect test project" for a test file: the lookup accepts Windows paths with '/' and prefers the file's real project over Miscellaneous Files.
 - Code Vision names aspects added by fabrics, inheritance etc.; aspects added by an attribute are not named (the hint reads "transformed code" and opens the transformed code). More than two collapse to "N aspects". The tooltip lists each aspect's origin and documentation summary.
-- Parameters get their own inlay hint for aspects not added by an attribute; the Code Vision menu groups aspects by member, parameter and return value. In the LamaRider window each parameter shows only its own transformations.
-- *Clicking an aspect* setting (Settings › Tools › LamaRider › Code Vision): go to its source (default, library aspects via SourceLink or the decompiler), show it in the LamaRider window, or ask.
+- Parameters get their own inlay hint for aspects not added by an attribute; the Code Vision menu groups aspects by member, parameter and return value. In the LamaRyder window each parameter shows only its own transformations.
+- *Clicking an aspect* setting (Settings › Tools › LamaRyder › Code Vision): go to its source (default, library aspects via SourceLink or the decompiler), show it in the LamaRyder window, or ask.
 - The transformed-code popup links its aspects and opens the whole file in Metalama Diff.
 - Banner on Metalama's compiled copy of compile-time code (where the debugger stops in aspects): *Show <file> side by side* (source in the right split, carets synced both ways), *Open <file> at this line*, and *Make it readable* while the setting below is off.
-- Compiled-copy banner: *Make it readable* offers *Debug Again* (stop, rebuild the aspect test project with its dependencies, debug the same aspect test) for aspect tests started from LamaRider; side by side, moving the caret in the compiled copy or in any open editor of the source moves the other.
+- Compiled-copy banner: *Make it readable* offers *Debug Again* (stop, rebuild the aspect test project with its dependencies, debug the same aspect test) for aspect tests started from LamaRyder; side by side, moving the caret in the compiled copy or in any open editor of the source moves the other.
 - Alt+Enter *Build '<project>' to resume Metalama analysis* is offered only when the project's compile-time files changed after its last build.
-- *Readable aspect code while debugging* setting (Settings › Tools › LamaRider › Debugging): writes `MetalamaFormatCompileTimeCode=true` to `Directory.Build.props`, so Metalama formats its compiled copy of aspects, templates and fabrics (no `global::`, normal indentation; slower aspect project builds; rebuild after changing it). Breakpoint mirroring keeps working.
+- *Readable aspect code while debugging* setting (Settings › Tools › LamaRyder › Debugging): writes `MetalamaFormatCompileTimeCode=true` to `Directory.Build.props`, so Metalama formats its compiled copy of aspects, templates and fabrics (no `global::`, normal indentation; slower aspect project builds; rebuild after changing it). Breakpoint mirroring keeps working.
 - A worker build that succeeds without producing the worker dll is retried once; the error message then includes the build's last output lines.
-- Known limitation: Rider analyses the compiled copy as a loose file and shows unresolved-symbol errors there; LamaRider never edits it (the debugger maps it by line).
+- Known limitation: Rider analyses the compiled copy as a loose file and shows unresolved-symbol errors there; LamaRyder never edits it (the debugger maps it by line).
 - Documentation: step-by-step usage guide with limitations (docs/usage.md), new screenshots with captions in the README.
 - Aspect tests run and debug from the file: the run icon in the gutter, the editor and Solution Explorer menus (*Run / Debug Metalama Aspect Test*). Rider builds and discovers the test first; Test Runner discovery, which aspect tests need, is turned on for the solution if it was off.
-- Breakpoints in aspects, templates and fabrics stop while debugging: LamaRider mirrors them into Metalama's compiled copy of that code (no more `Debugger.Break()` / `meta.DebugBreak()` needed).
-- Aspect test inputs show their aspects (LamaRider window, Code Vision, Track Caret, transformed code) although Metalama.Testing.AspectTesting turns Metalama off in the test project; Rider no longer greys them out as unused.
+- Breakpoints in aspects, templates and fabrics stop while debugging: LamaRyder mirrors them into Metalama's compiled copy of that code (no more `Debugger.Break()` / `meta.DebugBreak()` needed).
+- Aspect test inputs show their aspects (LamaRyder window, Code Vision, Track Caret, transformed code) although Metalama.Testing.AspectTesting turns Metalama off in the test project; Rider no longer greys them out as unused.
 - New aspect tests go to `<Aspect>Tests/` with the namespace Rider expects (no redundant using); the test project is built right away so Rider lists the test, and never compiles `.t.cs` snapshots.
 - Aspect tests: Alt+Enter on an aspect class (or editor menu *Create Metalama Aspect Test*) adds a prefilled test file to the aspect test project next to the aspect's project, creating that project (xUnit, Metalama.Testing.AspectTesting, added to the solution) when there is none. *Accept Metalama Test Output* saves the last run's output as the test's `.t.cs`.
 - Track Caret (Rider's locate icon) fills the targets tree with every aspect affecting the code at the caret; selecting an item shows and selects its aspect. *Show Only Aspects at Caret* filters the aspect list; *Group By*: ungrouped, project/package, namespace.
-- Metalama errors located in code (e.g. LAMA0037) are underlined from LamaRider's own analysis seconds after a save; Rider's own Metalama squiggles wait for a build after compile-time changes.
+- Metalama errors located in code (e.g. LAMA0037) are underlined from LamaRyder's own analysis seconds after a save; Rider's own Metalama squiggles wait for a build after compile-time changes.
 - *Format transformed code* setting: off avoids LAMA0066 and speeds up builds when debugging transformed code.
 - UI tests in a real Rider (`./gradlew uiTest`), runnable on Windows and Linux (routinely run on Linux).
-- LamaRider window: *Track Caret* shows only the aspects affecting the code at the caret (member, its parameters, containing types).
+- LamaRyder window: *Track Caret* shows only the aspects affecting the code at the caret (member, its parameters, containing types).
 - No error balloon any more: located errors are Rider's squiggles, the others the editor info bar.
 - Long status and settings texts no longer overflow.
 - A failed workspace reload is retried with a clean load.
@@ -55,14 +56,14 @@
 - Transformed-code popup: highlighted like Metalama Diff; toggle to show the diff with the declaration's source (remembered).
 
 ## 0.5.0
-- Settings › Tools › LamaRider shows whether Rider is set up for aspect tests, updated live.
-- Show Transformed Code from Code Vision and the LamaRider tool window opens next to the declaration.
+- Settings › Tools › LamaRyder shows whether Rider is set up for aspect tests, updated live.
+- Show Transformed Code from Code Vision and the LamaRyder tool window opens next to the declaration.
 - Plugin description with feature overview and screenshots.
 
 ## 0.4.0
-- Tool window renamed to LamaRider (new llama icon); its toolbar and gear menu replace the Tools menu entries; new *Settings › Tools › LamaRider* page.
+- Tool window renamed to LamaRyder (new llama icon); its toolbar and gear menu replace the Tools menu entries; new *Settings › Tools › LamaRyder* page.
 - *Debug with LamaDebug*: selects Metalama's LamaDebug configuration (adds it to the solution when missing) and starts debugging.
-- *Show Transformed Code*: transformed code of one declaration in a popup (Code Vision, editor context menu, LamaRider tool window).
+- *Show Transformed Code*: transformed code of one declaration in a popup (Code Vision, editor context menu, LamaRyder tool window).
 - Code Vision counts aspects on parameters for their method; an aspect on a type no longer shows the type twice in the targets tree.
 
 ## 0.3.0

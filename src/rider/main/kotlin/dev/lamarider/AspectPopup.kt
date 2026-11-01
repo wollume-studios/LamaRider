@@ -64,7 +64,7 @@ object AspectPopup {
                 }
             }
         }
-        if (model.aspectClass(docId) != null) items += Item("Show targets in LamaRider", "Aspect class") { AspectClick.showInLamaRider(project, docId) }
+        if (model.aspectClass(docId) != null) items += Item("Show targets in LamaRyder", "Aspect class") { AspectClick.showInLamaRider(project, docId) }
         if (items.isEmpty()) return@invokeLater
         val editor = FileEditorManager.getInstance(project).selectedTextEditor ?: return@invokeLater
 

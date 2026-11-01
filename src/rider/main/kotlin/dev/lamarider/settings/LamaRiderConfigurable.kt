@@ -20,7 +20,7 @@ import dev.lamarider.actions.ConfigureTestsAction
 import javax.swing.JEditorPane
 
 /** Settings › Tools › LamaRider. */
-class LamaRiderConfigurable(private val project: Project) : BoundConfigurable("LamaRider") {
+class LamaRiderConfigurable(private val project: Project) : BoundConfigurable("LamaRyder") {
     private lateinit var testStatus: JEditorPane
     private val listening = Disposer.newDisposable()
 
@@ -70,7 +70,7 @@ class LamaRiderConfigurable(private val project: Project) : BoundConfigurable("L
                 checkBox("Debug transformed code in every build configuration")
                     .comment(
                         "Sets <code>MetalamaDebugTransformedCode</code> in the solution's Directory.Build.props. " +
-                            "Without it, use <b>Debug with LamaDebug</b> in the LamaRider tool window.",
+                            "Without it, use <b>Debug with LamaDebug</b> in the LamaRyder tool window.",
                     )
                     .bindSelected({ service.debugTransformedCode }, { if (it != service.debugTransformedCode) service.setDebugTransformedCode(it) })
             }
@@ -79,7 +79,7 @@ class LamaRiderConfigurable(private val project: Project) : BoundConfigurable("L
                     .comment(
                         "Readable transformed files when debugging them (this setting or LamaDebug), but slower builds: Metalama warns with " +
                             "LAMA0066. Off writes <code>MetalamaFormatOutput=false</code> to Directory.Build.props. " +
-                            "LamaRider's popup and Metalama Diff are formatted either way.",
+                            "LamaRyder's popup and Metalama Diff are formatted either way.",
                     )
                     .bindSelected({ service.formatTransformedCode }, { if (it != service.formatTransformedCode) service.setFormatTransformedCode(it) })
             }

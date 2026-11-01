@@ -78,7 +78,7 @@ public sealed class AspectModelHost
             RdModel.SetHintOptions.Advise(lifetime, options =>
             {
                 HintOptions = new AspectHints.Options(options.CountOnly ? AspectHints.Style.Count : AspectHints.Style.Named, options.TransformedCodeHint);
-                _solution.GetComponent<IDaemon>().Invalidate("LamaRider hint options");
+                _solution.GetComponent<IDaemon>().Invalidate("LamaRyder hint options");
             });
             RdModel.ApplyTestSettings.Advise(lifetime, ApplyTestSettings);
             RdModel.RefreshTestSettingsStatus.Advise(lifetime, _ => UpdateTestSettingsStatus());
@@ -250,7 +250,7 @@ public sealed class AspectModelHost
             RdModel.Info.Fire("No aspect here that a fabric, inheritance or another aspect adds and that can be written as an attribute.");
             return;
         }
-        _solution.GetPsiServices().Transactions.Execute("LamaRider: add aspects as attributes", () =>
+        _solution.GetPsiServices().Transactions.Execute("LamaRyder: add aspects as attributes", () =>
         {
             using (WriteLockCookie.Create())
                 foreach (var candidate in candidates) Actions.AddAspectAsAttribute.Add(declaration, candidate);
@@ -263,7 +263,7 @@ public sealed class AspectModelHost
         if (Actions.ReplaceWithTransformedCode.Find(model, declaration, target) is { } replacement)
             Actions.ReplaceWithTransformedCode.Apply(_solution, replacement);
         else
-            RdModel.Info.Fire("No transformed code for this declaration: it has no aspects, or the file changed since LamaRider analyzed it (save and wait a moment).");
+            RdModel.Info.Fire("No transformed code for this declaration: it has no aspects, or the file changed since LamaRyder analyzed it (save and wait a moment).");
     }
 
     /// <summary>Rider's build sees nothing to do after only Directory.Build.props changed (e.g. readable compile-time code).</summary>
@@ -511,7 +511,7 @@ public sealed class AspectModelHost
                 $"Refreshed {DateTime.Now:HH:mm} · {model.AspectClasses.Count} aspects / {model.Instances.Count} instances{model.ErrorSummary}",
                 Path.Combine(_runner.LastOutputDir, "model.json"));
             _solution.Locks.ExecuteOrQueueEx(_lifetime, "LamaRider.Invalidate",
-                () => _solution.GetComponent<IDaemon>().Invalidate("LamaRider model refreshed"));
+                () => _solution.GetComponent<IDaemon>().Invalidate("LamaRyder model refreshed"));
             RunRequestedFixSelfTest(model);
         }
         catch (OperationCanceledException) { }

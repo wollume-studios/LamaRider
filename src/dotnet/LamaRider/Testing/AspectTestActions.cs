@@ -125,7 +125,7 @@ public static class AspectTests
         if (file == null || project == null || !File.Exists(csproj) || !AspectTestScaffold.IsAspectTestProject(File.ReadAllText(csproj)))
         {
             JetBrains.Util.Logging.Logger.GetLogger(typeof(AspectTests)).Warn(
-                $"LamaRider: run aspect test refused: file {file?.Location}, project {project?.Name}, project file '{csproj}'");
+                $"LamaRyder: run aspect test refused: file {file?.Location}, project {project?.Name}, project file '{csproj}'");
             return "This file is not in a Metalama aspect test project.";
         }
 
@@ -134,7 +134,7 @@ public static class AspectTests
         string? note = null;
         if (!settings.IsConfigured())
             note = $"Rider finds aspect tests only with Test Runner discovery: turned on in {settings.Apply(MetalamaTestSettings.Personal)}. " +
-                   "Settings › Tools › LamaRider can share it with the team.";
+                   "Settings › Tools › LamaRyder can share it with the team.";
 
         var facade = solution.GetComponent<IUnitTestingFacade>();
         var relative = file.Location.MakeRelativeTo(project.Location).FullPath;

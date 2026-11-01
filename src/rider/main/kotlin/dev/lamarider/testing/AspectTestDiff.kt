@@ -23,7 +23,7 @@ import dev.lamarider.LamaRiderService
  */
 object AspectTestDiff {
     fun show(project: Project, files: AspectTestOutput.Files) {
-        val output = files.output ?: return project.service<LamaRiderService>().notify("LamaRider",
+        val output = files.output ?: return project.service<LamaRiderService>().notify("LamaRyder",
             "${files.test.name} has no output yet: run the aspect test first.")
         val snapshot = snapshotFile(files) ?: return
         val factory = DiffContentFactory.getInstance()

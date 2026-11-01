@@ -19,7 +19,7 @@ import java.awt.MouseInfo
 /** What clicking an aspect in the Code Vision popup or the transformed-code popup does (Settings › Tools › LamaRider). */
 enum class AspectClickAction(val label: String) {
     SOURCE("Go to the aspect's source"),
-    LAMARIDER("Show it in the LamaRider window"),
+    LAMARIDER("Show it in the LamaRyder window"),
     ASK("Ask (sub-menu)");
 
     companion object {
@@ -76,7 +76,7 @@ object AspectClick {
     /** The two choices, for an "Ask" sub-menu. */
     fun choices(project: Project, aspectClassId: String): List<Pair<String, () -> Unit>> = listOf(
         "Go to Source" to { goToSource(project, aspectClassId) },
-        "Show in LamaRider" to { showInLamaRider(project, aspectClassId) },
+        "Show in LamaRyder" to { showInLamaRider(project, aspectClassId) },
     )
 
     /** A click outside a menu (e.g. a link): runs the configured action, or asks at the mouse pointer. */

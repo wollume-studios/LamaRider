@@ -16,6 +16,6 @@ class AspectExplorerToolWindowFactory : ToolWindowFactory, DumbAware {
     }
 
     companion object {
-        const val ID = "LamaRider"
+        const val ID = "LamaRyder"
     }
 }

@@ -31,7 +31,7 @@ static class ProjectFixHelpers
 
     /// <summary>Runs <paramref name="action"/> on the shell thread after the fix (fixes run in a PSI transaction).</summary>
     public static void Later(FixContext c, string name, Action action) =>
-        c.Solution.Locks.ExecuteOrQueueEx(c.Solution.GetSolutionLifetimes().UntilSolutionCloseLifetime, "LamaRider." + name, action);
+        c.Solution.Locks.ExecuteOrQueueEx(c.Solution.GetSolutionLifetimes().UntilSolutionCloseLifetime, "LamaRyder." + name, action);
 
     public static void OpenFile(FixContext c, string path) =>
         Later(c, "OpenFile", () => c.Solution.GetProtocolSolution().GetLamaRiderModel().OpenFile.Fire(path));

@@ -1,16 +1,16 @@
 <p align="center">
-  <img src="docs/images/app-icon.png" width="96" alt="LamaRider logo"><br>
-  <img src="docs/images/lamarider.png" width="260" alt="LamaRider">
+  <img src="docs/images/app-icon.png" width="96" alt="LamaRyder logo"><br>
+  <img src="docs/images/lamarider.png" width="260" alt="LamaRyder">
 </p>
 
-# LamaRider
+# LamaRyder
 
 Metalama tooling for JetBrains Rider — the Rider counterpart of the Visual Studio extension
 "PostSharp / Metalama Tools" (`PostSharpTechnologies.PostSharp`).
 
 | Feature | What you get |
 |---|---|
-| **LamaRider tool window** | Every aspect class of the solution and its packages, filtered and grouped; documentation and *Go to source* (also for library aspects). The targets of the selected aspect with transformations and diagnostics. *Track Caret* shows the aspects at the caret. Refreshes on its own. |
+| **LamaRyder tool window** | Every aspect class of the solution and its packages, filtered and grouped; documentation and *Go to source* (also for library aspects). The targets of the selected aspect with transformations and diagnostics. *Track Caret* shows the aspects at the caret. Refreshes on its own. |
 | **Code Vision** | Above declarations: the aspects a fabric, inheritance etc. adds (`Log`, or `N aspects`), `transformed code`, and `applied to N targets` on aspect classes. Tooltips say where an aspect comes from. Inlay hints for aspects on parameters and return values (`int NonNegative Multiply`). A click opens the transformed code or a menu of the aspects. Can show only counts instead. |
 | **Aspects into code** | Alt+Enter on a declaration name: *Add [Log] as attribute* writes an aspect a fabric etc. adds as an attribute. *Replace with transformed code* is `metalama divorce` for one declaration. Also in the editor menu. |
 | **Transformed code** | *Show Transformed Code*: one declaration after all aspects, in a popup, with a diff toggle. *Metalama Diff* (`Ctrl+K, 0` in the Visual Studio keymap): the whole file, source vs transformed. |
@@ -26,9 +26,9 @@ PostSharp classic (MSIL) projects are not supported. **How to use each feature, 
 
 ## Screenshots
 
-![LamaRider tool window](docs/screenshots/lamarider-window.png)
+![LamaRyder tool window](docs/screenshots/lamarider-window.png)
 
-The LamaRider tool window (llama icon, right tool window bar) with the `Log` aspect selected: documentation, *Go to
+The LamaRyder tool window (llama icon, right tool window bar) with the `Log` aspect selected: documentation, *Go to
 source*, and its targets with their transformations.
 
 ![Track Caret](docs/screenshots/track-caret.png)
@@ -102,9 +102,9 @@ Test output differs from the `.t.cs` snapshot: *Compare* or *Accept all*.
 
 A Metalama Premium API warning: Alt+Enter puts the code in `#if METALAMA_PREMIUM` or sets up free and Premium builds.
 
-![LamaRider settings](docs/screenshots/settings.png)
+![LamaRyder settings](docs/screenshots/settings.png)
 
-*Settings › Tools › LamaRider* (or the settings icon in the tool window): Code Vision display, build on save,
+*Settings › Tools › LamaRyder* (or the settings icon in the tool window): Code Vision display, build on save,
 debugging, and the Rider setup for aspect tests.
 
 ## Requirements

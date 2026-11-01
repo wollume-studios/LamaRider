@@ -1,9 +1,9 @@
-# Using LamaRider
+# Using LamaRyder
 
 How to use each feature, and its limitations. Overview with screenshots: [README](../README.md).
 
 - [Before you start](#before-you-start)
-- [LamaRider tool window](#lamarider-tool-window)
+- [LamaRyder tool window](#lamarider-tool-window)
 - [Code Vision and inlay hints](#code-vision-and-inlay-hints)
 - [Transformed code](#transformed-code): popup, Metalama Diff, Open Transformed File
 - [Aspects into code](#aspects-into-code): add an aspect as attribute, replace a declaration with its transformed code
@@ -23,7 +23,7 @@ How to use each feature, and its limitations. Overview with screenshots: [README
   With several Metalama versions in one solution, one of them is used for all projects (a warning is logged).
 - Some Metalama components need a Metalama Professional license, see [Licensing](#licensing).
 
-LamaRider analyzes the solution in a separate process, **LamaRider.Worker**, with Metalama's own introspection API. The
+LamaRyder analyzes the solution in a separate process, **LamaRider.Worker**, with Metalama's own introspection API. The
 worker is built for your Metalama version on first use (cached in `%LOCALAPPDATA%\LamaRider\worker`,
 `~/.local/share/LamaRider/worker` on Linux), so the first refresh takes about a minute; later ones take seconds.
 
@@ -33,16 +33,16 @@ A refresh starts:
 - about one second after a `.cs`, `.csproj`, `Directory.*.props` / `Directory.*.targets` file in the solution folder
   changes (in Rider, git or any other tool), or after a NuGet restore,
 - when a Rider build finishes,
-- with *Refresh* in the LamaRider tool window.
+- with *Refresh* in the LamaRyder tool window.
 
 Between refreshes everything shows the last result. Log: `%LOCALAPPDATA%\LamaRider\logs\last-run.log`.
 
-## LamaRider tool window
+## LamaRyder tool window
 
 Open it from the right tool window bar (llama icon), or by clicking an aspect in Code Vision (see
 [Settings](#settings)).
 
-![LamaRider tool window](screenshots/lamarider-window.png)
+![LamaRyder tool window](screenshots/lamarider-window.png)
 
 **Aspect list (top).** Every aspect class of the solution and its packages, with its number of targets; classes
 without targets are grey.
@@ -96,7 +96,7 @@ parameter name (`a NonNegative`) or the return type (`int NonNegative Multiply`)
 aspect ...*, *Required by aspect ...*, *Added by an attribute*, *Added from the IDE*) and its documentation summary.
 Aspects whose code fixes need a Metalama Professional license say so in the tooltip (see [Licensing](#licensing)).
 
-**Fewer hints.** *Settings › Tools › LamaRider › Code Vision*:
+**Fewer hints.** *Settings › Tools › LamaRyder › Code Vision*:
 
 - *Aspects: Their number on the declaration*: one `N aspects` entry per declaration, counting its parameters' and
   return value's aspects too (attribute aspects included), no inlay hints. The tooltip says where each one is.
@@ -114,10 +114,10 @@ Aspects whose code fixes need a Metalama Professional license say so in the tool
      hints).
   2. *Metalama Diff (whole file)*.
   3. The aspects, grouped by member, each parameter and the return value, with their origin (`Log (fabric)`).
-  4. On an aspect class: *Show targets in LamaRider*.
+  4. On an aspect class: *Show targets in LamaRyder*.
 
-**Clicking an aspect** (in that menu or the transformed code popup) follows *Settings › Tools › LamaRider › Code Vision
-› Clicking an aspect*: *Go to the aspect's source* (default), *Show it in the LamaRider window*, or *Ask*.
+**Clicking an aspect** (in that menu or the transformed code popup) follows *Settings › Tools › LamaRyder › Code Vision
+› Clicking an aspect*: *Go to the aspect's source* (default), *Show it in the LamaRyder window*, or *Ask*.
 
 ![Code Vision popup](screenshots/code-vision-popup.png)
 
@@ -130,7 +130,7 @@ Limitations:
 ## Transformed code
 
 **Transformed code popup.** A click on `transformed code`, *Show Transformed Code* (aspect menu, editor menu or Find
-Action), or a double-click on a transformation in the LamaRider window. Shows the declaration as Metalama compiles it,
+Action), or a double-click on a transformation in the LamaRyder window. Shows the declaration as Metalama compiles it,
 highlighted. Toolbar: a toggle to diff it with the source (not for declarations an aspect introduced) and *Whole File in
 Metalama Diff*. The bottom row links the aspects that changed it. The popup can be moved and resized.
 
@@ -221,7 +221,7 @@ It appears after the first refresh and follows the file as of the last one.
 - **Build to resume (LAMA0118).** Metalama pauses its analysis in Rider after compile-time code changes until the
   project is built. Alt+Enter in an aspect or template file › *Build '&lt;project&gt;' to resume Metalama analysis*
   (offered when the project's compile-time files changed after its last build). Or
-  turn on *Settings › Tools › LamaRider › Build the project after aspect or template code is saved*.
+  turn on *Settings › Tools › LamaRyder › Build the project after aspect or template code is saved*.
 
 ![Metalama error info bar](screenshots/error-banner.png)
 
@@ -256,15 +256,15 @@ Limitations:
 
 To step through the code aspects generate, Metalama builds with `MetalamaDebugTransformedCode`. Two ways:
 
-**Debug with LamaDebug** (LamaRider tool window toolbar or gear menu):
+**Debug with LamaDebug** (LamaRyder tool window toolbar or gear menu):
 
-1. Click it. If the solution has no `LamaDebug` configuration, LamaRider offers to add one to the `.sln` / `.slnx`
+1. Click it. If the solution has no `LamaDebug` configuration, LamaRyder offers to add one to the `.sln` / `.slnx`
    (copied from Debug). Wait for Rider to reload the solution, then click it again.
 2. It selects LamaDebug and debugs the selected run configuration.
 3. Step into a method an aspect changed, or set breakpoints in its transformed file (*Open Transformed File*,
    `obj/LamaDebug/<tfm>/metalama/`).
 
-**Every configuration:** *Settings › Tools › LamaRider › Debug transformed code in every build configuration* writes
+**Every configuration:** *Settings › Tools › LamaRyder › Debug transformed code in every build configuration* writes
 `MetalamaDebugTransformedCode` to the solution's `Directory.Build.props`. Rebuild, then debug as usual.
 
 ![Debugging transformed code](screenshots/debug-transformed-code.png)
@@ -290,7 +290,7 @@ is a test, compared with the `.t.cs` file next to it.
 1. Alt+Enter on the aspect class name › *Create Metalama aspect test* (or editor menu › *Create Metalama Aspect Test*).
 2. Pick an aspect test project that references the aspect's project, or *Create aspect test project
    '&lt;Project&gt;.AspectTests'* (xUnit, your Metalama version, same target framework, next to the aspect's project).
-3. LamaRider writes `<Aspect>Tests/<Aspect>Test.cs` with a target that already uses the aspect (a comment pointing to
+3. LamaRyder writes `<Aspect>Tests/<Aspect>Test.cs` with a target that already uses the aspect (a comment pointing to
    fabrics for aspects that are not attributes), opens it and builds the project so Rider lists the test.
 
 ![New aspect test](screenshots/create-aspect-test.png)
@@ -315,7 +315,7 @@ Accepting can be undone with Ctrl+Z. Differences only in line endings or trailin
 
 ![Test output diff](screenshots/aspect-test-diff.png)
 
-Test inputs show their aspects like any other code (LamaRider window, Code Vision, transformed code).
+Test inputs show their aspects like any other code (LamaRyder window, Code Vision, transformed code).
 
 ![Aspect test file](screenshots/aspect-test.png)
 
@@ -332,12 +332,12 @@ bar:
 - *Open LogAttribute.cs at this line*.
 - *Make it readable*: turns on *Readable aspect code while debugging* and asks: *Debug Again* stops debugging,
   rebuilds the aspect test project with its dependencies and debugs the same aspect test again; *Later* leaves it.
-  *Debug Again* is offered when you started the aspect test from LamaRider (gutter icon or *Run / Debug Metalama Aspect
+  *Debug Again* is offered when you started the aspect test from LamaRyder (gutter icon or *Run / Debug Metalama Aspect
   Test*); otherwise the dialog tells you to rebuild and debug again.
 
 ![Debugging an aspect test](screenshots/debug-aspect-test.png)
 
-**Readable aspect code while debugging** (*Settings › Tools › LamaRider › Debugging*, off by default): Metalama formats
+**Readable aspect code while debugging** (*Settings › Tools › LamaRyder › Debugging*, off by default): Metalama formats
 its compiled copy (no `global::`, normal indentation). Slower builds of aspect projects. Rebuild the aspect project
 after changing it.
 
@@ -348,7 +348,7 @@ Limitations:
 - Breakpoints added or changed during a session take effect in the next session. Breakpoints on lines without a
   statement don't stop.
 - If a breakpoint doesn't stop (for example after a Metalama update changed its compiled-copy format), debugging works
-  as without LamaRider.
+  as without LamaRyder.
 - Rider shows unresolved-symbol errors in the compiled copy, and its debugger hints may log an internal error there;
   both are harmless.
 - Aspect test projects are analyzed a second time with Metalama on, which adds to the refresh time.
@@ -361,7 +361,7 @@ processes.
 - When a solution uses `Metalama.Testing.AspectTesting` without them, a notification offers *Apply to solution
   (team-shared)*, *Apply for me only* or *Apply globally*.
 - *Run / Debug Metalama Aspect Test* turns Test Runner discovery on for you (`.sln.DotSettings.user`).
-- *Settings › Tools › LamaRider › Aspect Tests* shows whether they are in place and has *Configure Rider for Metalama
+- *Settings › Tools › LamaRyder › Aspect Tests* shows whether they are in place and has *Configure Rider for Metalama
   Tests…*.
 
 ## Metalama Premium code
@@ -396,13 +396,13 @@ Limitations:
 
 ## Settings
 
-*Settings › Tools › LamaRider* (also the settings icon in the LamaRider tool window):
+*Settings › Tools › LamaRyder* (also the settings icon in the LamaRyder tool window):
 
 | Setting | Default | Effect |
 |---|---|---|
 | Code Vision › Aspects | Each aspect by name | By name, with inlay hints for parameters and return values, or *Their number on the declaration*. See [Code Vision](#code-vision-and-inlay-hints). |
 | Code Vision › Transformed code | Hint of its own | A `transformed code` entry, or *Item in the aspect menu*. |
-| Code Vision › Clicking an aspect | Go to the aspect's source | Go to source, show it in the LamaRider window, or ask. |
+| Code Vision › Clicking an aspect | Go to the aspect's source | Go to source, show it in the LamaRyder window, or ask. |
 | Build the project after aspect or template code is saved | off | Resumes Metalama's analysis after compile-time changes (LAMA0118). |
 | Debug transformed code in every build configuration | off | `MetalamaDebugTransformedCode` in the solution's `Directory.Build.props`. |
 | Format transformed code | on | Off: `MetalamaFormatOutput=false` (faster builds, no LAMA0066). |
@@ -411,7 +411,7 @@ Limitations:
 
 The Code Vision and build settings apply to all solutions.
 
-![LamaRider settings](screenshots/settings.png)
+![LamaRyder settings](screenshots/settings.png)
 
 ## Known limitations
 

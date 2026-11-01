@@ -73,7 +73,7 @@ class ScreenshotsUiTest : UiTestBase() {
             """.trimIndent() + "\n")
     }) {
         layout()
-        openToolWindow("LamaRider")
+        openToolWindow("LamaRyder")
         ideFrame { waitForText("aspects listed (first refresh done)", "Log") }
 
         caretAt("MetalamaSample/Calculator.cs", "Add(")
@@ -138,7 +138,7 @@ class ScreenshotsUiTest : UiTestBase() {
             """.trimIndent() + "\n")
     }) {
         layout()
-        openToolWindow("LamaRider")
+        openToolWindow("LamaRyder")
         caretAt("MetalamaSample/LogAttribute.cs", "LogAttribute :")
         val banner = popup("Metalama: LAMA0041")
         shot("error-banner", editorArea(330).union(banner.rect()).grown())
@@ -147,7 +147,7 @@ class ScreenshotsUiTest : UiTestBase() {
     @Test
     fun `editor menu and an aspect added as attribute`() = withRider("shots-asattribute") {
         layout()
-        openToolWindow("LamaRider")
+        openToolWindow("LamaRyder")
         ideFrame { waitForText("aspects listed (first refresh done)", "Log") }
         caretAt("MetalamaSample/Calculator.cs", "Multiply(")
         Thread.sleep(5000) // Code Vision
@@ -191,7 +191,7 @@ class ScreenshotsUiTest : UiTestBase() {
             """.trimIndent() + "\n")
     }) {
         layout()
-        openToolWindow("LamaRider")
+        openToolWindow("LamaRyder")
         ideFrame { waitForText("aspects listed (first refresh done)", "Log") }
         caretAt("MetalamaSample/SuggestObsolete.cs", "Suggest(")
         val area = editorArea(330)
@@ -207,7 +207,7 @@ class ScreenshotsUiTest : UiTestBase() {
     @Test
     fun `declaration replaced with its transformed code`()= withRider("shots-replace") {
         layout()
-        openToolWindow("LamaRider")
+        openToolWindow("LamaRyder")
         ideFrame { waitForText("aspects listed (first refresh done)", "Log") }
         caretAt("MetalamaSample/Calculator.cs", "Multiply(")
         editorAction("LamaRider.ReplaceWithTransformedCode")
@@ -218,7 +218,7 @@ class ScreenshotsUiTest : UiTestBase() {
     @Test
     fun `aspect test file and debugging into the aspect`()= withRider("shots-debugaspect") {
         layout()
-        openToolWindow("LamaRider")
+        openToolWindow("LamaRyder")
         ideFrame { waitForText("aspects listed (first refresh done)", "Log") }
 
         // A new test: opens prefilled in the aspect test project.
@@ -251,7 +251,7 @@ class ScreenshotsUiTest : UiTestBase() {
     @Test
     fun `aspect test output compared with its snapshot`() = withRider("shots-testdiff") {
         layout()
-        openToolWindow("LamaRider")
+        openToolWindow("LamaRyder")
         ideFrame { waitForText("aspects listed (first refresh done)", "Log") }
         caretAt("MetalamaSample/LogAttribute.cs", "LogAttribute :")
         editorAction("LamaRider.CreateAspectTest")
@@ -297,7 +297,7 @@ class ScreenshotsUiTest : UiTestBase() {
         dotnet("build", dir.resolve("MetalamaSample/MetalamaSample.csproj").toString())
     }) {
         layout()
-        openToolWindow("LamaRider")
+        openToolWindow("LamaRyder")
         ideFrame { waitForText("aspects listed (first refresh done)", "Log") }
         // Stop in Program.cs, then step into Multiply: the debugger continues in its transformed code.
         breakpoint("MetalamaSample/Program.cs", 0)
