@@ -123,6 +123,18 @@ The backend (ReSharper plugin) runs **LamaRider.Worker** out of process. The wor
 for your Metalama version (cached in `%LOCALAPPDATA%\LamaRider\worker\`), so the first refresh takes a minute. It
 refreshes after file changes, builds and package restores, and logs to `%LOCALAPPDATA%\LamaRider\logs\last-run.log`.
 
+## Install
+
+Until LamaRyder is listed on JetBrains Marketplace, add this plugin repository in *Settings › Plugins › ⚙ › Manage
+Plugin Repositories…*, then install LamaRyder from the *Marketplace* tab; updates arrive the same way:
+
+```
+https://raw.githubusercontent.com/wollume-studios/LamaRider/main/updatePlugins.xml
+```
+
+Or download the zip from [Releases](https://github.com/wollume-studios/LamaRider/releases) and use *Install Plugin from
+Disk…*.
+
 ## Build and install
 
 ```bash

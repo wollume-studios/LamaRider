@@ -171,8 +171,8 @@ val publishLocal by tasks.registering {
         val entry = """
             |  <plugin id="$pluginId" url="${target.toPath().toUri()}" version="$pluginVersion">
             |    <idea-version since-build="$SinceBuild"/>
-            |    <name>LamaRider</name>
-            |    <vendor>LamaRider</vendor>
+            |    <name>LamaRyder</name>
+            |    <vendor>LamaRyder</vendor>
             |    <description>Metalama tooling for Rider: Aspect Explorer, Code Vision, T# highlighting, Metalama Diff.</description>
             |  </plugin>
             |""".trimMargin()

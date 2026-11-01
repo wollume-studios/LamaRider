@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Custom plugin repository until LamaRyder is on JetBrains Marketplace. In Rider: Settings › Plugins › ⚙ ›
+     Manage Plugin Repositories… › add https://raw.githubusercontent.com/wollume-studios/LamaRider/main/updatePlugins.xml -->
+<plugins>
+  <plugin id="dev.lamarider" url="https://github.com/wollume-studios/LamaRider/releases/download/v0.7.0/LamaRider-0.7.0.zip" version="0.7.0">
+    <idea-version since-build="262"/>
+    <name>LamaRyder</name>
+    <vendor url="https://github.com/wollume-studios/LamaRider">Wollume Studios</vendor>
+    <description>Metalama tooling for Rider: Aspect Explorer, Code Vision, T# highlighting, Metalama Diff, quick-fixes for Metalama diagnostics.</description>
+  </plugin>
+</plugins>
