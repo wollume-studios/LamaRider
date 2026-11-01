@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 0.7.0
 - Metalama warnings and infos show in the editor (a barely visible hint next to Rider's squiggle) and, like errors, carry Alt+Enter quick-fixes: *Look up LAMAxxxx online*, *Suppress LAMAxxxx here (#pragma)* / *in project (NoWarn)*, *Remove [Aspect] from this declaration*.
 - Specific quick-fixes for 199 diagnostic ids that edit code, aspect source, project properties or `NoWarn` (docs/metalama-fixes.md).
 - The quick-fixes are verified against Metalama's documented error samples (self-test, docs/test-coverage.md).
