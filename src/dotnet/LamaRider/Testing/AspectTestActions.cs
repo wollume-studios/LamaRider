@@ -258,7 +258,7 @@ public sealed class CreateAspectTestAction(ICSharpContextActionDataProvider prov
         var declaration = provider.GetSelectedElement<IClassDeclaration>();
         if (declaration?.DeclaredElement is not { } type || provider.Project is not { } project) return null;
         // Caret on the name or the header, not anywhere in a long class body.
-        if (!declaration.GetNameDocumentRange().Contains(provider.DocumentSelection) && provider.SelectedElement?.Parent != declaration) return null;
+        if (!declaration.GetNameDocumentRange().Contains(provider.DocumentSelection) && provider.GetSelectedTreeNode<ITreeNode>()?.Parent != declaration) return null;
         return AspectTests.IsAspect(type) ? (type, project) : null;
     }
 

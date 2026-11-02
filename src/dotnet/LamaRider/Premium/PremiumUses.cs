@@ -91,8 +91,8 @@ public static class PremiumUses
         using (WriteLockCookie.Create())
             foreach (var (before, after) in wraps)
             {
-                document.InsertText(after, "\n#endif");
-                document.InsertText(before, $"#if {PremiumBuild.Symbol}\n");
+                document.InsertText(new DocumentOffset(document, after), "\n#endif");
+                document.InsertText(new DocumentOffset(document, before), $"#if {PremiumBuild.Symbol}\n");
             }
     }
 

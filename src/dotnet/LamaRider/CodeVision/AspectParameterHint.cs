@@ -46,7 +46,7 @@ public sealed class AspectParameterHintAdornmentProvider(AspectModelHost host) :
     sealed class DataModel(AspectParameterHint hint, AspectModelHost host) : IAdornmentDataModel
     {
         public AdornmentData Data => new(hint.Text, null,
-            AdornmentFlags.IsNavigable | AdornmentFlags.IsCtrlNotRequiredForNavigation, new AdornmentPlacement(), PushToHintMode.Default, AdornmentKind.Default);
+            AdornmentFlags.IsNavigable | AdornmentFlags.IsCtrlNotRequiredForNavigation, AdornmentPlacement.DefaultBeforeThisChar, PushToHintMode.Default, AdornmentKind.Default);
 
         public IPresentableItem? ContextMenuTitle => null;
         public IEnumerable<BulbMenuItem> ContextMenuItems => Enumerable.Empty<BulbMenuItem>();

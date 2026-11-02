@@ -1,5 +1,8 @@
 # Changelog
 
+## Unreleased
+- No deprecated Rider APIs any more (Marketplace verifier warnings for Rider 2026.3).
+
 ## 0.7.0
 - Renamed to LamaRyder (JetBrains Marketplace doesn't allow "Rider" in plugin names); the plugin id stays `dev.lamarider`.
 - Metalama warnings and infos show in the editor (a barely visible hint next to Rider's squiggle) and, like errors, carry Alt+Enter quick-fixes: *Look up LAMAxxxx online*, *Suppress LAMAxxxx here (#pragma)* / *in project (NoWarn)*, *Remove [Aspect] from this declaration*.

@@ -37,7 +37,7 @@ public static class DiagnosticRanges
     {
         var lines = (int)document.GetLineCount();
         if (diagnostic is { Start: { } start, End: { } end, Line: { } spanLine } && end >= start && end <= document.GetTextLength()
-            && spanLine >= 1 && spanLine <= lines && (int)document.GetCoordsByOffset(start).Line == spanLine - 1)
+            && spanLine >= 1 && spanLine <= lines && (int)new DocumentOffset(document, start).ToDocumentCoords().Line == spanLine - 1)
             return new DocumentRange(document, new TextRange(start, end == start ? Math.Min(end + 1, document.GetTextLength()) : end));
         if (diagnostic.Target != null && names.TryGetValue(AspectModel.Owner(diagnostic.Target), out var name)) return name;
         if (diagnostic.Line is not { } line || line < 1 || line > lines) return null;
